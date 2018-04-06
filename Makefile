@@ -40,16 +40,19 @@ endif
 ERL_CFLAGS ?= -I$(ERL_EI_INCLUDE_DIR)
 ERL_LDFLAGS ?= -L$(ERL_EI_LIBDIR) -lei
 
-LDFLAGS +=
+LDFLAGS += -fPIC -shared -pedantic
 CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter
 CC ?= $(CROSSCOMPILE)-gcc
+
+GPIO_NIF=priv/gpio_nif.so
 
 SRC=$(wildcard src/*.c)
 OBJ=$(SRC:.c=.o)
 
 .PHONY: all clean
 
-all: $(DEFAULT_TARGETS)
+all:
+	$(CC) -o $(GPIO_NIF) src/gpio_nif.c  $(ERL_CFLAGS) $(CFLAGS) $(LDFLAGS)
 
 %.o: %.c
 	$(CC) -c $(ERL_CFLAGS) $(CFLAGS) -o $@ $<
@@ -62,3 +65,4 @@ priv/ale: $(OBJ)
 
 clean:
 	rm -f priv/ale src/*.o
+
