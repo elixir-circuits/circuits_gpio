@@ -14,6 +14,12 @@
 #define debug(...)
 #endif
 
+enum gpio_state {
+    GPIO_OUTPUT,
+    GPIO_INPUT,
+    GPIO_INPUT_WITH_INTERRUPTS
+};
+
 typedef struct gpio {
     int fd;
     int pin_number;
@@ -79,8 +85,9 @@ int export_pin(GPIO *pin)
 int write_direction(GPIO *pin)
 {
     if (access(pin->direction_path, F_OK) != -1) {
+        const char *dir_string = (strcmp(pin->direction,"output") == 0 ? "out" : "in");
         int retries = 1000; /* Allow 1000 * 1ms = 1 second max for retries */
-        while (!sysfs_write_file(pin->direction_path, pin->direction) && retries > 0) {
+        while (!sysfs_write_file(pin->direction_path, dir_string) && retries > 0) {
             usleep(1000);
             retries--;
         }
@@ -100,7 +107,6 @@ int gpio_write(GPIO *pin, unsigned int val)
 
     return 1;
 }
-
 
 ERL_NIF_TERM make_ok_tuple(ErlNifEnv *env, ERL_NIF_TERM value)
 {
@@ -169,8 +175,6 @@ static ERL_NIF_TERM init_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     set_gpio_paths(&pin);
     export_pin(&pin);
     write_direction(&pin);
-
-    printf("value path: %s\n", pin.value_path);
 
     /* Open the value path file for quick access later */
     pin.fd = open(pin.value_path, O_RDWR);

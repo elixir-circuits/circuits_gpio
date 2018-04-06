@@ -42,7 +42,6 @@ defmodule ElixirALE.GPIO do
   end
 
   def handle_call({:write, value}, _from, %State{pin_number: pin_number, fd: fd} = state) do
-    IO.inspect fd, label: "FD"
     {:reply, write_nif(pin_number, value, fd), state}
   end
 
