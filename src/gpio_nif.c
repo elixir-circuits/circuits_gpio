@@ -45,7 +45,7 @@ int sysfs_write_file(const char *pathname, const char *value)
 
     if (fd < 0) {
         debug("Error opening %s", pathname);
-        return 0; 
+        return 0;
     }
 
     size_t count = strlen(value);
@@ -87,7 +87,7 @@ int export_pin(GPIO *pin)
         char pinstr[24];
         sprintf(pinstr, "%d", pin->pin_number);
         if (!sysfs_write_file("/sys/class/gpio/export", pinstr))
-                return - 1;
+            return - 1;
     }
 
     return 0;
@@ -193,7 +193,7 @@ static ERL_NIF_TERM init_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     if (pin.fd < 0)
         return make_error_tuple(env, enif_make_atom(env, "bad_stff"));
 
-    
+
     return make_ok_tuple(env, enif_make_int(env, pin.fd));
 }
 
