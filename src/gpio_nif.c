@@ -28,6 +28,17 @@ typedef struct gpio {
     char direction_path[64];
 } GPIO;
 
+static int load(ErlNifEnv *env, void **priv, ERL_NIF_TERM info)
+{
+    GPIO *data = enif_alloc(sizeof(GPIO));
+
+    if (!data)
+        return 1;
+
+    *priv = (void *) data;
+    return 0;
+}
+
 int sysfs_write_file(const char *pathname, const char *value)
 {
     int fd = open(pathname, O_WRONLY);
@@ -192,4 +203,4 @@ static ErlNifFunc nif_funcs[] = {
     {"read_nif", 2, read_gpio, 0},
 };
 
-ERL_NIF_INIT(Elixir.ElixirALE.GPIO, nif_funcs, NULL, NULL, NULL, NULL)
+ERL_NIF_INIT(Elixir.ElixirALE.GPIO, nif_funcs, load, NULL, NULL, NULL)
