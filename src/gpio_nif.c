@@ -136,14 +136,10 @@ ERL_NIF_TERM make_error_tuple(ErlNifEnv *env, ERL_NIF_TERM reason)
 
 static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-    GPIO pin;
-
-    enif_get_int(env, argv[0], &pin.pin_number);
-    enif_get_int(env, argv[1], &pin.fd);
-    set_value_path(&pin);
+    GPIO *pin = enif_priv_data(env);
 
     char buf;
-    ssize_t amount_read = pread(pin.fd, &buf, sizeof(buf), 0);
+    ssize_t amount_read = pread(pin->fd, &buf, sizeof(buf), 0);
 
     if (amount_read < (ssize_t) sizeof(buf)) {
         return enif_make_atom(env, "error");
@@ -156,14 +152,12 @@ static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
 
 static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-    GPIO pin;
+    GPIO *pin = enif_priv_data(env);
     int value;
 
-    enif_get_int(env, argv[0], &pin.pin_number);
     enif_get_int(env, argv[1], &value);
-    enif_get_int(env, argv[2], &pin.fd);
 
-    gpio_write(&pin, value);
+    gpio_write(pin, value);
 
     return enif_make_atom(env, "ok");
 
@@ -171,30 +165,30 @@ static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
 
 static ERL_NIF_TERM init_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-    GPIO pin;
+    GPIO *pin = enif_priv_data(env);
 
-    if (!enif_get_int(env, argv[0], &pin.pin_number)) {
+    if (!enif_get_int(env, argv[0], &pin->pin_number)) {
         char pin_error[] = "pin_number_invalid_type";
         return make_error_tuple(env, enif_make_atom(env, pin_error));
     }
 
-    if (!enif_get_atom(env, argv[1], pin.direction, 7, ERL_NIF_LATIN1)) {
+    if (!enif_get_atom(env, argv[1], pin->direction, 7, ERL_NIF_LATIN1)) {
         char direction_error[] = "direction_invalid";
         return make_error_tuple(env, enif_make_atom(env, direction_error));
     }
 
-    set_gpio_paths(&pin);
-    export_pin(&pin);
-    write_direction(&pin);
+    set_gpio_paths(pin);
+    export_pin(pin);
+    write_direction(pin);
 
     /* Open the value path file for quick access later */
-    pin.fd = open(pin.value_path, O_RDWR);
+    pin->fd = open(pin->value_path, O_RDWR);
 
-    if (pin.fd < 0)
+    if (pin->fd < 0)
         return make_error_tuple(env, enif_make_atom(env, "bad_stff"));
 
 
-    return make_ok_tuple(env, enif_make_int(env, pin.fd));
+    return make_ok_tuple(env, enif_make_int(env, pin->fd));
 }
 
 static ErlNifFunc nif_funcs[] = {
