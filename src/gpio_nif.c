@@ -155,7 +155,7 @@ static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
     GPIO *pin = enif_priv_data(env);
     int value;
 
-    enif_get_int(env, argv[1], &value);
+    enif_get_int(env, argv[0], &value);
 
     gpio_write(pin, value);
 
@@ -193,8 +193,8 @@ static ERL_NIF_TERM init_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
 
 static ErlNifFunc nif_funcs[] = {
     {"init_gpio", 2, init_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
-    {"write_nif", 3, write_gpio, 0},
-    {"read_nif", 2, read_gpio, 0},
+    {"write_nif", 1, write_gpio, 0},
+    {"read_nif", 0, read_gpio, 0},
 };
 
 ERL_NIF_INIT(Elixir.ElixirALE.GPIO, nif_funcs, load, NULL, NULL, NULL)

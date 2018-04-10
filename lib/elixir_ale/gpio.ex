@@ -37,12 +37,12 @@ defmodule ElixirALE.GPIO do
     {:ok, %State{pin_number: pin, direction: pin_direction, fd: fd}}
   end
 
-  def handle_call(:read, _from, %State{pin_number: pin_number, fd: fd} = state) do
-    {:reply, read_nif(pin_number, fd), state}
+  def handle_call(:read, _from, %State{} = state) do
+    {:reply, read_nif(), state}
   end
 
   def handle_call({:write, value}, _from, %State{pin_number: pin_number, fd: fd} = state) do
-    {:reply, write_nif(pin_number, value, fd), state}
+    {:reply, write_nif(value), state}
   end
 
   def init_gpio(_pin_number, _pin_direction) do
@@ -54,11 +54,11 @@ defmodule ElixirALE.GPIO do
     :erlang.load_nif(nif_exec, 0)
   end
 
-  def read_nif(_pin_number, _fd) do
+  def read_nif() do
     "NIF library not loaded."
   end
   
-  def write_nif(_pin_number, _value, _fd) do
+  def write_nif(_value) do
     "NIF library not loaded"
   end
 end
