@@ -1,13 +1,12 @@
 defmodule ElixirALE.GPIO do
   use GenServer
 
-  @on_load {:load_nif, 0}
-
   defmodule State do
     @moduledoc false
-    @enforce_keys :pin_number
-    defstruct pin_number: nil, direction: nil, callbacks: [], fd: nil
+    defstruct pid: nil 
   end
+
+  alias ElixirALE.GPIO.Nif
 
   @type pin_direction :: :input | :output
 
@@ -31,34 +30,34 @@ defmodule ElixirALE.GPIO do
     GenServer.call(pid, {:write, value})
   end
 
-  def init([pin, pin_direction]) do
-    {:ok, fd} = init_gpio(pin, pin_direction)
+  @doc """
+  Listen for GPIO interups
+  """
+  def listen(pid) do
+    GenServer.call(pid, :listen)
+  end
 
-    {:ok, %State{pin_number: pin, direction: pin_direction, fd: fd}}
+  def init([pin, pin_direction]) do
+    {:ok, _fd} = Nif.init_gpio(pin, pin_direction)
+    {:ok, %State{}}
   end
 
   def handle_call(:read, _from, %State{} = state) do
-    {:reply, read_nif(), state}
+    {:reply, Nif.read(), state}
   end
 
-  def handle_call({:write, value}, _from, %State{pin_number: pin_number, fd: fd} = state) do
-    {:reply, write_nif(value), state}
+  def handle_call({:write, value}, _from, state) do
+    {:reply, Nif.write(value), state}
   end
 
-  def init_gpio(_pin_number, _pin_direction) do
-    "NIF library not loaded."
+  def handle_call(:listen, {pid, _}, state) do
+    :ok = Nif.poll()
+    {:reply, :ok, %{state | pid: pid}}
   end
 
-  def load_nif do
-    nif_exec = '#{:code.priv_dir(:elixir_ale)}/gpio_nif'
-    :erlang.load_nif(nif_exec, 0)
-  end
-
-  def read_nif() do
-    "NIF library not loaded."
-  end
-  
-  def write_nif(_value) do
-    "NIF library not loaded"
+  def handle_info({:select, _res, _ref, :ready_input}, state) do
+    value = Nif.read()
+    send(state.pid, {:elixir_ale, value})
+    {:noreply, state}
   end
 end

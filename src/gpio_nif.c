@@ -1,6 +1,7 @@
 #include "erl_nif.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -14,19 +15,15 @@
 #define debug(...)
 #endif
 
-enum gpio_state {
-    GPIO_OUTPUT,
-    GPIO_INPUT,
-    GPIO_INPUT_WITH_INTERRUPTS
-};
-
 typedef struct gpio {
     int fd;
     int pin_number;
     char direction[7];
     char value_path[64];
     char direction_path[64];
+    bool polling;
 } GPIO;
+
 
 static int load(ErlNifEnv *env, void **priv, ERL_NIF_TERM info)
 {
@@ -34,6 +31,9 @@ static int load(ErlNifEnv *env, void **priv, ERL_NIF_TERM info)
 
     if (!data)
         return 1;
+
+    data->fd = -1;
+    data->polling = false;
 
     *priv = (void *) data;
     return 0;
@@ -119,6 +119,7 @@ int gpio_write(GPIO *pin, unsigned int val)
     return 1;
 }
 
+
 ERL_NIF_TERM make_ok_tuple(ErlNifEnv *env, ERL_NIF_TERM value)
 {
     ERL_NIF_TERM ok_atom = enif_make_atom(env, "ok");
@@ -134,6 +135,31 @@ ERL_NIF_TERM make_error_tuple(ErlNifEnv *env, ERL_NIF_TERM reason)
     return enif_make_tuple2(env, error_atom, reason);
 }
 
+int setup_polling(ErlNifEnv *env)
+{
+    GPIO *pin = enif_priv_data(env);
+    int rc = enif_select(env, pin->fd, ERL_NIF_SELECT_READ, pin, NULL, enif_make_atom(env, "undefined"));
+    return rc;
+}
+
+static ERL_NIF_TERM poll(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    GPIO *pin = enif_priv_data(env);
+
+    if (pin->polling)
+        return enif_make_atom(env, "ok");
+
+    int rc = setup_polling(env);
+
+    if (rc < 0)
+        return make_error_tuple(env, enif_make_atom(env, "enif_select"));
+
+    pin->polling = true;
+
+    return enif_make_atom(env, "ok");
+}
+
+
 static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     GPIO *pin = enif_priv_data(env);
@@ -146,6 +172,15 @@ static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     }
 
     int value = buf == '1' ? 1 : 0;
+
+    if (pin->polling) {
+        int rc = setup_polling(env);
+
+        if (rc < 0) {
+            pin->polling = false;
+            return make_error_tuple(env, enif_make_atom(env, "enif_select"));
+        }
+    }
 
     return enif_make_int(env, value);
 }
@@ -187,14 +222,14 @@ static ERL_NIF_TERM init_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     if (pin->fd < 0)
         return make_error_tuple(env, enif_make_atom(env, "bad_stff"));
 
-
     return make_ok_tuple(env, enif_make_int(env, pin->fd));
 }
 
 static ErlNifFunc nif_funcs[] = {
     {"init_gpio", 2, init_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
-    {"write_nif", 1, write_gpio, 0},
-    {"read_nif", 0, read_gpio, 0},
+    {"write", 1, write_gpio, 0},
+    {"read", 0, read_gpio, 0},
+    {"poll", 0, poll, 0},
 };
 
-ERL_NIF_INIT(Elixir.ElixirALE.GPIO, nif_funcs, load, NULL, NULL, NULL)
+ERL_NIF_INIT(Elixir.ElixirALE.GPIO.Nif, nif_funcs, load, NULL, NULL, NULL)
