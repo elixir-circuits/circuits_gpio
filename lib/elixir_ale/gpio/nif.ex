@@ -1,5 +1,6 @@
 defmodule ElixirALE.GPIO.Nif do
   @on_load {:load_nif, 0}
+  @compile {:autoload, false}
 
   def load_nif do
     nif_exec = '#{:code.priv_dir(:elixir_ale)}/gpio_nif'
