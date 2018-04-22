@@ -3,7 +3,7 @@ defmodule ElixirALE.GPIO do
 
   defmodule State do
     @moduledoc false
-    defstruct pid: nil 
+    defstruct pid: nil
   end
 
   alias ElixirALE.GPIO.Nif

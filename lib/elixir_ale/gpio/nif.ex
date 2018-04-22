@@ -13,7 +13,7 @@ defmodule ElixirALE.GPIO.Nif do
   def read do
     :erlang.nif_error(:nif_not_loaded)
   end
-  
+
   def write(_value) do
     :erlang.nif_error(:nif_not_loaded)
   end

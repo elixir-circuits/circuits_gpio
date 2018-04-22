@@ -15,19 +15,18 @@
 #define debug(...)
 #endif
 
-typedef struct gpio {
+struct gpio {
     int fd;
     int pin_number;
     char direction[7];
     char value_path[64];
     char direction_path[64];
     bool polling;
-} GPIO;
-
+};
 
 static int load(ErlNifEnv *env, void **priv, ERL_NIF_TERM info)
 {
-    GPIO *data = enif_alloc(sizeof(GPIO));
+    struct gpio *data = enif_alloc(sizeof(struct gpio));
 
     if (!data)
         return 1;
@@ -59,7 +58,7 @@ int sysfs_write_file(const char *pathname, const char *value)
     return written;
 }
 
-int set_value_path(GPIO *pin)
+int set_value_path(struct gpio *pin)
 {
     if (!pin->pin_number)
         return -1;
@@ -67,7 +66,7 @@ int set_value_path(GPIO *pin)
     return sprintf(pin->value_path, "/sys/class/gpio/gpio%d/value", pin->pin_number);
 }
 
-int set_gpio_paths(GPIO *pin)
+int set_gpio_paths(struct gpio *pin)
 {
     if (!pin->pin_number)
         return -1;
@@ -78,7 +77,7 @@ int set_gpio_paths(GPIO *pin)
     return 0;
 }
 
-int export_pin(GPIO *pin)
+int export_pin(struct gpio *pin)
 {
     if (!pin->value_path)
         return -1;
@@ -93,7 +92,7 @@ int export_pin(GPIO *pin)
     return 0;
 }
 
-int write_direction(GPIO *pin)
+int write_direction(struct gpio *pin)
 {
     if (access(pin->direction_path, F_OK) != -1) {
         const char *dir_string = (strcmp(pin->direction,"output") == 0 ? "out" : "in");
@@ -108,7 +107,7 @@ int write_direction(GPIO *pin)
     return 0;
 }
 
-int gpio_write(GPIO *pin, unsigned int val)
+int gpio_write(struct gpio *pin, unsigned int val)
 {
     char buff = val ? '1' : '0';
 
@@ -119,14 +118,12 @@ int gpio_write(GPIO *pin, unsigned int val)
     return 1;
 }
 
-
 ERL_NIF_TERM make_ok_tuple(ErlNifEnv *env, ERL_NIF_TERM value)
 {
     ERL_NIF_TERM ok_atom = enif_make_atom(env, "ok");
 
     return enif_make_tuple2(env, ok_atom, value);
 }
-
 
 ERL_NIF_TERM make_error_tuple(ErlNifEnv *env, ERL_NIF_TERM reason)
 {
@@ -137,14 +134,14 @@ ERL_NIF_TERM make_error_tuple(ErlNifEnv *env, ERL_NIF_TERM reason)
 
 int setup_polling(ErlNifEnv *env)
 {
-    GPIO *pin = enif_priv_data(env);
+    struct gpio *pin = enif_priv_data(env);
     int rc = enif_select(env, pin->fd, ERL_NIF_SELECT_READ, pin, NULL, enif_make_atom(env, "undefined"));
     return rc;
 }
 
 static ERL_NIF_TERM poll(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-    GPIO *pin = enif_priv_data(env);
+    struct gpio *pin = enif_priv_data(env);
 
     if (pin->polling)
         return enif_make_atom(env, "ok");
@@ -162,7 +159,7 @@ static ERL_NIF_TERM poll(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 
 static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-    GPIO *pin = enif_priv_data(env);
+    struct gpio *pin = enif_priv_data(env);
 
     char buf;
     ssize_t amount_read = pread(pin->fd, &buf, sizeof(buf), 0);
@@ -187,7 +184,7 @@ static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
 
 static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-    GPIO *pin = enif_priv_data(env);
+    struct gpio *pin = enif_priv_data(env);
     int value;
 
     enif_get_int(env, argv[0], &value);
@@ -200,7 +197,7 @@ static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
 
 static ERL_NIF_TERM init_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-    GPIO *pin = enif_priv_data(env);
+    struct gpio *pin = enif_priv_data(env);
 
     if (!enif_get_int(env, argv[0], &pin->pin_number)) {
         char pin_error[] = "pin_number_invalid_type";
