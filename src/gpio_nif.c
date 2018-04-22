@@ -7,7 +7,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <err.h>
 
 #ifdef DEBUG
 #define debug(...) do { fprintf(stderr, __VA_ARGS); fprintf(stderr, "\r\n"); } while (0)
@@ -113,7 +112,7 @@ int gpio_write(struct gpio *pin, unsigned int val)
 
     ssize_t amount_written = pwrite(pin->fd, &buff, sizeof(buff), 0);
     if (amount_written < (ssize_t) sizeof(buff))
-        err(EXIT_FAILURE, "pwrite");
+        return -1;
 
     return 1;
 }
@@ -192,7 +191,6 @@ static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
     gpio_write(pin, value);
 
     return enif_make_atom(env, "ok");
-
 }
 
 static ERL_NIF_TERM init_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
