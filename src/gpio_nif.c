@@ -36,8 +36,8 @@ struct gpio_priv {
 struct gpio_pin {
     int fd;
     int pin_number;
-    char direction[7];
-    char value_path[64];
+    bool is_output;
+
     char direction_path[64];
     bool polling;
 };
@@ -95,10 +95,9 @@ static int load(ErlNifEnv *env, void **priv, ERL_NIF_TERM info)
 static int sysfs_write_file(const char *pathname, const char *value)
 {
     int fd = open(pathname, O_WRONLY);
-
     if (fd < 0) {
         error("Error opening %s", pathname);
-        return 0;
+        return -1;
     }
 
     size_t count = strlen(value);
@@ -107,27 +106,17 @@ static int sysfs_write_file(const char *pathname, const char *value)
 
     if (written < 0 || (size_t) written != count) {
         error("Error writing '%s' to %s", value, pathname);
-        return 0;
+        return -1;
     }
     return written;
 }
 
-static int set_gpio_paths(struct gpio_pin *pin)
+static int export_pin(int pin_number)
 {
-    sprintf(pin->value_path, "/sys/class/gpio/gpio%d/value", pin->pin_number);
-    sprintf(pin->direction_path, "/sys/class/gpio/gpio%d/direction", pin->pin_number);
-
-    return 0;
-}
-
-static int export_pin(struct gpio_pin *pin)
-{
-    if (access(pin->value_path, F_OK) == -1) {
-        char pinstr[16];
-        sprintf(pinstr, "%d", pin->pin_number);
-        if (!sysfs_write_file("/sys/class/gpio/export", pinstr))
-            return - 1;
-    }
+    char pinstr[16];
+    sprintf(pinstr, "%d", pin_number);
+    if (sysfs_write_file("/sys/class/gpio/export", pinstr) <= 0)
+        return - 1;
 
     return 0;
 }
@@ -135,9 +124,9 @@ static int export_pin(struct gpio_pin *pin)
 static int write_direction(struct gpio_pin *pin)
 {
     if (access(pin->direction_path, F_OK) != -1) {
-        const char *dir_string = (strcmp(pin->direction,"output") == 0 ? "out" : "in");
+        const char *dir_string = (pin->is_output ? "out" : "in");
         int retries = 1000; /* Allow 1000 * 1ms = 1 second max for retries */
-        while (!sysfs_write_file(pin->direction_path, dir_string) && retries > 0) {
+        while (sysfs_write_file(pin->direction_path, dir_string) <= 0 && retries > 0) {
             usleep(1000);
             retries--;
         }
@@ -188,7 +177,6 @@ static ERL_NIF_TERM poll(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     return priv->atom_ok;
 }
 
-
 static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
@@ -238,22 +226,28 @@ static ERL_NIF_TERM init_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
 {
     struct gpio_priv *priv = enif_priv_data(env);
 
+    char direction[8];
+    int pin_number;
+    if (!enif_get_int(env, argv[0], &pin_number) ||
+        !enif_get_atom(env, argv[1], direction, sizeof(direction), ERL_NIF_LATIN1))
+        return enif_make_badarg(env);
+
+    char value_path[64];
+    sprintf(value_path, "/sys/class/gpio/gpio%d/value", pin_number);
+    int fd = open(value_path, O_RDWR);
+    if (fd < 0 &&
+        export_pin(pin_number) < 0 &&
+        (fd = open(value_path, O_RDWR)) < 0)
+        return make_error_tuple(env, "access_denied");
+
     struct gpio_pin *pin = enif_alloc_resource(priv->gpio_pin_rt, sizeof(struct gpio_pin));
+    pin->fd = fd;
+    pin->pin_number = pin_number;
+    pin->is_output = (strcmp(direction, "output") == 0);
+    pin->polling = false;
+    sprintf(pin->direction_path, "/sys/class/gpio/gpio%d/direction", pin->pin_number);
 
-    if (!enif_get_int(env, argv[0], &pin->pin_number))
-        return make_error_tuple(env, "invalid_pin_number");
-
-    if (!enif_get_atom(env, argv[1], pin->direction, 7, ERL_NIF_LATIN1))
-        return make_error_tuple(env, "invalid_direction");
-
-    set_gpio_paths(pin);
-    export_pin(pin);
     write_direction(pin);
-
-    /* Open the value path file for quick access later */
-    pin->fd = open(pin->value_path, O_RDWR);
-    if (pin->fd < 0)
-        return make_error_tuple(env, "bad_stff");
 
     return make_ok_tuple(env, enif_make_resource(env, pin));
 }
