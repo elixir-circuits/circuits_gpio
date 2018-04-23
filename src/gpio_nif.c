@@ -52,16 +52,16 @@ static void gpio_pin_dtor(ErlNifEnv *env, void *obj)
 
 static void gpio_pin_stop(ErlNifEnv *env, void *obj, int fd, int is_direct_call)
 {
-    struct gpio_priv *priv = enif_priv_data(env);
+    //struct gpio_priv *priv = enif_priv_data(env);
     struct gpio_pin *pin = (struct gpio_pin*) obj;
 
     debug("gpio_pin_stop called %s, polling=%d", (is_direct_call ? "DIRECT" : "LATER"), pin->polling);
-    #if 0
+#if 0
     if (data->polling && is_direct_call) {
         data->polling = false;
         enif_select(env, fd, ERL_NIF_SELECT_STOP, obj, NULL, data->atom_undefined);
     }
-    #endif
+#endif
 }
 
 static void gpio_pin_down(ErlNifEnv *env, void *obj, ErlNifPid *pid, ErlNifMonitor *monitor)
@@ -211,7 +211,7 @@ static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
     struct gpio_pin *pin;
     int value;
     if (!enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin) ||
-        !enif_get_int(env, argv[1], &value))
+            !enif_get_int(env, argv[1], &value))
         return enif_make_badarg(env);
 
     char buff = value ? '1' : '0';
@@ -222,22 +222,22 @@ static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
     return priv->atom_ok;
 }
 
-static ERL_NIF_TERM init_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
 
     char direction[8];
     int pin_number;
     if (!enif_get_int(env, argv[0], &pin_number) ||
-        !enif_get_atom(env, argv[1], direction, sizeof(direction), ERL_NIF_LATIN1))
+            !enif_get_atom(env, argv[1], direction, sizeof(direction), ERL_NIF_LATIN1))
         return enif_make_badarg(env);
 
     char value_path[64];
     sprintf(value_path, "/sys/class/gpio/gpio%d/value", pin_number);
     int fd = open(value_path, O_RDWR);
     if (fd < 0 &&
-        export_pin(pin_number) < 0 &&
-        (fd = open(value_path, O_RDWR)) < 0)
+            export_pin(pin_number) < 0 &&
+            (fd = open(value_path, O_RDWR)) < 0)
         return make_error_tuple(env, "access_denied");
 
     struct gpio_pin *pin = enif_alloc_resource(priv->gpio_pin_rt, sizeof(struct gpio_pin));
@@ -253,7 +253,7 @@ static ERL_NIF_TERM init_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
 }
 
 static ErlNifFunc nif_funcs[] = {
-    {"init_gpio", 2, init_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
+    {"open", 2, open_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
     {"write", 2, write_gpio, 0},
     {"read", 1, read_gpio, 0},
     {"poll", 0, poll, 0},

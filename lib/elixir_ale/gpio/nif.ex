@@ -7,7 +7,7 @@ defmodule ElixirALE.GPIO.Nif do
     :erlang.load_nif(nif_exec, 0)
   end
 
-  def init_gpio(_pin_number, _pin_direction) do
+  def open(_pin_number, _pin_direction) do
     :erlang.nif_error(:nif_not_loaded)
   end
 
