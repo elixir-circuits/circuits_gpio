@@ -3,6 +3,7 @@ defmodule ElixirALE.GPIO do
 
   @type pin_number :: non_neg_integer()
   @type pin_direction :: :input | :output
+  @type edge :: :rising | :falling | :both | :none
   @type value :: 0 | 1
 
   # Public API
@@ -13,7 +14,8 @@ defmodule ElixirALE.GPIO do
   `:input` or `:output`.
   """
   @spec start_link(pin_number(), pin_direction(), [term()]) :: GenServer.on_start()
-  def start_link(pin, pin_direction, opts \\ []) do
+  def start_link(pin, pin_direction, _opts \\ []) do
+    # TODO: don't call this start_link since we're no longer a process.
     Nif.open(pin, pin_direction)
   end
 
@@ -27,21 +29,8 @@ defmodule ElixirALE.GPIO do
     Nif.write(gpio, value)
   end
 
-  @doc """
-  Listen for GPIO interups
-  """
-  def listen(_ref) do
-    # GenServer.call(pid, :listen)
+  @spec set_int(reference(), edge()) :: :ok | {:error, atom()}
+  def set_int(gpio, edge) do
+    Nif.set_int(gpio, edge, self())
   end
-
-  #  def handle_call(:listen, {pid, _}, state) do
-  #    :ok = Nif.poll()
-  #    {:reply, :ok, %{state | pid: pid}}
-  #  end
-
-  #  def handle_info({:select, _res, _ref, :ready_input}, state) do
-  #    value = Nif.read()
-  #    send(state.pid, {:elixir_ale, value})
-  #    {:noreply, state}
-  #  end
 end

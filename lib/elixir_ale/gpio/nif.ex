@@ -19,7 +19,7 @@ defmodule ElixirALE.GPIO.Nif do
     :erlang.nif_error(:nif_not_loaded)
   end
 
-  def poll() do
+  def set_int(_gpio, _edge, _process) do
     :erlang.nif_error(:nif_not_loaded)
   end
 end
