@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #define MAX_GPIO_LISTENERS 32
@@ -154,6 +155,15 @@ static void remove_listener(struct gpio_monitor_info *infos, int pin_number)
     }
 }
 
+int64_t timestamp_nanoseconds()
+{
+    struct timespec ts;
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+        return 0;
+
+    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+}
+
 static void *gpio_poller_thread(void *arg)
 {
     struct pollfd fdset[MAX_GPIO_LISTENERS + 1];
@@ -193,6 +203,10 @@ static void *gpio_poller_thread(void *arg)
             break;
         }
 
+        int64_t timestamp = timestamp_nanoseconds();
+        // enif_monotonic_time only works in scheduler threads
+        //ErlNifTime timestamp = enif_monotonic_time(ERL_NIF_NSEC);
+
         if (fdset[count - 1].revents & (POLLIN | POLLHUP)) {
             struct gpio_monitor_info message;
             ssize_t amount_read = read(gpio_priv->pipe_fds[0], &message, sizeof(message));
@@ -217,7 +231,11 @@ static void *gpio_poller_thread(void *arg)
                         gpio_priv->monitor_info[i].fd = -1;
                         cleanup = true;
                     } else {
-                        ERL_NIF_TERM msg = enif_make_tuple3(env, atom_elixir_ale, enif_make_int(env, gpio_priv->monitor_info[i].pin_number), enif_make_int(env, value));
+                        ERL_NIF_TERM msg = enif_make_tuple4(env,
+                                atom_elixir_ale,
+                                enif_make_int(env, gpio_priv->monitor_info[i].pin_number),
+                                enif_make_int64(env, timestamp),
+                                enif_make_int(env, value));
 
                         if (!enif_send(env, &gpio_priv->monitor_info[i].pid, NULL, msg)) {
                             error("send for gpio %d failed, so not listening to it any more", gpio_priv->monitor_info[i].pin_number);
