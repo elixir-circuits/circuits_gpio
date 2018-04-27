@@ -42,27 +42,27 @@ ERL_LDFLAGS ?= -L$(ERL_EI_LIBDIR) -lei
 
 LDFLAGS += -fPIC -shared -pedantic
 CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter
-CC ?= $(CROSSCOMPILE)-gcc
 
-GPIO_NIF=priv/gpio_nif.so
+NIF=priv/gpio_nif.so
 
 SRC=$(wildcard src/*.c)
 OBJ=$(SRC:.c=.o)
 
-.PHONY: all clean
+calling_from_make:
+	mix compile
 
-all:
-	$(CC) -o $(GPIO_NIF) src/gpio_nif.c  $(ERL_CFLAGS) $(CFLAGS) $(LDFLAGS)
-
-%.o: %.c
-	$(CC) -c $(ERL_CFLAGS) $(CFLAGS) -o $@ $<
+all: priv $(NIF)
 
 priv:
 	mkdir -p priv
 
-priv/ale: $(OBJ)
+%.o: %.c
+	$(CC) -c $(ERL_CFLAGS) $(CFLAGS) -o $@ $<
+
+$(NIF): $(OBJ)
 	$(CC) $^ $(ERL_LDFLAGS) $(LDFLAGS) -o $@
 
 clean:
-	rm -f priv/ale src/*.o
+	$(RM) $(NIF) src/*.o
 
+.PHONY: all clean calling_from_make

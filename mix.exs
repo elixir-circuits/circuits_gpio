@@ -4,20 +4,35 @@ defmodule ElixirAle.MixProject do
   def project do
     [
       app: :elixir_ale,
-      version: "1.0.3",
+      version: "2.0.0-experimental",
       elixir: "~> 1.2",
       name: "elixir_ale",
       description: description(),
       package: package(),
       source_url: "https://github.com/fhunleth/elixir_ale",
-      compilers: [:elixir_make] ++ Mix.compilers(),
+      compilers: [:elixir_make | Mix.compilers()],
+      make_targets: ["all"],
       make_clean: ["clean"],
+      make_env: make_env(),
       docs: [extras: ["README.md"]],
       aliases: [docs: ["docs", &copy_images/1], format: ["format", &format_c/1]],
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
+  end
+
+  defp make_env() do
+    case System.get_env("ERL_EI_INCLUDE_DIR") do
+      nil ->
+        %{
+          "ERL_EI_INCLUDE_DIR" => "#{:code.root_dir()}/usr/include",
+          "ERL_EI_LIBDIR" => "#{:code.root_dir()}/usr/lib"
+        }
+
+      _ ->
+        %{}
+    end
   end
 
   def application, do: []
@@ -46,7 +61,7 @@ defmodule ElixirAle.MixProject do
   defp deps do
     [
       {:elixir_make, "~> 0.4", runtime: false},
-      {:ex_doc, "~> 0.11", only: :dev}
+      {:ex_doc, "~> 0.11", only: :dev, runtime: false}
     ]
   end
 
