@@ -29,10 +29,20 @@
 #define elapsed_microseconds() 0
 #endif
 
+enum edge_mode {
+    EDGE_NONE,
+    EDGE_RISING,
+    EDGE_FALLING,
+    EDGE_BOTH
+};
+
 struct gpio_monitor_info {
     int pin_number;
     int fd;
     ErlNifPid pid;
+    int last_value;
+    enum edge_mode mode;
+    bool suppress_glitches;
 };
 
 struct gpio_priv {
@@ -155,13 +165,66 @@ static void remove_listener(struct gpio_monitor_info *infos, int pin_number)
     }
 }
 
-int64_t timestamp_nanoseconds()
+static int64_t timestamp_nanoseconds()
 {
     struct timespec ts;
     if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
         return 0;
 
     return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+}
+
+static int send_gpio_message(ErlNifEnv *env,
+                             ERL_NIF_TERM atom_elixir_ale,
+                             struct gpio_monitor_info *info,
+                             int64_t timestamp,
+                             int value)
+{
+    ERL_NIF_TERM msg = enif_make_tuple4(env,
+        atom_elixir_ale,
+        enif_make_int(env, info->pin_number),
+        enif_make_int64(env, timestamp),
+        enif_make_int(env, value));
+
+    return enif_send(env, &info->pid, NULL, msg);
+}
+
+static int handle_gpio_update(ErlNifEnv *env,
+                             ERL_NIF_TERM atom_elixir_ale,
+                             struct gpio_monitor_info *info,
+                             int64_t timestamp,
+                             int value)
+{
+    int rc = 1;
+    switch (info->mode) {
+        default:
+        case EDGE_NONE:
+            // Shouldn't happen.
+            rc = 0;
+            break;
+
+        case EDGE_RISING:
+            if (value || !info->suppress_glitches)
+                rc = send_gpio_message(env, atom_elixir_ale, info, timestamp, 1);
+            break;
+
+        case EDGE_FALLING:
+            if (!value || !info->suppress_glitches)
+                rc = send_gpio_message(env, atom_elixir_ale, info, timestamp, 0);
+            break;
+
+        case EDGE_BOTH:
+            if (value != info->last_value) {
+                rc = send_gpio_message(env, atom_elixir_ale, info, timestamp, value);
+                info->last_value = value;
+            } else if (!info->suppress_glitches) {
+                // Send two messages so that the user sees an instantaneous transition
+                send_gpio_message(env, atom_elixir_ale, info, timestamp, value ? 0 : 1);
+                rc = send_gpio_message(env, atom_elixir_ale, info, timestamp, value);
+            }
+            break;
+    }
+    return rc;
 }
 
 static void *gpio_poller_thread(void *arg)
@@ -231,13 +294,11 @@ static void *gpio_poller_thread(void *arg)
                         gpio_priv->monitor_info[i].fd = -1;
                         cleanup = true;
                     } else {
-                        ERL_NIF_TERM msg = enif_make_tuple4(env,
-                                atom_elixir_ale,
-                                enif_make_int(env, gpio_priv->monitor_info[i].pin_number),
-                                enif_make_int64(env, timestamp),
-                                enif_make_int(env, value));
-
-                        if (!enif_send(env, &gpio_priv->monitor_info[i].pid, NULL, msg)) {
+                        if (!handle_gpio_update(env,
+                             atom_elixir_ale,
+                             &gpio_priv->monitor_info[i],
+                             timestamp,
+                             value)) {
                             error("send for gpio %d failed, so not listening to it any more", gpio_priv->monitor_info[i].pin_number);
                             gpio_priv->monitor_info[i].fd = -1;
                             cleanup = true;
@@ -347,14 +408,24 @@ static int write_pin_direction(int pin_number, bool is_output)
     return 0;
 }
 
-static int write_int_edge(int pin_number, const char *mode)
+static const char *mode_string(enum edge_mode mode)
+{
+    switch (mode) {
+        default: case EDGE_NONE: return "none";
+        case EDGE_FALLING: return "falling";
+        case EDGE_RISING: return "rising";
+        case EDGE_BOTH: return "both";
+    }
+}
+
+static int write_int_edge(int pin_number, enum edge_mode mode)
 {
     char edge_path[64];
 
     sprintf(edge_path, "/sys/class/gpio/gpio%d/edge", pin_number);
     if (access(edge_path, F_OK) != -1) {
         int retries = 1000; /* Allow 1000 * 1ms = 1 second max for retries */
-        while (sysfs_write_file(edge_path, mode) <= 0 && retries > 0) {
+        while (sysfs_write_file(edge_path, mode_string(mode)) <= 0 && retries > 0) {
             usleep(1000);
             retries--;
         }
@@ -377,6 +448,37 @@ static ERL_NIF_TERM make_error_tuple(ErlNifEnv *env, const char *reason)
     ERL_NIF_TERM reason_atom = enif_make_atom(env, reason);
 
     return enif_make_tuple2(env, error_atom, reason_atom);
+}
+
+static int
+enif_get_boolean(ErlNifEnv *env, ERL_NIF_TERM term, bool *v)
+{
+    char buffer[16];
+    if (enif_get_atom(env, term, buffer, sizeof(buffer), ERL_NIF_LATIN1) <= 0)
+        return false;
+
+    if (strcmp("false", buffer) == 0)
+        *v = false;
+    else
+        *v = true;
+
+    return true;
+}
+
+static int
+get_edgemode(ErlNifEnv *env, ERL_NIF_TERM term, enum edge_mode *mode)
+{
+    char buffer[16];
+    if (enif_get_atom(env, term, buffer, sizeof(buffer), ERL_NIF_LATIN1) <= 0)
+        return false;
+
+    if (strcmp("none", buffer) == 0) *mode = EDGE_NONE;
+    else if (strcmp("rising", buffer) == 0) *mode = EDGE_RISING;
+    else if (strcmp("falling", buffer) == 0) *mode = EDGE_FALLING;
+    else if (strcmp("both", buffer) == 0) *mode = EDGE_BOTH;
+    else return false;
+
+    return true;
 }
 
 static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -422,21 +524,25 @@ static ERL_NIF_TERM set_int_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM ar
     struct gpio_priv *priv = enif_priv_data(env);
     struct gpio_pin *pin;
 
-    char edge[16];
+    enum edge_mode mode;
+    bool suppress_glitches;
     ErlNifPid pid;
     if (!enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin) ||
-            !enif_get_atom(env, argv[1], edge, sizeof(edge), ERL_NIF_LATIN1) ||
-            !enif_get_local_pid(env, argv[2], &pid))
+            !get_edgemode(env, argv[1], &mode) ||
+            !enif_get_boolean(env, argv[2], &suppress_glitches) ||
+            !enif_get_local_pid(env, argv[3], &pid))
         return enif_make_badarg(env);
 
-    if (write_int_edge(pin->pin_number, edge) < 0)
+    if (write_int_edge(pin->pin_number, mode) < 0)
         return make_error_tuple(env, "write_int_edge");
 
     // Tell polling thread to wait for notifications
     struct gpio_monitor_info message;
     message.pin_number = pin->pin_number;
-    message.fd = strcmp(edge, "none") == 0 ? -1 : pin->fd;
+    message.fd = (mode == EDGE_NONE) ? -1 : pin->fd;
     message.pid = pid;
+    message.last_value = -1;
+    message.mode = mode;
     if (write(priv->pipe_fds[1], &message, sizeof(message)) != sizeof(message)) {
         error("Error writing polling thread!");
         return make_error_tuple(env, "polling_thread_error");
@@ -476,7 +582,7 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
         enif_release_resource(pin);
         return make_error_tuple(env, "error_setting_direction");
     }
-    if (write_int_edge(pin_number, "none") < 0) {
+    if (write_int_edge(pin_number, EDGE_NONE) < 0) {
         enif_release_resource(pin);
         return make_error_tuple(env, "error_setting_direction");
     }
@@ -492,7 +598,7 @@ static ErlNifFunc nif_funcs[] = {
     {"open", 2, open_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
     {"write", 2, write_gpio, 0},
     {"read", 1, read_gpio, 0},
-    {"set_int", 3, set_int_gpio, 0},
+    {"set_int", 4, set_int_gpio, 0},
 };
 
 ERL_NIF_INIT(Elixir.ElixirALE.GPIO.Nif, nif_funcs, load, NULL, NULL, unload)

@@ -29,8 +29,8 @@ defmodule ElixirALE.GPIO do
     Nif.write(gpio, value)
   end
 
-  @spec set_int(reference(), edge()) :: :ok | {:error, atom()}
-  def set_int(gpio, edge) do
-    Nif.set_int(gpio, edge, self())
+  @spec set_int(reference(), edge(), boolean()) :: :ok | {:error, atom()}
+  def set_int(gpio, edge \\ :both, suppress_glitches \\ true) do
+    Nif.set_int(gpio, edge, suppress_glitches, self())
   end
 end
