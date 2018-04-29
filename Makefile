@@ -56,6 +56,8 @@ all: priv $(NIF)
 priv:
 	mkdir -p priv
 
+$(OBJ): $(wildcard src/*.h)
+
 %.o: %.c
 	$(CC) -c $(ERL_CFLAGS) $(CFLAGS) -o $@ $<
 

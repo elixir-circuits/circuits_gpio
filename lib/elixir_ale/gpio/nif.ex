@@ -19,7 +19,11 @@ defmodule ElixirALE.GPIO.Nif do
     :erlang.nif_error(:nif_not_loaded)
   end
 
-  def set_int(_gpio, _edge, _suppress_glitches, _process) do
+  def set_edge_mode(_gpio, _edge, _suppress_glitches, _process) do
+    :erlang.nif_error(:nif_not_loaded)
+  end
+
+  def set_direction(_gpio, _pin_direction) do
     :erlang.nif_error(:nif_not_loaded)
   end
 end
