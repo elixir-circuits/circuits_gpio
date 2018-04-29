@@ -1,4 +1,4 @@
-# elixir_ale - Elixir Actor Library for Embedded
+# GPIO - Do not use!!
 
 [![Build Status](https://travis-ci.org/fhunleth/elixir_ale.svg)](https://travis-ci.org/fhunleth/elixir_ale)
 [![Hex version](https://img.shields.io/hexpm/v/elixir_ale.svg "Hex version")](https://hex.pm/packages/elixir_ale)
@@ -133,119 +133,6 @@ getting the initial state of the pin and turning on interrupts. Without it,
 you could get the state of the pin, it could change states, and then you could
 start waiting on it for interrupts. If that happened, you would be out of sync.
 
-## SPI
-
-A [Serial Peripheral Interface](https://en.wikipedia.org/wiki/Serial_Peripheral_Interface_Bus)
-(SPI) bus is a common multi-wire bus used to connect components on a circuit
-board. A clock line drives the timing of sending bits between components. Bits
-on the Master Out Slave In `MOSI` line go from the master (usually the
-processor running Linux) to the slave, and bits on the Master In Slave Out
-`MISO` line go the other direction. Bits transfer both directions
-simultaneously. However, much of the time, the protocol used across the SPI
-bus has a request followed by a response and in these cases, bits going the
-"wrong" direction are ignored. This will become more clear in the example below.
-
-The following shows an example Analog to Digital Converter (ADC) that
-reads from either a temperature sensor on CH0 (channel 0) or a potentiometer on
-CH1 (channel 1). It converts the analog measurements to digital, and sends the
-digital measurements to SPI pins on the main processor running Linux (e.g.
-Raspberry Pi). Many processors, like the one on the Raspberry Pi, can't read
-analog signals directly, so they need an ADC to convert the signal.
-
-![SPI schematic](assets/images/schematic-adc.png)
-
-The protocol for talking to the ADC in the example below is described in the
-[MCP3002](http://www.microchip.com/wwwproducts/en/MCP3002) data sheet. The
-protocol is very similar to an application program interface (API) for
-software. It will tell you the position and function of the bits you will send
-to the ADC, along with how the data (in the form of bits)
-will be returned.
-
-See Figure 6-1 in the data sheet for the communication protocol. Sending a
-`0x68` first reads the temperature and sending a `0x78` reads the
-potentiometer. Since the data sheet shows bits, `0x68` corresponds to `01101000b`.
-The leftmost bit is the "Start" bit. The second bit is SGL/DIFF, the third
-bit is ODD/SIGN, and the fourth bit is MSBF. From table 5-1, if SGL/DIFF==1,
-ODD/SIGN==0, and MSBF==1 then that specifies channel 0 which is connected to
-the thermometer.
-
-```elixir
-# Make sure that you've enabled or loaded the SPI driver or this will
-# fail.
-iex> alias ElixirALE.SPI
-iex> {:ok, pid} = SPI.start_link("spidev0.0")
-{:ok, #PID<0.124.0>}
-
-# Read the potentiometer
-
-# Use binary pattern matching to pull out the ADC counts (low 10 bits)
-iex> <<_::size(6), counts::size(10)>> = SPI.transfer(pid, <<0x78, 0x00>>)
-<<1, 197>>
-
-iex> counts
-453
-
-# Convert counts to volts (1023 = 3.3 V)
-iex> volts = counts / 1023 * 3.3
-1.461290322580645
-```
-
-As shown above, you'll find out that Elixir's binary pattern matching is
-extremely convenient when working with hardware. More information can be
-found in the [Kernel.SpecialForms documentation](https://hexdocs.pm/elixir/Kernel.SpecialForms.html#%3C%3C%3E%3E/1)
-and by running `h <<>>` at the IEx prompt.
-
-## I2C
-
-An [Inter-Integrated Circuit](https://en.wikipedia.org/wiki/I%C2%B2C) (I2C)
-bus is similar to a SPI bus in function, but uses fewer wires. It
-supports addressing hardware components and bidirectional use of the data line.
-
-The following shows a bus IO expander connected via I2C to the processor.
-
-![I2C schematic](assets/images/schematic-i2c.png)
-
-The protocol for talking to the IO expander is described in the [MCP23008
-Datasheet](http://www.microchip.com/wwwproducts/Devices.aspx?product=MCP23008).
-Here's a simple example of using it.
-
-```Elixir
-# On the Raspberry Pi, the IO expander is connected to I2C bus 1 (i2c-1).
-# Its 7-bit address is 0x20. (see datasheet)
-iex> alias ElixirALE.I2C
-iex> {:ok, pid} = I2C.start_link("i2c-1", 0x20)
-{:ok, #PID<0.102.0>}
-
-# By default, all 8 GPIOs are set to inputs. Set the 4 high bits to outputs
-# so that we can toggle the LEDs. (Write 0x0f to register 0x00)
-iex> I2C.write(pid, <<0x00, 0x0f>>)
-:ok
-
-# Turn on the LED attached to bit 4 on the expander. (Write 0x10 to register
-# 0x09)
-iex> I2C.write(pid, <<0x09, 0x10>>)
-:ok
-
-# Read all 11 of the expander's registers to see that the bit 0 switch is
-# the only one on and that the bit 4 LED is on.
-iex> I2C.write(pid, <<0>>)  # Set the next register to be read to 0
-:ok
-
-iex> I2C.read(pid, 11)
-<<15, 0, 0, 0, 0, 0, 0, 0, 0, 17, 16>>
-
-# The operation of writing one or more bytes to select a register and
-# then reading is very common, so a shortcut is to just run the following:
-iex> I2C.write_read(pid, <<0>>, 11)
-<<15, 0, 0, 0, 0, 0, 0, 0, 0, 17, 16>>
-
-# The 17 in register 9 says that bits 0 and bit 4 are high
-# We could have just read register 9.
-
-iex> I2C.write_read(pid, <<9>>, 1)
-<<17>>
-```
-
 ## FAQ
 
 ### Where can I get help?
@@ -257,12 +144,6 @@ may find help by searching for similar issues when using Python or C.
 For help specifically with `elixir_ale`, you may also find help on the
 nerves channel on the [elixir-lang Slack](https://elixir-slackin.herokuapp.com/).
 Many [Nerves](http://nerves-project.org) users also use `elixir_ale`.
-
-### Why isn't elixir_ale a NIF?
-
-While `elixir_ale` should never crash, it's hard to guarantee that weird
-conditions on the I2C or SPI buses wouldn't hang the Erlang VM. `elixir_ale`
-errors on the side of safety of the VM.
 
 ### I tried turning on and off a GPIO as fast as I could. Why was it slow?
 
@@ -299,65 +180,8 @@ on what your hardware actually does, but here's one example:
 
 Please share other examples if you have them.
 
-### How do I debug?
-
-The most common issue is communicating with an I2C or SPI device for the first time.
-For I2C, first check that an I2C bus is available:
-
-```elixir
-iex> ElixirALE.I2C.device_names
-["i2c-1"]
-```
-
-If the list is empty, then I2C is either not available, not enabled, or not
-configured in the kernel. If you're using Raspbian, run `raspi-config` and check
-that I2C is enabled in the advanced options. If you're on a BeagleBone, try
-running `config-pin` and see the [Universal I/O
-project](https://github.com/cdsteinkuehler/beaglebone-universal-io) to enable
-the I2C pins. On other ARM boards, double check that I2C is enabled in the
-kernel and that the device tree configures it.
-
-Once an I2C bus is available, try detecting devices on it:
-
-```elixir
-iex> ElixirALE.I2C.detect_devices("i2c-1")
-[4]
-```
-
-The return value here is a list of device addresses that were detected. It is
-still possible that the device will work even if it does not detect, but you
-probably want to check wires at this point. If you have a logic analyzer, use it
-to verify that I2C transactions are being initiated on the bus.
-
-Options for debugging a SPI issue are more limited. First check that the SPI bus
-is available:
-```elixir
-iex> ElixirALE.SPI.device_names
-["spidev0.0", "spidev0.1"]
-```
-
-If nothing is returned, verify that SPI is enabled and configured on your
-system. The steps are identical to the I2C ones above except looking for SPI.
-
-If you're having trouble with GPIOs, the files controlling them are in
-`/sys/class/gpio`. ElixirALE is a thin wrapper on the files so if something can
-be accomplished there, it usually can be accomplished in ElixirALE. One big
-omission from the directory is support for internal pull-ups and pull-downs.
-These are very convenient for buttons so that external resisters aren't needed.
-Unfortunately, the way to handle pull-ups and pull-downs is device specific. If
-you're on a Raspberry Pi, see [gpio_rpi](https://hex.pm/packages/gpio_rpi).
-
-### Will it run on Arduino?
-
-No. Elixir ALE only runs on Linux-based boards. If you're interested in controlling an Arduino from a computer that can run Elixir, check out [nerves_uart](https://hex.pm/packages/nerves_uart) for communicating via the Arduino's serial connection or [firmata](https://github.com/mobileoverlord/firmata) for communication using the Arduino's Firmata protocol.
-
 ### Can I help maintain elixir_ale?
 
 Yes! If your life has been improved by `elixir_ale` and you want to give back,
 it would be great to have new energy put into this project. Please email me.
 
-# License
-
-This library draws much of its design and code from the Erlang/ALE project which
-is licensed under the Apache License, Version 2.0. As such, it is licensed
-similarly.
