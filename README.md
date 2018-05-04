@@ -1,40 +1,32 @@
 # GPIO - Do not use!!
 
-[![Build Status](https://travis-ci.org/fhunleth/elixir_ale.svg)](https://travis-ci.org/fhunleth/elixir_ale)
-[![Hex version](https://img.shields.io/hexpm/v/elixir_ale.svg "Hex version")](https://hex.pm/packages/elixir_ale)
+`gpio` provides high level an abstraction for interfacing to GPIOs
+on Linux platforms. Internally, it uses the Linux sysclass interface
+so that it does not require platform-dependent code.
 
-`elixir_ale` provides high level abstractions for interfacing to GPIOs, I2C
-buses and SPI peripherals on Linux platforms. Internally, it uses the Linux
-sysclass interface so that it does not require platform-dependent code.
-
-`elixir_ale` works great with LEDs, buttons, many kinds of sensors, and simple
+`gpio` works great with LEDs, buttons, many kinds of sensors, and simple
 control of motors. In general, if a device requires high speed transactions or
 has hard real-time constraints in its interactions, this is not the right
 library. For those devices, it is recommended to look at other driver options, such
 as using a Linux kernel driver.
 
-If this sounds similar to [Erlang/ALE](https://github.com/esl/erlang-ale), that's because it is. This
-library is a Elixir-ized implementation of the original project with some updates
-to the C side. (Many of those changes have made it back to the original project
-now.)
-
 # Getting started
 
-If you're natively compiling elixir_ale, everything should work like any other
-Elixir library. Normally, you would include elixir_ale as a dependency in your
+If you're natively compiling gpio, everything should work like any other
+Elixir library. Normally, you would include gpio as a dependency in your
 `mix.exs` like this:
 
 ```elixir
 def deps do
-  [{:elixir_ale, "~> 1.0"}]
+  [{:gpio, "~> 0.1"}]
 end
 ```
 
 If you just want to try it out, you can do the following:
 
 ```shell
-git clone https://github.com/fhunleth/elixir_ale.git
-cd elixir_ale
+git clone https://github.com/ElixirCircuits/gpio
+cd gpio
 mix compile
 iex -S mix
 ```
@@ -44,20 +36,14 @@ right C compiler is called. See the `Makefile` for the variables that will need
 to be overridden. At a minimum, you will need to set `CROSSCOMPILE`,
 `ERL_CFLAGS`, and `ERL_EI_LIBDIR`.
 
-`elixir_ale` doesn't load device drivers, so you'll need to make sure that any
-necessary ones for accessing I2C or SPI are loaded beforehand. On the Raspberry
-Pi, the [Adafruit Raspberry Pi I2C
-instructions](https://learn.adafruit.com/adafruits-raspberry-pi-lesson-4-gpio-setup/configuring-i2c)
-may be helpful.
-
 If you're trying to compile on a Raspberry Pi and you get errors indicated that Erlang headers are missing
 (`ie.h`), you may need to install erlang with `apt-get install
 erlang-dev` or build Erlang from source per instructions [here](http://elinux.org/Erlang).
 
 # Examples
 
-`elixir_ale` only supports simple uses of the GPIO, I2C, and SPI interfaces in
-Linux, but you can still do quite a bit. The following examples were tested on a
+`gpio` only supports simple uses of the GPIO interface in Linux, but you can
+still do quite a bit. The following examples were tested on a
 Raspberry Pi that was connected to an [Erlang Embedded Demo
 Board](http://solderpad.com/omerk/erlhwdemo/). There's nothing special about
 either the demo board or the Raspberry Pi, so these should work similarly on
@@ -78,11 +64,10 @@ To turn on the LED that's connected to the net (or wire) labeled
 `GPIO18`, run the following:
 
 ```elixir
-iex> alias ElixirALE.GPIO
-iex> {:ok, pid} = GPIO.start_link(18, :output)
-{:ok, #PID<0.96.0>}
+iex> {:ok, gpio} = GPIO.open(18, :output)
+{:ok, #Reference<...>}
 
-iex> GPIO.write(pid, 1)
+iex> GPIO.write(gpio, 1)
 :ok
 ```
 
@@ -98,18 +83,18 @@ wire low. Many processors have ways of configuring internal resistors
 to accomplish the same effect without needing to add an external resistor.
 It's platform-dependent and not shown here.
 
-The code looks like this in `elixir_ale`:
+The code looks like this in `gpio`:
 
 ```elixir
-iex> {:ok, pid} = GPIO.start_link(17, :input)
-{:ok, #PID<0.97.0>}
+iex> {:ok, gpio} = GPIO.open(17, :input)
+{:ok, #Reference<...>}
 
-iex> GPIO.read(pid)
+iex> GPIO.read(gpio)
 0
 
 # Push the button down
 
-iex> GPIO.read(pid)
+iex> GPIO.read(gpio)
 1
 ```
 
@@ -118,12 +103,12 @@ If you'd like to get a message when the button is pressed or released, call the
 `:both`.
 
 ```elixir
-iex> GPIO.set_int(pid, :both)
+iex> GPIO.set_int(gpio, :both)
 :ok
 
 iex> flush
-{:gpio_interrupt, 17, :rising}
-{:gpio_interrupt, 17, :falling}
+{:gpio, 17, 1233456, 1}
+{:gpio, 17, 1234567, 0}
 :ok
 ```
 
@@ -138,12 +123,12 @@ start waiting on it for interrupts. If that happened, you would be out of sync.
 ### Where can I get help?
 
 Most issues people have are on how to communicate with hardware for the first
-time. Since `elixir_ale` is a thin wrapper on the Linux sys class interface, you
+time. Since `gpio` is a thin wrapper on the Linux sys class interface, you
 may find help by searching for similar issues when using Python or C.
 
-For help specifically with `elixir_ale`, you may also find help on the
+For help specifically with `gpio`, you may also find help on the
 nerves channel on the [elixir-lang Slack](https://elixir-slackin.herokuapp.com/).
-Many [Nerves](http://nerves-project.org) users also use `elixir_ale`.
+Many [Nerves](http://nerves-project.org) users also use `gpio`.
 
 ### I tried turning on and off a GPIO as fast as I could. Why was it slow?
 
@@ -157,7 +142,7 @@ you're trying to do:
   2. If you need to implement a wire level protocol to talk to a device, look
      for a Linux kernel driver. It may just be a matter of loading the right
      kernel module.
-  3. If you want a blinking LED to indicate status, `elixir_ale` really should
+  3. If you want a blinking LED to indicate status, `gpio` really should
      be fast enough to do that, but check out Linux's LED class interface. Linux
      can flash LEDs, trigger off events and more. See [nerves_leds](https://github.com/nerves-project/nerves_leds).
 
@@ -167,11 +152,11 @@ If you're still intent on optimizing GPIO access, you may be interested in
 ### Where's PWM support?
 
 On the hardware that I normally use, PWM has been implemented in a
-platform-dependent way. For ease of maintenance, `elixir_ale` doesn't have any
+platform-dependent way. For ease of maintenance, `gpio` doesn't have any
 platform-dependent code, so supporting it would be difficult. An Elixir PWM
 library would be very interesting, though, should anyone want to implement it.
 
-### Can I develop code that uses elixir_ale on my laptop?
+### Can I develop code that uses gpio on my laptop?
 
 You'll need to fake out the hardware. Code to do this depends
 on what your hardware actually does, but here's one example:
@@ -180,8 +165,8 @@ on what your hardware actually does, but here's one example:
 
 Please share other examples if you have them.
 
-### Can I help maintain elixir_ale?
+### Can I help maintain gpio?
 
-Yes! If your life has been improved by `elixir_ale` and you want to give back,
+Yes! If your life has been improved by `gpio` and you want to give back,
 it would be great to have new energy put into this project. Please email me.
 

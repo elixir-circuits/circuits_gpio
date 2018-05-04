@@ -113,13 +113,13 @@ static int64_t timestamp_nanoseconds()
 }
 
 static int send_gpio_message(ErlNifEnv *env,
-                             ERL_NIF_TERM atom_elixir_ale,
+                             ERL_NIF_TERM atom_gpio,
                              struct gpio_monitor_info *info,
                              int64_t timestamp,
                              int value)
 {
     ERL_NIF_TERM msg = enif_make_tuple4(env,
-        atom_elixir_ale,
+        atom_gpio,
         enif_make_int(env, info->pin_number),
         enif_make_int64(env, timestamp),
         enif_make_int(env, value));
@@ -128,7 +128,7 @@ static int send_gpio_message(ErlNifEnv *env,
 }
 
 static int handle_gpio_update(ErlNifEnv *env,
-                             ERL_NIF_TERM atom_elixir_ale,
+                             ERL_NIF_TERM atom_gpio,
                              struct gpio_monitor_info *info,
                              int64_t timestamp,
                              int value)
@@ -143,22 +143,22 @@ static int handle_gpio_update(ErlNifEnv *env,
 
         case EDGE_RISING:
             if (value || !info->suppress_glitches)
-                rc = send_gpio_message(env, atom_elixir_ale, info, timestamp, 1);
+                rc = send_gpio_message(env, atom_gpio, info, timestamp, 1);
             break;
 
         case EDGE_FALLING:
             if (!value || !info->suppress_glitches)
-                rc = send_gpio_message(env, atom_elixir_ale, info, timestamp, 0);
+                rc = send_gpio_message(env, atom_gpio, info, timestamp, 0);
             break;
 
         case EDGE_BOTH:
             if (value != info->last_value) {
-                rc = send_gpio_message(env, atom_elixir_ale, info, timestamp, value);
+                rc = send_gpio_message(env, atom_gpio, info, timestamp, value);
                 info->last_value = value;
             } else if (!info->suppress_glitches) {
                 // Send two messages so that the user sees an instantaneous transition
-                send_gpio_message(env, atom_elixir_ale, info, timestamp, value ? 0 : 1);
-                rc = send_gpio_message(env, atom_elixir_ale, info, timestamp, value);
+                send_gpio_message(env, atom_gpio, info, timestamp, value ? 0 : 1);
+                rc = send_gpio_message(env, atom_gpio, info, timestamp, value);
             }
             break;
     }
@@ -173,7 +173,7 @@ static void *gpio_poller_thread(void *arg)
     debug("gpio_poller_thread started");
 
     ErlNifEnv *env = enif_alloc_env();
-    ERL_NIF_TERM atom_elixir_ale = enif_make_atom(env, "elixir_ale");
+    ERL_NIF_TERM atom_gpio = enif_make_atom(env, "gpio");
 
     init_listeners(monitor_info);
     for (;;) {
@@ -234,7 +234,7 @@ static void *gpio_poller_thread(void *arg)
                         cleanup = true;
                     } else {
                         if (!handle_gpio_update(env,
-                             atom_elixir_ale,
+                             atom_gpio,
                              &monitor_info[i],
                              timestamp,
                              value)) {
@@ -539,4 +539,4 @@ static ErlNifFunc nif_funcs[] = {
     {"set_direction", 2, set_direction, 0},
 };
 
-ERL_NIF_INIT(Elixir.ElixirALE.GPIO.Nif, nif_funcs, load, NULL, NULL, unload)
+ERL_NIF_INIT(Elixir.GPIO.Nif, nif_funcs, load, NULL, NULL, unload)
