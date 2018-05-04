@@ -1,14 +1,10 @@
-defmodule ElixirALE.GPIO do
-  alias ElixirALE.GPIO.Nif
+defmodule GPIO do
+  alias GPIO.Nif
 
   @type pin_number :: non_neg_integer()
   @type pin_direction :: :input | :output
   @type edge :: :rising | :falling | :both | :none
   @type value :: 0 | 1
-
-  # Elixir ALE 1.0 "compatibility"
-  @spec start_link(pin_number(), pin_direction(), [term()]) :: GenServer.on_start()
-  def start_link(pin, pin_direction, _opts \\ []), do: open(pin, pin_direction)
 
   @spec set_int(reference(), edge()) :: :ok | {:error, atom()}
   def set_int(gpio, edge \\ :both) do
@@ -59,7 +55,7 @@ defmodule ElixirALE.GPIO do
   Notifications look like:
 
   ```
-  {:elixir_ale, pin_number, timestamp, value}
+  {:gpio, pin_number, timestamp, value}
   ```
 
   Where `pin_number` is the pin that changed values, `timestamp` is roughly when

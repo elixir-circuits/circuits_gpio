@@ -3,13 +3,13 @@ defmodule ElixirAle.MixProject do
 
   def project do
     [
-      app: :elixir_ale,
-      version: "2.0.0-experimental",
+      app: :gpio,
+      version: "0.1.0",
       elixir: "~> 1.2",
-      name: "elixir_ale",
+      name: "gpio",
       description: description(),
       package: package(),
-      source_url: "https://github.com/fhunleth/elixir_ale",
+      source_url: "https://github.com/ElixirCircuits/gpio",
       compilers: [:elixir_make | Mix.compilers()],
       make_targets: ["all"],
       make_clean: ["clean"],
@@ -38,7 +38,7 @@ defmodule ElixirAle.MixProject do
   def application, do: []
 
   defp description do
-    "Elixir access to hardware GPIO, I2C, and SPI interfaces."
+    "Elixir access to hardware GPIO interface."
   end
 
   defp package do
@@ -52,9 +52,9 @@ defmodule ElixirAle.MixProject do
         "LICENSE",
         "Makefile"
       ],
-      maintainers: ["Frank Hunleth"],
+      maintainers: ["Frank Hunleth", "Matt Ludwigs"],
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => "https://github.com/fhunleth/elixir_ale"}
+      links: %{"GitHub" => "https://github.com/ElixirCircuits/gpio"}
     }
   end
 
