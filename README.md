@@ -1,5 +1,8 @@
 # GPIO - Do not use!!
 
+[![CircleCI](https://circleci.com/gh/ElixirCircuits/gpio.svg?style=svg)](https://circleci.com/gh/ElixirCircuits/gpio)
+[![Hex version](https://img.shields.io/hexpm/v/gpio.svg "Hex version")](https://hex.pm/packages/gpio)
+
 `gpio` provides high level an abstraction for interfacing to GPIOs
 on Linux platforms. Internally, it uses the Linux sysclass interface
 so that it does not require platform-dependent code.
