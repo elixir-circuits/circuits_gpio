@@ -1,4 +1,4 @@
-defmodule ElixirAle.MixProject do
+defmodule ElixirCircuits.GPIO.MixProject do
   use Mix.Project
 
   def project do

@@ -1,25 +1,29 @@
-defmodule GPIO do
-  alias GPIO.Nif
+defmodule ElixlirCircuits.GPIO do
+  alias ElixirCircuits.GPIO.Nif, as: Nif
 
   @type pin_number :: non_neg_integer()
   @type pin_direction :: :input | :output
-  @type edge :: :rising | :falling | :both | :none
   @type value :: 0 | 1
+  @type edge :: :rising | :falling | :both | :none
+  @type pull_dir :: :not_set | :none | :pullup | :pulldown
+  
 
-  @spec set_int(reference(), edge()) :: :ok | {:error, atom()}
-  def set_int(gpio, edge \\ :both) do
-    set_edge_mode(gpio, edge)
-  end
-
+  
   # Public API
 
   @doc """
   Open a GPIO for use. `pin` should be a valid GPIO pin number on the system
   and `pin_direction` should be `:input` or `:output`.
   """
-  @spec open(pin_number(), pin_direction(), [term()]) :: GenServer.on_start()
-  def open(pin, pin_direction, _opts \\ []) do
-    Nif.open(pin, pin_direction)
+  @spec open(pin_number(), pin_direction(), [term()]) :: {:ok, integer} | {:error, atom()}
+  def open(pin_number, pin_direction, _gpio_opts \\ []) do
+    #init_value = Keyword.get(gpio_opts, :init_value, 0)
+    #int_edge = Keyword.get(gpio_opts, :int_edge, :none)
+    #pull_dir = Keyword.get(gpio_opts, :pull_dir, :not_set)
+    #notify_pid = Keyword.get(gpio_opts, :notify_pid, nil)
+
+    #Nif.open(pin_number, pin_direction, init_value, int_edge, pull_dir, notifiy_pid)
+    Nif.open(pin_number, pin_direction)
   end
 
   @doc """
@@ -73,4 +77,10 @@ defmodule GPIO do
   def set_direction(gpio, pin_direction) do
     Nif.set_direction(gpio, pin_direction)
   end
+
+  #@spec set_int(reference(), edge()) :: :ok | {:error, atom()}
+  #def set_int(gpio, edge \\ :both) do
+  #  set_edge_mode(gpio, edge)
+  #end
+
 end

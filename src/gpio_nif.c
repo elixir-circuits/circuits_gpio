@@ -11,6 +11,10 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifndef CLOCK_MONOTONIC
+#define CLOCK_MONOTONIC 1
+#endif
+
 struct gpio_monitor_info {
     int pin_number;
     int fd;
@@ -533,10 +537,10 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
 
 static ErlNifFunc nif_funcs[] = {
     {"open", 2, open_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
-    {"write", 2, write_gpio, 0},
     {"read", 1, read_gpio, 0},
+    {"write", 2, write_gpio, 0},
     {"set_edge_mode", 4, set_edge_mode, 0},
     {"set_direction", 2, set_direction, 0},
 };
 
-ERL_NIF_INIT(Elixir.GPIO.Nif, nif_funcs, load, NULL, NULL, unload)
+ERL_NIF_INIT(Elixir.ElixirCircuits.GPIO.Nif, nif_funcs, load, NULL, NULL, unload)
