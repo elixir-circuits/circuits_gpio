@@ -1,13 +1,11 @@
-defmodule ElixlirCircuits.GPIO do
-  alias ElixirCircuits.GPIO.Nif, as: Nif
+defmodule ElixirCircuits.GPIO do
+  alias ElixirCircuits.GPIO.Nif
 
   @type pin_number :: non_neg_integer()
   @type pin_direction :: :input | :output
   @type value :: 0 | 1
   @type edge :: :rising | :falling | :both | :none
-  @type pull_dir :: :not_set | :none | :pullup | :pulldown
-  
-
+  @type pull_mode :: :not_set | :none | :pullup | :pulldown
   
   # Public API
 
@@ -15,14 +13,8 @@ defmodule ElixlirCircuits.GPIO do
   Open a GPIO for use. `pin` should be a valid GPIO pin number on the system
   and `pin_direction` should be `:input` or `:output`.
   """
-  @spec open(pin_number(), pin_direction(), [term()]) :: {:ok, integer} | {:error, atom()}
-  def open(pin_number, pin_direction, _gpio_opts \\ []) do
-    #init_value = Keyword.get(gpio_opts, :init_value, 0)
-    #int_edge = Keyword.get(gpio_opts, :int_edge, :none)
-    #pull_dir = Keyword.get(gpio_opts, :pull_dir, :not_set)
-    #notify_pid = Keyword.get(gpio_opts, :notify_pid, nil)
-
-    #Nif.open(pin_number, pin_direction, init_value, int_edge, pull_dir, notifiy_pid)
+  @spec open(pin_number(), pin_direction()) :: {:ok, reference()} | {:error, atom()}
+  def open(pin_number, pin_direction) do
     Nif.open(pin_number, pin_direction)
   end
 
@@ -78,9 +70,12 @@ defmodule ElixlirCircuits.GPIO do
     Nif.set_direction(gpio, pin_direction)
   end
 
-  #@spec set_int(reference(), edge()) :: :ok | {:error, atom()}
-  #def set_int(gpio, edge \\ :both) do
-  #  set_edge_mode(gpio, edge)
-  #end
+  @doc """
+  Enable or disable internal pull-up or pull-down resistor to GPIO pin
+  """
+  @spec set_pull_mode(reference(), pull_mode()) :: :ok | {:error, atom()}
+  def set_pull_mode(gpio, pull_mode) do
+    Nif.set_pull_mode(gpio, pull_mode)
+  end
 
 end

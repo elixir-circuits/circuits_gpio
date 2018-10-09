@@ -46,7 +46,6 @@ defmodule ElixirCircuits.GPIO.MixProject do
       files: [
         "lib",
         "src/*.[ch]",
-        "src/linux/i2c-dev.h",
         "mix.exs",
         "README.md",
         "LICENSE",

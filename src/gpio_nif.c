@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -310,6 +311,11 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
         return 1;
     }
 
+    if (get_gpio_map(&priv->gpio_map) != 0) {
+        error("get_gpio_map failed");
+        return 1;
+    }
+    
     *priv_data = (void *) priv;
     return 0;
 }
@@ -325,6 +331,8 @@ static void unload(ErlNifEnv *env, void *priv_data)
 
     // If the listener thread hasn't exited already, it should do so soon.
     enif_thread_join(priv->poller_tid, NULL);
+
+    munmap((void *)priv->gpio_map, GPIO_MAP_BLOCK_SIZE);
 
     // TODO free everything else!
 }
@@ -412,6 +420,66 @@ static int get_direction(ErlNifEnv *env, ERL_NIF_TERM term, bool *is_output)
     return true;
 }
 
+
+#define GPPUD_OFFSET        37
+#define GPPUDCLK0_OFFSET    38
+#define DISABLE_PULLUP_DOWN 0
+#define ENABLE_PULLDOWN     1
+#define ENABLE_PULLUP       2
+
+static int write_pull_mode(uint32_t *gpio_map, int pin_number, enum pull_mode pull)
+{
+    uint32_t  clk_bit_to_set = 1 << (pin_number%32);
+    uint32_t *gpio_pud_clk = gpio_map + GPPUDCLK0_OFFSET + (pin_number/32);
+    uint32_t *gpio_pud = gpio_map + GPPUD_OFFSET;
+
+    if (pull == PULL_NOT_SET)
+        return 0;
+
+    // Steps to connect or disconnect pull up/down resistors on a gpio pin:
+
+    // 1. Write to GPPUD to set the required control signal 
+    if (pull == PULL_DOWN)
+        *gpio_pud = (*gpio_pud & ~3) | ENABLE_PULLDOWN;
+    else if (pull == PULL_UP)
+        *gpio_pud = (*gpio_pud & ~3) | ENABLE_PULLUP;
+    else  // pull == PULL_NONE
+        *gpio_pud &= ~3;  //DISABLE_PULLUP_DOWN
+
+    // 2. Wait 150 cycles  this provides the required set-up time for the control signal
+    usleep(1);
+
+    // 3. Write to GPPUDCLK0/1 to clock the control signal into the GPIO pads you wish to modify
+    *gpio_pud_clk = clk_bit_to_set;
+
+    // 4. Wait 150 cycles  this provides the required hold time for the control signal
+    usleep(1);
+
+    // 5. Write to GPPUD to remove the control signal
+    *gpio_pud &= ~3;
+
+    // 6. Write to GPPUDCLK0/1 to remove the clock 
+    *gpio_pud_clk = 0;
+
+    return 0;
+}
+
+static int get_pull_mode(ErlNifEnv *env, ERL_NIF_TERM term, enum pull_mode *pull)
+{
+    char buffer[16];
+    if (!enif_get_atom(env, term, buffer, sizeof(buffer), ERL_NIF_LATIN1))
+        return false;
+
+    if (strcmp("not_set", buffer) == 0) *pull = PULL_NOT_SET;
+    else if (strcmp("none", buffer) == 0) *pull = PULL_NONE;
+    else if (strcmp("pullup", buffer) == 0) *pull = PULL_UP;
+    else if (strcmp("pulldown", buffer) == 0) *pull = PULL_DOWN;
+    else return false;
+
+    return true;
+}
+
+
 static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
@@ -492,6 +560,23 @@ static ERL_NIF_TERM set_direction(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
     return priv->atom_ok;
 }
 
+static ERL_NIF_TERM set_pull_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    struct gpio_priv *priv = enif_priv_data(env);
+    struct gpio_pin *pin;
+
+    enum pull_mode pull;
+    if (!enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin) ||
+            !get_pull_mode(env, argv[1], &pull))
+        return enif_make_badarg(env);
+
+    if (write_pull_mode(priv->gpio_map, pin->pin_number, pull) < 0)
+        return make_error_tuple(env, "write_pull_mode");
+
+    return priv->atom_ok;
+}
+
+
 static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
@@ -525,7 +610,7 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     }
     if (write_edge_mode(pin_number, EDGE_NONE) < 0) {
         enif_release_resource(pin);
-        return make_error_tuple(env, "error_setting_direction");
+        return make_error_tuple(env, "error_setting_edge_mode");
     }
 
     // Transfer ownership of the resource to Erlang so that it can be garbage collected.
@@ -541,6 +626,7 @@ static ErlNifFunc nif_funcs[] = {
     {"write", 2, write_gpio, 0},
     {"set_edge_mode", 4, set_edge_mode, 0},
     {"set_direction", 2, set_direction, 0},
+    {"set_pull_mode", 2, set_pull_mode, 0}
 };
 
 ERL_NIF_INIT(Elixir.ElixirCircuits.GPIO.Nif, nif_funcs, load, NULL, NULL, unload)
