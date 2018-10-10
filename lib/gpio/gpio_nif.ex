@@ -6,6 +6,7 @@ defmodule ElixirCircuits.GPIO.Nif do
 
   def load_nif() do
     nif_binary = Application.app_dir(:gpio, "priv/gpio_nif")
+
     if File.exists?(nif_binary) do
       :erlang.load_nif(to_charlist(nif_binary), 0)
     else

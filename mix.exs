@@ -14,7 +14,7 @@ defmodule ElixirCircuits.GPIO.MixProject do
       make_clean: ["clean"],
       make_env: make_env(),
       docs: [extras: ["README.md"]],
-      aliases: [docs: ["docs", &copy_images/1], format: ["format", &format_c/1]],
+      aliases: [docs: ["docs", &copy_images/1], format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
