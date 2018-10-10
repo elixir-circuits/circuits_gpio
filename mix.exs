@@ -5,8 +5,7 @@ defmodule ElixirCircuits.GPIO.MixProject do
     [
       app: :gpio,
       version: "0.1.0",
-      elixir: "~> 1.2",
-      name: "gpio",
+      elixir: "~> 1.6",
       description: description(),
       package: package(),
       source_url: "https://github.com/ElixirCircuits/gpio",
@@ -16,7 +15,6 @@ defmodule ElixirCircuits.GPIO.MixProject do
       make_env: make_env(),
       docs: [extras: ["README.md"]],
       aliases: [docs: ["docs", &copy_images/1], format: ["format", &format_c/1]],
-      build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]

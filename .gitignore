@@ -25,6 +25,3 @@ gpio-*.tar
 # Ignore C object files and executables
 /priv
 *.o
-
-# Ignore VS Code folder
-/.vscode
