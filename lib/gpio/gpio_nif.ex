@@ -2,15 +2,14 @@ defmodule ElixirCircuits.GPIO.Nif do
   @on_load {:load_nif, 0}
   @compile {:autoload, false}
 
+  @moduledoc false
+
   def load_nif() do
     nif_binary = Application.app_dir(:gpio, "priv/gpio_nif")
-
-    case :erlang.load_nif(to_charlist(nif_binary), 0) do
-      {:error, reason} ->
-        IO.puts("Error: " <> to_string(reason) <> " Loading: " <> nif_binary)
-
-      _ ->
-        :ok
+    if File.exists?(nif_binary) do
+      :erlang.load_nif(to_charlist(nif_binary), 0)
+    else
+      IO.puts("WARNING: Not loading SPI NIF since not compiled or not supported on this platform")
     end
   end
 
