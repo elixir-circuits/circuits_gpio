@@ -124,48 +124,48 @@ static int send_gpio_message(ErlNifEnv *env,
                              int value)
 {
     ERL_NIF_TERM msg = enif_make_tuple4(env,
-        atom_gpio,
-        enif_make_int(env, info->pin_number),
-        enif_make_int64(env, timestamp),
-        enif_make_int(env, value));
+                                        atom_gpio,
+                                        enif_make_int(env, info->pin_number),
+                                        enif_make_int64(env, timestamp),
+                                        enif_make_int(env, value));
 
     return enif_send(env, &info->pid, NULL, msg);
 }
 
 static int handle_gpio_update(ErlNifEnv *env,
-                             ERL_NIF_TERM atom_gpio,
-                             struct gpio_monitor_info *info,
-                             int64_t timestamp,
-                             int value)
+                              ERL_NIF_TERM atom_gpio,
+                              struct gpio_monitor_info *info,
+                              int64_t timestamp,
+                              int value)
 {
     int rc = 1;
     switch (info->mode) {
-        default:
-        case EDGE_NONE:
-            // Shouldn't happen.
-            rc = 0;
-            break;
+    default:
+    case EDGE_NONE:
+        // Shouldn't happen.
+        rc = 0;
+        break;
 
-        case EDGE_RISING:
-            if (value || !info->suppress_glitches)
-                rc = send_gpio_message(env, atom_gpio, info, timestamp, 1);
-            break;
+    case EDGE_RISING:
+        if (value || !info->suppress_glitches)
+            rc = send_gpio_message(env, atom_gpio, info, timestamp, 1);
+        break;
 
-        case EDGE_FALLING:
-            if (!value || !info->suppress_glitches)
-                rc = send_gpio_message(env, atom_gpio, info, timestamp, 0);
-            break;
+    case EDGE_FALLING:
+        if (!value || !info->suppress_glitches)
+            rc = send_gpio_message(env, atom_gpio, info, timestamp, 0);
+        break;
 
-        case EDGE_BOTH:
-            if (value != info->last_value) {
-                rc = send_gpio_message(env, atom_gpio, info, timestamp, value);
-                info->last_value = value;
-            } else if (!info->suppress_glitches) {
-                // Send two messages so that the user sees an instantaneous transition
-                send_gpio_message(env, atom_gpio, info, timestamp, value ? 0 : 1);
-                rc = send_gpio_message(env, atom_gpio, info, timestamp, value);
-            }
-            break;
+    case EDGE_BOTH:
+        if (value != info->last_value) {
+            rc = send_gpio_message(env, atom_gpio, info, timestamp, value);
+            info->last_value = value;
+        } else if (!info->suppress_glitches) {
+            // Send two messages so that the user sees an instantaneous transition
+            send_gpio_message(env, atom_gpio, info, timestamp, value ? 0 : 1);
+            rc = send_gpio_message(env, atom_gpio, info, timestamp, value);
+        }
+        break;
     }
     return rc;
 }
@@ -239,10 +239,10 @@ static void *gpio_poller_thread(void *arg)
                         cleanup = true;
                     } else {
                         if (!handle_gpio_update(env,
-                             atom_gpio,
-                             &monitor_info[i],
-                             timestamp,
-                             value)) {
+                                                atom_gpio,
+                                                &monitor_info[i],
+                                                timestamp,
+                                                value)) {
                             error("send for gpio %d failed, so not listening to it any more", monitor_info[i].pin_number);
                             monitor_info[i].fd = -1;
                             cleanup = true;
@@ -315,7 +315,7 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
         error("get_gpio_map failed");
         return 1;
     }
-    
+
     *priv_data = (void *) priv;
     return 0;
 }
@@ -368,10 +368,15 @@ static int write_pin_direction(int pin_number, bool is_output)
 static const char *mode_string(enum edge_mode mode)
 {
     switch (mode) {
-        default: case EDGE_NONE: return "none";
-        case EDGE_FALLING: return "falling";
-        case EDGE_RISING: return "rising";
-        case EDGE_BOTH: return "both";
+    default:
+    case EDGE_NONE:
+        return "none";
+    case EDGE_FALLING:
+        return "falling";
+    case EDGE_RISING:
+        return "rising";
+    case EDGE_BOTH:
+        return "both";
     }
 }
 
@@ -438,7 +443,7 @@ static int write_pull_mode(uint32_t *gpio_map, int pin_number, enum pull_mode pu
 
     // Steps to connect or disconnect pull up/down resistors on a gpio pin:
 
-    // 1. Write to GPPUD to set the required control signal 
+    // 1. Write to GPPUD to set the required control signal
     if (pull == PULL_DOWN)
         *gpio_pud = (*gpio_pud & ~3) | ENABLE_PULLDOWN;
     else if (pull == PULL_UP)
@@ -458,7 +463,7 @@ static int write_pull_mode(uint32_t *gpio_map, int pin_number, enum pull_mode pu
     // 5. Write to GPPUD to remove the control signal
     *gpio_pud &= ~3;
 
-    // 6. Write to GPPUDCLK0/1 to remove the clock 
+    // 6. Write to GPPUDCLK0/1 to remove the clock
     *gpio_pud_clk = 0;
 
     return 0;

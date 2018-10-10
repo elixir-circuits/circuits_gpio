@@ -1,15 +1,16 @@
 defmodule ElixirCircuits.GPIO.Nif do
-
   @on_load {:load_nif, 0}
   @compile {:autoload, false}
 
   def load_nif() do
     nif_binary = Application.app_dir(:gpio, "priv/gpio_nif")
+
     case :erlang.load_nif(to_charlist(nif_binary), 0) do
       {:error, reason} ->
         IO.puts("Error: " <> to_string(reason) <> " Loading: " <> nif_binary)
 
-      _ -> :ok
+      _ ->
+        :ok
     end
   end
 

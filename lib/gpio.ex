@@ -6,7 +6,7 @@ defmodule ElixirCircuits.GPIO do
   @type value :: 0 | 1
   @type edge :: :rising | :falling | :both | :none
   @type pull_mode :: :not_set | :none | :pullup | :pulldown
-  
+
   # Public API
 
   @doc """
@@ -77,5 +77,4 @@ defmodule ElixirCircuits.GPIO do
   def set_pull_mode(gpio, pull_mode) do
     Nif.set_pull_mode(gpio, pull_mode)
   end
-
 end

@@ -26,28 +26,28 @@ int sysfs_write_file(const char *pathname, const char *value)
 }
 
 // Copied from host_bcm.c source, bcm_host_get_peripheral_address()
-// was undefined when loding the GPIO NIF
+// was undefined when loading the GPIO NIF
 static unsigned get_dt_ranges(const char *filename, unsigned offset)
 {
-   unsigned address = ~0;
+    unsigned address = ~0;
 
-   FILE *fp = fopen(filename, "rb");
-   if (fp)
-   {
-      unsigned char buf[4];
-      fseek(fp, offset, SEEK_SET);
-      if (fread(buf, 1, sizeof buf, fp) == sizeof buf)
-         address = buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3] << 0;
-      fclose(fp);
-   }
-   return address;
+    FILE *fp = fopen(filename, "rb");
+    if (fp)
+    {
+        unsigned char buf[4];
+        fseek(fp, offset, SEEK_SET);
+        if (fread(buf, 1, sizeof buf, fp) == sizeof buf)
+            address = buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3] << 0;
+        fclose(fp);
+    }
+    return address;
 }
 
 // Copied from host_bcm.c source.
 unsigned bcm_host_get_peripheral_address(void)
 {
-   unsigned address = get_dt_ranges("/proc/device-tree/soc/ranges", 4);
-   return address == ~0 ? 0x20000000 : address;
+    unsigned address = get_dt_ranges("/proc/device-tree/soc/ranges", 4);
+    return address == ~0 ? 0x20000000 : address;
 }
 
 // Need gpio access to set pull up/down resistors
@@ -93,7 +93,7 @@ int get_gpio_map(uint32_t **gpio_map)
 
     *gpio_map = (uint32_t *)mmap( (void *)gpio_mem, GPIO_MAP_BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED, mem_fd, gpio_base);
 
-    if (*((int32_t*)gpio_map) < 0){
+    if (*((int32_t*)gpio_map) < 0) {
         error("get_gpio_map() 2 mmap(), failed");
         return -1;
     }
