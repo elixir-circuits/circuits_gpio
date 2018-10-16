@@ -4,13 +4,19 @@ defmodule ElixirCircuits.GPIO.Nif do
 
   @moduledoc false
 
+  require Logger
+
   def load_nif() do
     nif_binary = Application.app_dir(:gpio, "priv/gpio_nif")
 
-    if File.exists?(nif_binary) do
-      :erlang.load_nif(to_charlist(nif_binary), 0)
-    else
-      IO.puts("WARNING: Not loading SPI NIF since not compiled or not supported on this platform")
+    case :erlang.load_nif(to_charlist(nif_binary), 0) do
+      {:error, reason} ->
+        Logger.error(
+          "ElixirCircuits.GPIOError: load_nif(#{nif_binary}) failed with #{inspect(reason)}"
+        )
+
+      _ ->
+        :ok
     end
   end
 
