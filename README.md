@@ -1,13 +1,13 @@
-# GPIO - Do not use!!
+# ElixirCircuits.GPIO
 
-[![CircleCI](https://circleci.com/gh/ElixirCircuits/gpio.svg?style=svg)](https://circleci.com/gh/ElixirCircuits/gpio)
+[![CircleCI](https://circleci.com/gh/elixir-circuits/gpio.svg?style=svg)](https://circleci.com/gh/elixir-circuits/gpio)
 [![Hex version](https://img.shields.io/hexpm/v/gpio.svg "Hex version")](https://hex.pm/packages/gpio)
 
-`gpio` provides high level an abstraction for interfacing to GPIOs
+`ElixirCircuits.GPIO` provides high level an abstraction for interfacing to GPIOs
 on Linux platforms. Internally, it uses the Linux sysclass interface
 so that it does not require platform-dependent code.
 
-`gpio` works great with LEDs, buttons, many kinds of sensors, and simple
+`ElixirCircuits.GPIO` works great with LEDs, buttons, many kinds of sensors, and simple
 control of motors. In general, if a device requires high speed transactions or
 has hard real-time constraints in its interactions, this is not the right
 library. For those devices, it is recommended to look at other driver options, such
@@ -21,14 +21,14 @@ Elixir library. Normally, you would include gpio as a dependency in your
 
 ```elixir
 def deps do
-  [{:gpio, "~> 0.1"}]
+  [{:elixir_ciruits_gpio, "~> 0.1"}]
 end
 ```
 
 If you just want to try it out, you can do the following:
 
 ```shell
-git clone https://github.com/ElixirCircuits/gpio
+git clone https://github.com/elixir-circuits/gpio
 cd gpio
 mix compile
 iex -S mix
@@ -45,7 +45,7 @@ erlang-dev` or build Erlang from source per instructions [here](http://elinux.or
 
 # Examples
 
-`gpio` only supports simple uses of the GPIO interface in Linux, but you can
+`ElixirCircuits.GPIO` only supports simple uses of the GPIO interface in Linux, but you can
 still do quite a bit. The following examples were tested on a
 Raspberry Pi that was connected to an [Erlang Embedded Demo
 Board](http://solderpad.com/omerk/erlhwdemo/). There's nothing special about
@@ -67,10 +67,10 @@ To turn on the LED that's connected to the net (or wire) labeled
 `GPIO18`, run the following:
 
 ```elixir
-iex> {:ok, gpio} = GPIO.open(18, :output)
+iex> {:ok, gpio} = ElixirCircuits.GPIO.open(18, :output)
 {:ok, #Reference<...>}
 
-iex> GPIO.write(gpio, 1)
+iex> ElixirCircuits.GPIO.write(gpio, 1)
 :ok
 ```
 
@@ -86,27 +86,27 @@ wire low. Many processors have ways of configuring internal resistors
 to accomplish the same effect without needing to add an external resistor.
 It's platform-dependent and not shown here.
 
-The code looks like this in `gpio`:
+The code looks like this in `ElixirCircuits.GPIO`:
 
 ```elixir
-iex> {:ok, gpio} = GPIO.open(17, :input)
+iex> {:ok, gpio} = ElixirCircuits.GPIO.open(17, :input)
 {:ok, #Reference<...>}
 
-iex> GPIO.read(gpio)
+iex> ElixirCircuits.GPIO.read(gpio)
 0
 
 # Push the button down
 
-iex> GPIO.read(gpio)
+iex> ElixirCircuits.GPIO.read(gpio)
 1
 ```
 
 If you'd like to get a message when the button is pressed or released, call the
-`set_int` function. You can trigger on the `:rising` edge, `:falling` edge or
+`set_edge_mode` function. You can trigger on the `:rising` edge, `:falling` edge or
 `:both`.
 
 ```elixir
-iex> GPIO.set_int(gpio, :both)
+iex> ElixirCircuits.GPIO.set_edge_mode(gpio, :both)
 :ok
 
 iex> flush
@@ -115,7 +115,7 @@ iex> flush
 :ok
 ```
 
-Note that after calling `set_int`, the calling process will receive an initial
+Note that after calling `set_edge_mode`, the calling process will receive an initial
 message with the state of the pin. This prevents the race condition between
 getting the initial state of the pin and turning on interrupts. Without it,
 you could get the state of the pin, it could change states, and then you could
@@ -126,12 +126,12 @@ start waiting on it for interrupts. If that happened, you would be out of sync.
 ### Where can I get help?
 
 Most issues people have are on how to communicate with hardware for the first
-time. Since `gpio` is a thin wrapper on the Linux sys class interface, you
+time. Since `ElixirCircuits.GPIO` is a thin wrapper on the Linux sys class interface, you
 may find help by searching for similar issues when using Python or C.
 
-For help specifically with `gpio`, you may also find help on the
+For help specifically with `ElixirCircuits.GPIO`, you may also find help on the
 nerves channel on the [elixir-lang Slack](https://elixir-slackin.herokuapp.com/).
-Many [Nerves](http://nerves-project.org) users also use `gpio`.
+Many [Nerves](http://nerves-project.org) users also use `ElixirCircuits.GPIO`.
 
 ### I tried turning on and off a GPIO as fast as I could. Why was it slow?
 
@@ -155,7 +155,7 @@ If you're still intent on optimizing GPIO access, you may be interested in
 ### Where's PWM support?
 
 On the hardware that I normally use, PWM has been implemented in a
-platform-dependent way. For ease of maintenance, `gpio` doesn't have any
+platform-dependent way. For ease of maintenance, `ElixirCircuits.GPIO` doesn't have any
 platform-dependent code, so supporting it would be difficult. An Elixir PWM
 library would be very interesting, though, should anyone want to implement it.
 
@@ -170,6 +170,6 @@ Please share other examples if you have them.
 
 ### Can I help maintain gpio?
 
-Yes! If your life has been improved by `gpio` and you want to give back,
+Yes! If your life has been improved by `ElixirCircuits.GPIO` and you want to give back,
 it would be great to have new energy put into this project. Please email me.
 

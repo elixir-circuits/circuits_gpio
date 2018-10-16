@@ -3,7 +3,7 @@ defmodule ElixirCircuits.GPIO.MixProject do
 
   def project do
     [
-      app: :gpio,
+      app: :elixir_circuits_gpio,
       version: "0.1.0",
       elixir: "~> 1.6",
       description: description(),
