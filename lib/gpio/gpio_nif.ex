@@ -4,20 +4,9 @@ defmodule ElixirCircuits.GPIO.Nif do
 
   @moduledoc false
 
-  require Logger
-
   def load_nif() do
-    nif_binary = Application.app_dir(:gpio, "priv/gpio_nif")
-
-    case :erlang.load_nif(to_charlist(nif_binary), 0) do
-      {:error, reason} ->
-        Logger.error(
-          "ElixirCircuits.GPIOError: load_nif(#{nif_binary}) failed with #{inspect(reason)}"
-        )
-
-      _ ->
-        :ok
-    end
+    nif_binary = Application.app_dir(:elixir_circuits_gpio, "priv/gpio_nif")
+    :erlang.load_nif(to_charlist(nif_binary), 0)
   end
 
   def open(_pin_number, _pin_direction) do

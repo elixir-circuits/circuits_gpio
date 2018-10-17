@@ -8,7 +8,7 @@ defmodule ElixirCircuits.GPIO.MixProject do
       elixir: "~> 1.6",
       description: description(),
       package: package(),
-      source_url: "https://github.com/ElixirCircuits/gpio",
+      source_url: "https://github.com/elixir-circuits/gpio",
       compilers: [:elixir_make | Mix.compilers()],
       make_targets: ["all"],
       make_clean: ["clean"],
@@ -50,7 +50,7 @@ defmodule ElixirCircuits.GPIO.MixProject do
         "Makefile"
       ],
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => "https://github.com/ElixirCircuits/gpio"}
+      links: %{"GitHub" => "https://github.com/elixir-circuits/gpio"}
     }
   end
 
