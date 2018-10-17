@@ -311,9 +311,12 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
         return 1;
     }
 
+    // TODO: get_gpio_map is only for Raspberry Pi's so it shouldn't be called
+    //       on any other board. Ignore the return value seems to work, but
+    //       isn't a long-term solution.
     if (get_gpio_map(&priv->gpio_map) != 0) {
-        error("get_gpio_map failed");
-        return 1;
+        debug("get_gpio_map failed");
+        //return 1;
     }
 
     *priv_data = (void *) priv;
