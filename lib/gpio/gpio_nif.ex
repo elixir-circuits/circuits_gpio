@@ -32,4 +32,8 @@ defmodule ElixirCircuits.GPIO.Nif do
   def set_pull_mode(_gpio, _pull_mode) do
     :erlang.nif_error(:nif_not_loaded)
   end
+
+  def pin(_gpio) do
+    :erlang.nif_error(:nif_not_loaded)
+  end
 end
