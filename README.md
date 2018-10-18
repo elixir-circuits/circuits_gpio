@@ -21,7 +21,7 @@ Elixir library. Normally, you would include gpio as a dependency in your
 
 ```elixir
 def deps do
-  [{:elixir_ciruits_gpio, "~> 0.1"}]
+  [{:elixir_circuits_gpio, "~> 0.1"}]
 end
 ```
 
@@ -120,6 +120,32 @@ message with the state of the pin. This prevents the race condition between
 getting the initial state of the pin and turning on interrupts. Without it,
 you could get the state of the pin, it could change states, and then you could
 start waiting on it for interrupts. If that happened, you would be out of sync.
+
+
+To conect or disconnect an internal pull-up or pull-down resistor to a GPIO pin,
+call the `set_pull_mode` function.
+
+```elixir
+iex> ElixirCircuits.GPIO.set_pull_mode(gpio, pull_mode)
+:ok
+```
+
+Valid `pull_mode` values are `:none` `:pullup`, or `:pulldown`
+
+
+Note that `set_pull_mode` is platform dependent, and currently only works for Raspberry Pi hardware.
+Calls to `set_pull_mode` on other platforms will have no effect.
+The internal pull-up resistor value is between 50K and 65K, and the pull-down is between 50K and 60K.
+It is not possible to read back the current Pull-up/down settings, 
+and GPIO pull-up pull-down resistor connections are maintained, even when the CPU is powered down.
+
+
+To get the GPIO pin number for a gpio reference, call the `pin` function. 
+
+```elixir
+iex> ElixirCircuits.GPIO.pin(gpio)
+17
+```
 
 ## FAQ
 
