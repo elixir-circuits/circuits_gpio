@@ -77,4 +77,12 @@ defmodule ElixirCircuits.GPIO do
   def set_pull_mode(gpio, pull_mode) do
     Nif.set_pull_mode(gpio, pull_mode)
   end
+
+  @doc """
+  Get the GPIO pin number
+  """
+  @spec pin(reference) :: pin_number | {:error, atom}
+  def pin(gpio) do
+    Nif.pin(gpio)
+  end
 end

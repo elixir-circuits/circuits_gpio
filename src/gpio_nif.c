@@ -584,6 +584,15 @@ static ERL_NIF_TERM set_pull_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
     return priv->atom_ok;
 }
 
+static ERL_NIF_TERM pin_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    struct gpio_priv *priv = enif_priv_data(env);
+    struct gpio_pin *pin;
+    if (!enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin))
+        return enif_make_badarg(env);
+
+    return enif_make_int(env, pin->pin_number);
+}
 
 static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
@@ -634,7 +643,8 @@ static ErlNifFunc nif_funcs[] = {
     {"write", 2, write_gpio, 0},
     {"set_edge_mode", 4, set_edge_mode, 0},
     {"set_direction", 2, set_direction, 0},
-    {"set_pull_mode", 2, set_pull_mode, 0}
+    {"set_pull_mode", 2, set_pull_mode, 0},
+    {"pin", 1, pin_gpio, 0}
 };
 
 ERL_NIF_INIT(Elixir.ElixirCircuits.GPIO.Nif, nif_funcs, load, NULL, NULL, unload)
