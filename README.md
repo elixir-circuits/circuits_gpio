@@ -122,7 +122,7 @@ you could get the state of the pin, it could change states, and then you could
 start waiting on it for interrupts. If that happened, you would be out of sync.
 
 
-To conect or disconnect an internal pull-up or pull-down resistor to a GPIO pin,
+To connect or disconnect an internal pull-up or pull-down resistor to a GPIO pin,
 call the `set_pull_mode` function.
 
 ```elixir
