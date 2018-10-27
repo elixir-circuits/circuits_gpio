@@ -1,5 +1,5 @@
-defmodule ElixirCircuits.GPIO do
-  alias ElixirCircuits.GPIO.Nif
+defmodule Circuits.GPIO do
+  alias Circuits.GPIO.Nif
 
   @type pin_number :: non_neg_integer()
   @type pin_direction :: :input | :output
