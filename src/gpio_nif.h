@@ -14,7 +14,7 @@
 
 #ifdef DEBUG
 #define log_location stderr
-//#define LOG_PATH "/tmp/elixir_circuits_gpio.log"
+//#define LOG_PATH "/tmp/circuits_gpio.log"
 #define debug(...) do { enif_fprintf(log_location, __VA_ARGS__); enif_fprintf(log_location, "\r\n"); fflush(log_location); } while(0)
 #define error(...) do { debug(__VA_ARGS__); } while (0)
 #define start_timing() ErlNifTime __start = enif_monotonic_time(ERL_NIF_USEC)

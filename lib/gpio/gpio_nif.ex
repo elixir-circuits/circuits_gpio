@@ -1,11 +1,11 @@
-defmodule ElixirCircuits.GPIO.Nif do
+defmodule Circuits.GPIO.Nif do
   @on_load {:load_nif, 0}
   @compile {:autoload, false}
 
   @moduledoc false
 
   def load_nif() do
-    nif_binary = Application.app_dir(:elixir_circuits_gpio, "priv/gpio_nif")
+    nif_binary = Application.app_dir(:circuits_gpio, "priv/gpio_nif")
     :erlang.load_nif(to_charlist(nif_binary), 0)
   end
 

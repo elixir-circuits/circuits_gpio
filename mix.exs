@@ -1,14 +1,14 @@
-defmodule ElixirCircuits.GPIO.MixProject do
+defmodule Circuits.GPIO.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :elixir_circuits_gpio,
+      app: :circuits_gpio,
       version: "0.1.0",
       elixir: "~> 1.6",
       description: description(),
       package: package(),
-      source_url: "https://github.com/elixir-circuits/gpio",
+      source_url: "https://github.com/elixir-circuits/circuits_gpio",
       compilers: [:elixir_make | Mix.compilers()],
       make_targets: ["all"],
       make_clean: ["clean"],
@@ -50,7 +50,7 @@ defmodule ElixirCircuits.GPIO.MixProject do
         "Makefile"
       ],
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => "https://github.com/elixir-circuits/gpio"}
+      links: %{"GitHub" => "https://github.com/elixir-circuits/circuits_gpio"}
     }
   end
 
