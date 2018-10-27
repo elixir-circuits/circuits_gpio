@@ -496,10 +496,8 @@ static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
         return enif_make_badarg(env);
 
     int value = sysfs_read_gpio(pin->fd);
-    if (value < 0) {
-        error("Error reading GPIO %d: rc=%d, fd=%d, errno=%d", pin->pin_number, value, pin->fd, errno);
-        return make_error_tuple(env, "read");
-    }
+    if (value < 0)
+        return enif_raise_exception(env, enif_make_atom(env, strerror(errno)));
 
     return enif_make_int(env, value);
 }
@@ -514,14 +512,12 @@ static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
         return enif_make_badarg(env);
 
     if (!pin->is_output)
-        return make_error_tuple(env, "pin_not_input");
+        return enif_raise_exception(env, enif_make_atom(env, "pin_not_input"));
 
     char buff = value ? '1' : '0';
     ssize_t amount_written = pwrite(pin->fd, &buff, sizeof(buff), 0);
-    if (amount_written < (ssize_t) sizeof(buff)) {
-        error("Error writing GPIO %d: rc=%d, fd=%d, errno=%d", pin->pin_number, amount_written, pin->fd, errno);
-        return make_error_tuple(env, "write");
-    }
+    if (amount_written < (ssize_t) sizeof(buff))
+        return enif_raise_exception(env, enif_make_atom(env, strerror(errno)));
 
     return priv->atom_ok;
 }
