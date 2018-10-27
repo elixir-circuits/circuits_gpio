@@ -21,7 +21,7 @@ defmodule Circuits.GPIO do
   @doc """
   Read the current value on a pin.
   """
-  @spec read(reference()) :: value() | {:error, atom()}
+  @spec read(reference()) :: value()
   def read(gpio) do
     Nif.read(gpio)
   end
@@ -30,7 +30,7 @@ defmodule Circuits.GPIO do
   Set the value of a pin. The pin should be configured to an output
   for this to work.
   """
-  @spec write(reference(), value()) :: :ok | {:error, atom()}
+  @spec write(reference(), value()) :: :ok
   def write(gpio, value) do
     Nif.write(gpio, value)
   end
@@ -81,7 +81,7 @@ defmodule Circuits.GPIO do
   @doc """
   Get the GPIO pin number
   """
-  @spec pin(reference) :: pin_number | {:error, atom}
+  @spec pin(reference) :: pin_number
   def pin(gpio) do
     Nif.pin(gpio)
   end
