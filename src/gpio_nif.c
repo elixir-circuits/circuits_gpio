@@ -183,7 +183,7 @@ static void *gpio_poller_thread(void *arg)
     init_listeners(monitor_info);
     for (;;) {
         struct pollfd *fds = &fdset[0];
-        int count = 0;
+        nfds_t count = 0;
 
         struct gpio_monitor_info *info = monitor_info;
         while (info->fd >= 0) {
@@ -229,7 +229,7 @@ static void *gpio_poller_thread(void *arg)
         }
 
         bool cleanup = false;
-        for (int i = 0; i < count - 1; i++) {
+        for (nfds_t i = 0; i < count - 1; i++) {
             if (fdset[i].revents) {
                 if (fdset[i].revents & POLLPRI) {
                     int value = sysfs_read_gpio(fdset[i].fd);
