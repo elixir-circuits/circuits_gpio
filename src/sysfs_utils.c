@@ -71,11 +71,11 @@ int get_gpio_map(uint32_t **gpio_map)
             return 0;
         }
     }
-    error("get_gpio_map() open() /dev/gpiomem, failed");
+    debug("get_gpio_map() open('/dev/gpiomem') failed. Going to try '/dev/mem'");
 
     uint32_t peri_addr =  bcm_host_get_peripheral_address();
     uint32_t gpio_base = peri_addr + GPIO_BASE_OFFSET;
-    debug("get_gpio_map() 2 peri_addr %d", gpio_base);
+    debug("get_gpio_map() 2 peri_addr 0x%08x", gpio_base);
 
     // mmap the GPIO memory registers
     if ((mem_fd = open("/dev/mem", O_RDWR|O_SYNC) ) < 0) {
