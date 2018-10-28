@@ -10,7 +10,7 @@
 
 #define MAX_GPIO_LISTENERS 32
 
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 #define log_location stderr
