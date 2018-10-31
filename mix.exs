@@ -46,6 +46,7 @@ defmodule Circuits.GPIO.MixProject do
         "src/*.[ch]",
         "mix.exs",
         "README.md",
+        "PORTING.md",
         "LICENSE",
         "Makefile"
       ],
