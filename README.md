@@ -3,21 +3,21 @@
 [![CircleCI](https://circleci.com/gh/elixir-circuits/circuits_gpio.svg?style=svg)](https://circleci.com/gh/elixir-circuits/circuits_gpio)
 [![Hex version](https://img.shields.io/hexpm/v/circuits_gpio.svg "Hex version")](https://hex.pm/packages/circuits_gpio)
 
-`Circuits.GPIO` provides high level an abstraction for interfacing to GPIOs on
-Linux platforms. Internally, it uses the Linux sysclass interface so that it
-most functionality does not require platform-dependent code.
+`Circuits.GPIO` lets you control or read from GPIOs on Nerves or other Linux-based
+devices.
+
+If you're coming from Elixir/ALE, check out our [porting guide](PORTING.md).
 
 `Circuits.GPIO` works great with LEDs, buttons, many kinds of sensors, and
 simple control of motors. In general, if a device requires high speed
 transactions or has hard real-time constraints in its interactions, this is not
-the right library. For those devices, it is recommended to look at other driver
-options, such as using a Linux kernel driver.
+the right library. For those devices, see if there's a Linux kernel driver.
 
 ## Getting started
 
-If you're natively compiling `circuits_gpio`, everything should work like any
-other Elixir library. Normally, you would include `circuits_gpio` as a
-dependency in your `mix.exs` like this:
+If you're natively compiling `circuits_gpio` on a Raspberry Pi or using Nerves,
+everything should work like any other Elixir library. Normally, you would
+include `circuits_gpio` as a dependency in your `mix.exs` like this:
 
 ```elixir
 def deps do
@@ -25,24 +25,9 @@ def deps do
 end
 ```
 
-If you just want to try it out, you can do the following:
-
-```shell
-git clone https://github.com/elixir-circuits/circuits_gpio
-cd circuits_gpio
-mix compile
-iex -S mix
-```
-
-If you're cross-compiling, you'll need to setup your environment so that the
-right C compiler is called. See the `Makefile` for the variables that will need
-to be overridden. At a minimum, you will need to set `CROSSCOMPILE`,
-`ERL_CFLAGS`, and `ERL_EI_LIBDIR`.
-
-If you're trying to compile on a Raspberry Pi and you get errors indicated that
-Erlang headers are missing (`ie.h`), you may need to install erlang with
-`apt-get install erlang-dev` or build Erlang from source per instructions
-[here](http://elinux.org/Erlang).
+One common error on Raspbian is that the Erlang headers are missing (`ie.h`),
+you may need to install erlang with `apt-get install erlang-dev` or build Erlang
+from source per instructions [here](http://elinux.org/Erlang).
 
 ## Examples
 
