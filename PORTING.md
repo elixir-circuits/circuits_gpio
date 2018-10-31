@@ -23,9 +23,9 @@ benefits:
    GPIO. `Circuits.GPIO` creates a NIF resource (Elixir Reference) for each
    GPIO.
 
-`Circuits.GPIO` interfaces with Elixir using Erlang's NIF interface. NIFs have
-the downside of being able to crash the Erlang VM. Experience with Elixir/ALE
-has given many of us confidence that this won't be a problem.
+`Circuits.GPIO` uses Erlang's NIF interface. NIFs have the downside of being
+able to crash the Erlang VM. Experience with Elixir/ALE has given many of us
+confidence that this won't be a problem.
 
 ## Code modifications
 
@@ -39,10 +39,11 @@ The remain modifications should mostly be mechanical:
 
 1. Rename references to `ElixirALE.GPIO` to to `Circuits.GPIO` and `elixir_ale`
    to `circuits_gpio`
-2. Change calls to `ElixirALE.start_link/2` to `Circuits.GPIO.open/2`. While
-   you're at it, review the arguments to open to not include any `GenServer`
-   options.
-3. Change calls to `ElixirALE.set_int/2` to `Circuits.GPIO.set_edge_mode/2`.
+2. Change calls to `ElixirALE.GPIO.start_link/2` to `Circuits.GPIO.open/2`.
+   While you're at it, review the arguments to open to not include any
+   `GenServer` options.
+3. Change calls to `ElixirALE.GPIO.set_int/2` to
+   `Circuits.GPIO.set_edge_mode/2`.
 4. Change the pattern match for the GPIO interrupt events to match 4 tuples.
    They have the form `{:gpio, <pin_number>, <timestamp>, <value>}`
 5. Review calls to `write/2` to ensure that they pass `0` or `1`. `ElixirALE`
