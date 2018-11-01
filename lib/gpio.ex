@@ -98,6 +98,14 @@ defmodule Circuits.GPIO do
     Nif.pin(gpio)
   end
 
+  @doc """
+  Return info about the low level GPIO interface
+
+  This may be helpful when debugging issues.
+  """
+  @spec info() :: map()
+  defdelegate info(), to: Nif
+
   defmodule :circuits_gpio do
     @moduledoc """
     Provide an Erlang friendly interface to Circuits

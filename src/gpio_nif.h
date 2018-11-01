@@ -6,9 +6,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <sys/mman.h>
-
-#define MAX_GPIO_LISTENERS 32
 
 //#define DEBUG
 
@@ -25,6 +22,8 @@
 #define start_timing()
 #define elapsed_microseconds() 0
 #endif
+
+#define MAX_GPIO_LISTENERS 32
 
 enum edge_mode {
     EDGE_NONE,
@@ -45,28 +44,123 @@ struct gpio_priv {
 
     ErlNifResourceType *gpio_pin_rt;
 
-    ErlNifTid poller_tid;
-    int pipe_fds[2];
-    uint32_t *gpio_map;
+    uint32_t hal_priv[1];
+};
+
+struct gpio_config {
+    bool is_output;
+    enum edge_mode edge;
+    enum pull_mode pull;
+    bool suppress_glitches;
+    ErlNifPid pid;
 };
 
 struct gpio_pin {
-    int fd;
     int pin_number;
-    bool is_output;
+    int fd;
+    void *hal_priv;
+    struct gpio_config config;
 };
 
-#define GPIO_MAP_BLOCK_SIZE (4*1024)
-#define PAGE_SIZE  (4*1024)
-#define GPIO_BASE_OFFSET    0x200000
+// HAL
 
-// sysfs_utils.c
-int sysfs_write_file(const char *pathname, const char *value);
-int get_gpio_map(uint32_t **gpio_map);
+/**
+ * Return information about the HAL.
+ *
+ * This should return a map with the name of the HAL and any info that
+ * would help debug issues with it.
+ */
+ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info);
+
+/**
+ * Return the additional number of bytes of private data to allocate
+ * for the HAL.
+ */
+size_t hal_priv_size(void);
+
+/**
+ * Initialize the HAL
+ *
+ * @param hal_priv where to store state
+ * @return 0 on success
+ */
+int hal_load(void *hal_priv);
+
+/**
+ * Release all resources held by the HAL
+ *
+ * @param hal_priv private state
+ */
+void hal_unload(void *hal_priv);
+
+/**
+ * Open up and initialize a GPIO.
+ *
+ * @param pin information about the GPIO
+ * @param error_str helpful text if something goes wrong
+ * @return 0 on success
+ */
+int hal_open_gpio(struct gpio_pin *pin,
+                  char *error_str);
+
+/**
+ * Free up resources for the specified GPIO
+ *
+ * @param pin GPIO pin information
+ */
+void hal_close_gpio(struct gpio_pin *pin);
+
+/**
+ * Read the current value of a GPIO
+ *
+ * @param pin which one
+ * @return 0 if low; 1 if high
+ */
+int hal_read_gpio(struct gpio_pin *pin);
+
+/**
+ * Change the value of a GPIO
+ *
+ * @param pin which one
+ * @param value 0 or 1
+ * @return 0 on success
+ */
+int hal_write_gpio(struct gpio_pin *pin, int value);
+
+/**
+ * Apply GPIO direction settings
+ *
+ * @param pin which one
+ * @return 0 on success
+ */
+int hal_apply_direction(struct gpio_pin *pin);
+
+/**
+ * Apply GPIO change notification state
+ *
+ * @param pin the pin and notification edge info
+ * @return 0 on success
+ */
+int hal_apply_edge_mode(struct gpio_pin *pin);
+
+/**
+ * Apply GPIO pull mode settings
+ *
+ * @param pin which one
+ * @return 0 on success
+ */
+int hal_apply_pull_mode(struct gpio_pin *pin);
 
 // nif_utils.c
 ERL_NIF_TERM make_ok_tuple(ErlNifEnv *env, ERL_NIF_TERM value);
 ERL_NIF_TERM make_error_tuple(ErlNifEnv *env, const char *reason);
 int enif_get_boolean(ErlNifEnv *env, ERL_NIF_TERM term, bool *v);
+
+int send_gpio_message(ErlNifEnv *env,
+                      ERL_NIF_TERM atom_gpio,
+                      int pin_number,
+                      ErlNifPid *pid,
+                      int64_t timestamp,
+                      int value);
 
 #endif // GPIO_NIF_H
