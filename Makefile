@@ -11,54 +11,51 @@
 
 NIF=priv/gpio_nif.so
 
+TARGETS=$(NIF)
+
+NIF_LDFLAGS = $(LDFLAGS)
+TARGET_CFLAGS = $(shell src/detect_target.sh)
+
 # Check that we're on a supported build platform
 ifeq ($(CROSSCOMPILE),)
     # Not crosscompiling, so check that we're on Linux.
     ifneq ($(shell uname -s),Linux)
-        $(warning Elixir Circuits only works on Linux, but crosscompilation)
-        $(warning is supported by defining $$CROSSCOMPILE, $$ERL_EI_INCLUDE_DIR,)
-        $(warning and $$ERL_EI_LIBDIR. See Makefile for details. If using Nerves,)
-        $(warning this should be done automatically.)
-        $(warning .)
-        $(warning Skipping C compilation unless targets explicitly passed to make.)
-	DEFAULT_TARGETS = priv
+        $(warning Elixir Circuits only works on Nerves and Linux platforms.)
+        $(warning A stub NIF will be compiled for test purposes.)
+	HAL = src/hal_stub.c
+        NIF_LDFLAGS += -undefined dynamic_lookup -dynamiclib
+    else
+        NIF_LDFLAGS += -fPIC -shared
     endif
+else
+# Crosscompiled build
+NIF_LDFLAGS += -fPIC -shared
 endif
-DEFAULT_TARGETS ?= priv $(NIF)
+HAL ?= src/hal_sysfs.c src/hal_sysfs_interrupts.c src/hal_rpi.c
+HAL += src/nif_utils.c
 
-# Look for the EI library and header files
-# For crosscompiled builds, ERL_EI_INCLUDE_DIR and ERL_EI_LIBDIR must be
-# passed into the Makefile.
-ifeq ($(ERL_EI_INCLUDE_DIR),)
-ERL_ROOT_DIR = $(shell erl -eval "io:format(\"~s~n\", [code:root_dir()])" -s init stop -noshell)
-ifeq ($(ERL_ROOT_DIR),)
-   $(error Could not find the Erlang installation. Check to see that 'erl' is in your PATH)
-endif
-ERL_EI_INCLUDE_DIR = "$(ERL_ROOT_DIR)/usr/include"
-ERL_EI_LIBDIR = "$(ERL_ROOT_DIR)/usr/lib"
-endif
+CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter -pedantic
+CFLAGS += $(TARGET_CFLAGS)
 
 # Set Erlang-specific compile and linker flags
 ERL_CFLAGS ?= -I$(ERL_EI_INCLUDE_DIR)
 ERL_LDFLAGS ?= -L$(ERL_EI_LIBDIR) -lei
 
-LDFLAGS += -fPIC -shared -pedantic
-CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter
-
-SRC=$(wildcard src/*.c)
+NIF_SRC =src/gpio_nif.c $(HAL)
+HEADERS =$(wildcard src/*.h)
 
 calling_from_make:
 	mix compile
 
-all: $(DEFAULT_TARGETS)
-
-$(NIF): $(wildcard src/*.h)
+all: priv $(TARGETS)
 
 priv:
 	mkdir -p priv
 
-$(NIF): $(SRC)
-	$(CC) $(ERL_CFLAGS) $(CFLAGS) $(ERL_LDFLAGS) $(LDFLAGS) -o $@ $^
+$(NIF): $(HEADERS) Makefile
+
+$(NIF): $(NIF_SRC)
+	$(CC) -o $@ $(NIF_SRC) $(ERL_CFLAGS) $(CFLAGS) $(ERL_LDFLAGS) $(NIF_LDFLAGS)
 
 clean:
 	$(RM) $(NIF)

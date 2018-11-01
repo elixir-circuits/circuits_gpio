@@ -6,6 +6,7 @@ defmodule Circuits.GPIO.Nif do
 
   def load_nif() do
     nif_binary = Application.app_dir(:circuits_gpio, "priv/gpio_nif")
+
     :erlang.load_nif(to_charlist(nif_binary), 0)
   end
 
@@ -34,6 +35,10 @@ defmodule Circuits.GPIO.Nif do
   end
 
   def pin(_gpio) do
+    :erlang.nif_error(:nif_not_loaded)
+  end
+
+  def info() do
     :erlang.nif_error(:nif_not_loaded)
   end
 end
