@@ -85,4 +85,20 @@ defmodule Circuits.GPIO do
   def pin(gpio) do
     Nif.pin(gpio)
   end
+
+  defmodule :circuits_gpio do
+    @moduledoc """
+    Provide an Erlang friendly interface to Circuits
+    Example Erlang code:  circuits_gpio:open(5, output)
+    """
+    defdelegate open(pin_number, pin_direction), to: Circuits.GPIO
+    defdelegate read(gpio), to: Circuits.GPIO
+    defdelegate write(gpio, value), to: Circuits.GPIO
+    defdelegate set_edge_mode(gpio), to: Circuits.GPIO
+    defdelegate set_edge_mode(gpio, edge), to: Circuits.GPIO
+    defdelegate set_edge_mode(gpio, edge, suppress_glitches), to: Circuits.GPIO
+    defdelegate set_direction(gpio, pin_direction), to: Circuits.GPIO
+    defdelegate set_pull_mode(gpio, pull_mode), to: Circuits.GPIO
+    defdelegate pin(gpio), to: Circuits.GPIO
+  end
 end
