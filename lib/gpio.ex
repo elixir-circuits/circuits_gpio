@@ -45,8 +45,13 @@ defmodule Circuits.GPIO do
   * :both - Send a notification on all changes
 
   It is possible that the pin transitions to a value and back by the time
-  that Elixir ALE gets to process it. The third parameter, `suppress_glitches`, controls
-  whether a notification is sent. Set this to `false` to receive notifications.
+  that Circuits GPIO gets to process it.
+
+  Available Options:
+  * `suppress_glitches` - controls whether a notification is sent.
+  Set this to `false` to receive notifications.
+  * `receiver` - Process which should receive the notifications.
+  Defaults to the calling process (`self()`)
 
   Notifications look like:
 
@@ -57,9 +62,15 @@ defmodule Circuits.GPIO do
   Where `pin_number` is the pin that changed values, `timestamp` is roughly when
   the transition occurred in nanoseconds, and `value` is the new value.
   """
-  @spec set_edge_mode(reference(), edge(), boolean()) :: :ok | {:error, atom()}
-  def set_edge_mode(gpio, edge \\ :both, suppress_glitches \\ true) do
-    Nif.set_edge_mode(gpio, edge, suppress_glitches, self())
+  @spec set_edge_mode(reference(), edge(), list()) :: :ok | {:error, atom()}
+  def set_edge_mode(gpio, edge \\ :both, opts \\ []) do
+    suppress_glitches = Keyword.get(opts, :suppress_glitches, true)
+    receiver = case Keyword.get(opts, :receiver) do
+                 pid when is_pid(pid) -> pid
+                 _ -> self()
+               end
+
+    Nif.set_edge_mode(gpio, edge, suppress_glitches, receiver)
   end
 
   @doc """
