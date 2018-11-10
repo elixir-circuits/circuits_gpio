@@ -44,12 +44,10 @@ defmodule Circuits.GPIO do
   * :falling - Send a notification when the pin changes from 1 to 0
   * :both - Send a notification on all changes
 
-  It is possible that the pin transitions to a value and back by the time
-  that Circuits GPIO gets to process it.
-
   Available Options:
-  * `suppress_glitches` - controls whether a notification is sent.
-  Set this to `false` to receive notifications.
+  * `suppress_glitches` - It is possible that the pin transitions to a value
+  and back by the time that Circuits GPIO gets to process it. This controls
+  whether a notification is sent. Set this to `false` to receive notifications.
   * `receiver` - Process which should receive the notifications.
   Defaults to the calling process (`self()`)
 
