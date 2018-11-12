@@ -63,10 +63,13 @@ defmodule Circuits.GPIO do
   @spec set_edge_mode(reference(), edge(), list()) :: :ok | {:error, atom()}
   def set_edge_mode(gpio, edge \\ :both, opts \\ []) do
     suppress_glitches = Keyword.get(opts, :suppress_glitches, true)
-    receiver = case Keyword.get(opts, :receiver) do
-                 pid when is_pid(pid) -> pid
-                 _ -> self()
-               end
+
+    receiver =
+      case Keyword.get(opts, :receiver) do
+        pid when is_pid(pid) -> pid
+        name when is_atom(name) -> Process.whereis(name) || self()
+        _ -> self()
+      end
 
     Nif.set_edge_mode(gpio, edge, suppress_glitches, receiver)
   end
