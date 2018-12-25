@@ -30,7 +30,7 @@ jobs:
     docker:
       - image: erlang:21.1
         environment:
-          ELIXIR_VERSION: 1.7.3-otp-21
+          ELIXIR_VERSION: 1.7.4-otp-21
           LC_ALL: C.UTF-8
     <<: *defaults
     steps:
@@ -38,10 +38,20 @@ jobs:
       - <<: *install_system_deps
       - <<: *install_elixir
       - <<: *install_hex_rebar
+      - restore_cache:
+          keys:
+            - v1-mix-cache-{{ checksum "mix.lock" }}
       - run: mix deps.get
       - run: mix format --check-formatted
+      - run: mix hex.build
       - run: mix test
       - run: mix docs
+      - run: mix dialyzer --halt-exit-status
+      - save_cache:
+          key: v1-mix-cache-{{ checksum "mix.lock" }}
+          paths:
+            - _build
+            - deps
 
   build_elixir_1_6_otp_21:
     docker:
