@@ -174,6 +174,7 @@ Please share other examples if you have them.
 
 ### How do I call Circuits.GPIO from Erlang?
 
-An Erlang friendly binding has been provided to simplify syntax when calling `Circuits.GPIO` functions from Erlang code.  Instead of prefixing calls with: `'Elixir.Circuits.GPIO':` you may use the binding: `circuits_gpio:`.
-For example: `circuits_i2c:open(5, output)`.
+`Circuits.GPIO` provides an Erlang-friendly binding to simplify calls from
+Erlang code. Instead of prefixing calls with: `'Elixir.Circuits.GPIO':` you may
+use the binding: `circuits_gpio:`.  For example: `circuits_gpio:open(5, output)`.
 
