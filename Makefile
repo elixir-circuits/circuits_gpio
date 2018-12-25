@@ -18,13 +18,17 @@ TARGET_CFLAGS = $(shell src/detect_target.sh)
 
 # Check that we're on a supported build platform
 ifeq ($(CROSSCOMPILE),)
-    # Not crosscompiling, so check that we're on Linux.
-    ifneq ($(shell uname -s),Linux)
-        $(warning Elixir Circuits only works on Nerves and Linux platforms.)
-        $(warning A stub NIF will be compiled for test purposes.)
+    # Not crosscompiling.
+    ifeq ($(shell uname -s),Darwin)
+        $(warning Elixir Circuits only works on Nerves and Linux.)
+        $(warning Compiling a stub NIF for testing.)
 	HAL = src/hal_stub.c
         NIF_LDFLAGS += -undefined dynamic_lookup -dynamiclib
     else
+        ifeq ($(MIX_ENV),test)
+            $(warning Compiling stub NIF to support 'mix test')
+            HAL = src/hal_stub.c
+        endif
         NIF_LDFLAGS += -fPIC -shared
     endif
 else

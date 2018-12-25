@@ -21,6 +21,11 @@ defmodule Circuits.GPIO.MixProject do
   end
 
   defp make_env() do
+    %{"MIX_ENV" => to_string(Mix.env())}
+    |> Map.merge(ei_env())
+  end
+
+  defp ei_env() do
     case System.get_env("ERL_EI_INCLUDE_DIR") do
       nil ->
         %{
