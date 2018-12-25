@@ -13,7 +13,7 @@ defmodule Circuits.GPIO.MixProject do
       make_targets: ["all"],
       make_clean: ["clean"],
       make_env: make_env(),
-      docs: [extras: ["README.md"]],
+      docs: [extras: ["README.md"], main: "readme"],
       aliases: [docs: ["docs", &copy_images/1], format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
       deps: deps()
@@ -36,7 +36,7 @@ defmodule Circuits.GPIO.MixProject do
   def application, do: []
 
   defp description do
-    "Elixir access to hardware GPIO interface."
+    "Use GPIOs in Elixir"
   end
 
   defp package do
