@@ -9,14 +9,23 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+static void release_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
+{
+    if (pin->fd >= 0) {
+        hal_close_gpio(pin);
+        priv->pins_open--;
+        pin->fd = -1;
+    }
+}
+
 static void gpio_pin_dtor(ErlNifEnv *env, void *obj)
 {
-    (void) env;
-
+    struct gpio_priv *priv = enif_priv_data(env);
     struct gpio_pin *pin = (struct gpio_pin*) obj;
+
     debug("gpio_pin_dtor called on pin=%d", pin->pin_number);
 
-    hal_close_gpio(pin);
+    release_gpio_pin(priv, pin);
 }
 
 static void gpio_pin_stop(ErlNifEnv *env, void *obj, int fd, int is_direct_call)
@@ -79,6 +88,7 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
         return 1;
     }
 
+    priv->pins_open = 0;
     priv->atom_ok = enif_make_atom(env, "ok");
 
     priv->gpio_pin_rt = enif_open_resource_type_x(env, "gpio_pin", &gpio_pin_init, ERL_NIF_RT_CREATE, NULL);
@@ -129,7 +139,10 @@ static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
     if (!pin->config.is_output)
         return enif_raise_exception(env, enif_make_atom(env, "pin_not_input"));
 
-    if (hal_write_gpio(pin, value) < 0)
+    // Make sure value is 0 or 1
+    value = !!value;
+
+    if (hal_write_gpio(pin, value, env) < 0)
         return enif_raise_exception(env, enif_make_atom(env, strerror(errno)));
 
     return priv->atom_ok;
@@ -195,7 +208,7 @@ static ERL_NIF_TERM set_edge_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
         return enif_make_badarg(env);
     }
 
-    if (hal_apply_edge_mode(pin) < 0) {
+    if (hal_apply_edge_mode(pin, env) < 0) {
         pin->config = old_config;
         return make_error_tuple(env, "write_int_edge");
     }
@@ -270,14 +283,15 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     struct gpio_pin *pin = enif_alloc_resource(priv->gpio_pin_rt, sizeof(struct gpio_pin));
     pin->fd = -1;
     pin->pin_number = pin_number;
+    pin->hal_priv = priv->hal_priv;
     pin->config.is_output = is_output;
     pin->config.edge = EDGE_NONE;
     pin->config.pull = PULL_NOT_SET;
     pin->config.suppress_glitches = false;
 
     char error_str[64];
-    if (hal_open_gpio(pin, error_str) < 0) {
-        enif_free(pin);
+    if (hal_open_gpio(pin, error_str, env) < 0) {
+        enif_release_resource(pin);
         return make_error_tuple(env, error_str);
     }
 
@@ -285,9 +299,23 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     ERL_NIF_TERM pin_resource = enif_make_resource(env, pin);
     enif_release_resource(pin);
 
+    priv->pins_open++;
+
     return make_ok_tuple(env, pin_resource);
 }
 
+static ERL_NIF_TERM close_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    struct gpio_priv *priv = enif_priv_data(env);
+    struct gpio_pin *pin;
+    if (argc != 1 ||
+            !enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin))
+        return enif_make_badarg(env);
+
+    release_gpio_pin(priv, pin);
+
+    return priv->atom_ok;
+}
 static ERL_NIF_TERM gpio_info(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     (void) argc;
@@ -296,11 +324,14 @@ static ERL_NIF_TERM gpio_info(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     struct gpio_priv *priv = enif_priv_data(env);
     ERL_NIF_TERM info = enif_make_new_map(env);
 
+    enif_make_map_put(env, info, enif_make_atom(env, "pins_open"), enif_make_int(env, priv->pins_open), &info);
+
     return hal_info(env, priv->hal_priv, info);
 }
 
 static ErlNifFunc nif_funcs[] = {
     {"open", 2, open_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
+    {"close", 1, close_gpio, 0},
     {"read", 1, read_gpio, 0},
     {"write", 2, write_gpio, 0},
     {"set_edge_mode", 4, set_edge_mode, 0},

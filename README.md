@@ -132,7 +132,54 @@ iex> Circuits.GPIO.pin(gpio)
 17
 ```
 
+## Testing
+
+`Circuits.GPIO` supports a "stub" hardware abstraction layer on platforms
+without GPIO support and when `MIX_ENV=test`. The stub allows for some
+limited unit testing without real hardware.
+
+To use it, first check that you're using the "stub" HAL:
+
+```elixir
+iex> Circuits.GPIO.info
+%{name: :stub, pins_open: 0}
+```
+
+The stub HAL has 64 GPIOs. Each pair of GPIOs is connected. For example,
+GPIO 0 is connected to GPIO 1. If you open GPIO 0 as an output and
+GPIO 1 as an input, you can write to GPIO 0 and see the result on GPIO 1.
+Here's an example:
+
+```elixir
+iex> {:ok, gpio0} = Circuits.GPIO.open(0, :output)
+{:ok, #Reference<0.801050056.3201171470.249048>}
+iex> {:ok, gpio1} = Circuits.GPIO.open(1, :input)
+{:ok, #Reference<0.801050056.3201171470.249052>}
+iex> Circuits.GPIO.read(gpio1)
+0
+iex> Circuits.GPIO.write(gpio0, 1)
+:ok
+iex> Circuits.GPIO.read(gpio1)
+1
+```
+
+The stub HAL is fairly limited, but it does support interrupts.
+
 ## FAQ
+
+### How does Circuits.GPIO compare to Elixir/ALE?
+
+`Circuits.GPIO` is almost Elixir/ALE 2.0. The API for Elixir/ALE became
+difficult to change so we started again with `Circuits.GPIO`. The main
+improvements are:
+
+* Improved performance and lower resource usage
+* Timestamps on interrupts
+* A hardware abstraction layer to support multiple ways of interfacing with the
+  low level GPIO interfaces
+
+See the [Porting Guide](PORTING.md) for more information if you're an Elixir/ALE
+user.
 
 ### Where can I get help?
 
@@ -151,8 +198,8 @@ you're trying to do:
 
 1. If you're trying to drive a servo or dim an LED, look into PWM. Many
    platforms have PWM hardware and you won't tax your CPU at all. If your
-   platform is missing a PWM, several chips are available that take I2C commands to
-   drive a PWM output.
+   platform is missing a PWM, several chips are available that take I2C commands
+   to drive a PWM output.
 2. If you need to implement a wire level protocol to talk to a device, look for
    a Linux kernel driver. It may just be a matter of loading the right kernel
    module.
@@ -163,18 +210,19 @@ you're trying to do:
 If you're still intent on optimizing GPIO access, you may be interested in
 [gpio_twiddler](https://github.com/fhunleth/gpio_twiddler).
 
-### Can I develop code that uses gpio on my laptop?
+### Can I develop code that uses GPIO on my laptop?
 
-You'll need to fake out the hardware. Code to do this depends on what your
-hardware actually does, but here's one example:
+See whether the "stub" HAL (described above) works for you or could be improved
+to support your use case.
+
+The following advice from Elixir/ALE may also be useful: You'll need to fake out
+the hardware. Code to do this depends on what your hardware actually does, but
+here's one example:
 
 * http://www.cultivatehq.com/posts/compiling-and-testing-elixir-nerves-on-your-host-machine/
-
-Please share other examples if you have them.
 
 ### How do I call Circuits.GPIO from Erlang?
 
 `Circuits.GPIO` provides an Erlang-friendly binding to simplify calls from
 Erlang code. Instead of prefixing calls with: `'Elixir.Circuits.GPIO':` you may
 use the binding: `circuits_gpio:`.  For example: `circuits_gpio:open(5, output)`.
-
