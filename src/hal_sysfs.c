@@ -124,7 +124,8 @@ void hal_unload(void *hal_priv)
 }
 
 int hal_open_gpio(struct gpio_pin *pin,
-                  char *error_str)
+                  char *error_str,
+                  ErlNifEnv *env)
 {
     *error_str = '\0';
 
@@ -147,7 +148,7 @@ int hal_open_gpio(struct gpio_pin *pin,
         strcpy(error_str, "error_setting_direction");
         goto error;
     }
-    if (hal_apply_edge_mode(pin) < 0) {
+    if (hal_apply_edge_mode(pin, env) < 0) {
         strcpy(error_str, "error_setting_edge_mode");
         goto error;
     }
@@ -183,14 +184,18 @@ int hal_read_gpio(struct gpio_pin *pin)
     return sysfs_read_gpio(pin->fd);
 }
 
-int hal_write_gpio(struct gpio_pin *pin, int value)
+int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
 {
+    (void) env;
+
     char buff = value ? '1' : '0';
     return (int) pwrite(pin->fd, &buff, sizeof(buff), 0);
 }
 
-int hal_apply_edge_mode(struct gpio_pin *pin)
+int hal_apply_edge_mode(struct gpio_pin *pin, ErlNifEnv *env)
 {
+    (void) env;
+
     char edge_path[64];
     sprintf(edge_path, "/sys/class/gpio/gpio%d/edge", pin->pin_number);
     if (access(edge_path, F_OK) != -1) {

@@ -44,6 +44,8 @@ struct gpio_priv {
 
     ErlNifResourceType *gpio_pin_rt;
 
+    int pins_open;
+
     uint32_t hal_priv[1];
 };
 
@@ -98,10 +100,12 @@ void hal_unload(void *hal_priv);
  *
  * @param pin information about the GPIO
  * @param error_str helpful text if something goes wrong
+ * @param env a NIF environment in case a message is sent
  * @return 0 on success
  */
 int hal_open_gpio(struct gpio_pin *pin,
-                  char *error_str);
+                  char *error_str,
+                  ErlNifEnv *env);
 
 /**
  * Free up resources for the specified GPIO
@@ -123,9 +127,10 @@ int hal_read_gpio(struct gpio_pin *pin);
  *
  * @param pin which one
  * @param value 0 or 1
+ * @param env ErlNifEnv if this causes an event to be sent
  * @return 0 on success
  */
-int hal_write_gpio(struct gpio_pin *pin, int value);
+int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env);
 
 /**
  * Apply GPIO direction settings
@@ -141,7 +146,7 @@ int hal_apply_direction(struct gpio_pin *pin);
  * @param pin the pin and notification edge info
  * @return 0 on success
  */
-int hal_apply_edge_mode(struct gpio_pin *pin);
+int hal_apply_edge_mode(struct gpio_pin *pin, ErlNifEnv *env);
 
 /**
  * Apply GPIO pull mode settings

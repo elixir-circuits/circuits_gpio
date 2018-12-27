@@ -19,6 +19,17 @@ defmodule Circuits.GPIO do
   end
 
   @doc """
+  Release the resources associated with the GPIO.
+
+  This is optional. The garbage collector will free GPIO resources that aren't in
+  use, but this will free them sooner.
+  """
+  @spec close(reference()) :: :ok
+  def close(gpio) do
+    Nif.close(gpio)
+  end
+
+  @doc """
   Read the current value on a pin.
   """
   @spec read(reference()) :: value()
