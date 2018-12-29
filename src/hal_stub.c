@@ -105,8 +105,10 @@ static void maybe_send_notification(ErlNifEnv *env, struct stub_priv *hal_priv, 
         break;
     }
 
-    if (sendit)
-        send_gpio_message(env, enif_make_atom(env, "gpio"), pin_number, &hal_priv->pid[pin_number], 0, value);
+    if (sendit) {
+        ErlNifTime now = enif_monotonic_time(ERL_NIF_NSEC);
+        send_gpio_message(env, enif_make_atom(env, "gpio"), pin_number, &hal_priv->pid[pin_number], now, value);
+    }
 }
 
 int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
