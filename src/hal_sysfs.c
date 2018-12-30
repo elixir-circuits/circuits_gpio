@@ -164,6 +164,11 @@ error:
 void hal_close_gpio(struct gpio_pin *pin)
 {
     if (pin->fd >= 0) {
+        // Turn off interrupts if they're on.
+        if (pin->config.edge != EDGE_NONE) {
+            pin->config.edge = EDGE_NONE;
+            update_polling_thread(pin);
+        }
         close(pin->fd);
         pin->fd = -1;
     }
