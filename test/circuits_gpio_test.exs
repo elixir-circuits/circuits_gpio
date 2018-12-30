@@ -186,4 +186,23 @@ defmodule Circuits.GPIOTest do
     GPIO.close(gpio0)
     GPIO.close(gpio1)
   end
+
+  test "no interrupts after closing" do
+    {:ok, gpio0} = GPIO.open(0, :output)
+    {:ok, gpio1} = GPIO.open(1, :input)
+
+    :ok = GPIO.set_edge_mode(gpio1, :both)
+    assert_receive {:gpio, 1, _timestamp, 0}
+
+    :ok = GPIO.write(gpio0, 1)
+    assert_receive {:gpio, 1, _timestamp, 1}
+
+    GPIO.close(gpio1)
+    Process.sleep(10)
+
+    :ok = GPIO.write(gpio0, 0)
+    refute_receive {:gpio, 1, _timestamp, 0}
+
+    GPIO.close(gpio0)
+  end
 end

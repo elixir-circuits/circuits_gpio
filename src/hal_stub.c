@@ -72,7 +72,11 @@ int hal_open_gpio(struct gpio_pin *pin,
 
 void hal_close_gpio(struct gpio_pin *pin)
 {
-    pin->fd = -1;
+    if (pin->fd >= 0) {
+        struct stub_priv *hal_priv = pin->hal_priv;
+        hal_priv->mode[pin->pin_number] = EDGE_NONE;
+        pin->fd = -1;
+    }
 }
 
 static int gpio_value(struct gpio_pin * pin)
