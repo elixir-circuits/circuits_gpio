@@ -107,7 +107,7 @@ static int handle_gpio_update(ErlNifEnv *env,
                               int value)
 {
     int rc = 1;
-    switch (info->mode) {
+    switch (info->trigger) {
     case TRIGGER_NONE:
         // Shouldn't happen.
         rc = 0;
@@ -243,7 +243,7 @@ int update_polling_thread(struct gpio_pin *pin)
     message.fd = (pin->config.trigger == TRIGGER_NONE) ? -1 : pin->fd;
     message.pid = pin->config.pid;
     message.last_value = -1;
-    message.mode = pin->config.trigger;
+    message.trigger = pin->config.trigger;
     if (write(priv->pipe_fds[1], &message, sizeof(message)) != sizeof(message)) {
         error("Error writing polling thread!");
         return -1;
