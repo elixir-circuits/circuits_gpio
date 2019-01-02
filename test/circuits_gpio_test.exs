@@ -107,11 +107,11 @@ defmodule Circuits.GPIOTest do
     GPIO.close(gpio)
   end
 
-  test "initial interrupt on set_edge_mode" do
+  test "initial interrupt on set_interrupts" do
     {:ok, gpio0} = GPIO.open(0, :output)
     {:ok, gpio1} = GPIO.open(1, :input)
 
-    :ok = GPIO.set_edge_mode(gpio1, :both)
+    :ok = GPIO.set_interrupts(gpio1, :both)
     assert_receive {:gpio, 1, _timestamp, 0}
 
     GPIO.close(gpio0)
@@ -122,7 +122,7 @@ defmodule Circuits.GPIOTest do
     {:ok, gpio0} = GPIO.open(0, :output)
     {:ok, gpio1} = GPIO.open(1, :input)
 
-    :ok = GPIO.set_edge_mode(gpio1, :both)
+    :ok = GPIO.set_interrupts(gpio1, :both)
     assert_receive {:gpio, 1, _timestamp, 0}
 
     :ok = GPIO.write(gpio0, 1)
@@ -139,7 +139,7 @@ defmodule Circuits.GPIOTest do
     {:ok, gpio0} = GPIO.open(0, :output)
     {:ok, gpio1} = GPIO.open(1, :input)
 
-    :ok = GPIO.set_edge_mode(gpio1, :falling)
+    :ok = GPIO.set_interrupts(gpio1, :falling)
     assert_receive {:gpio, 1, _timestamp, 0}
 
     :ok = GPIO.write(gpio0, 1)
@@ -156,7 +156,7 @@ defmodule Circuits.GPIOTest do
     {:ok, gpio0} = GPIO.open(0, :output)
     {:ok, gpio1} = GPIO.open(1, :input)
 
-    :ok = GPIO.set_edge_mode(gpio1, :rising)
+    :ok = GPIO.set_interrupts(gpio1, :rising)
     refute_receive {:gpio, 1, _timestamp, 0}
 
     :ok = GPIO.write(gpio0, 1)
@@ -173,13 +173,13 @@ defmodule Circuits.GPIOTest do
     {:ok, gpio0} = GPIO.open(0, :output)
     {:ok, gpio1} = GPIO.open(1, :input)
 
-    :ok = GPIO.set_edge_mode(gpio1, :both)
+    :ok = GPIO.set_interrupts(gpio1, :both)
     assert_receive {:gpio, 1, _timestamp, 0}
 
     :ok = GPIO.write(gpio0, 1)
     assert_receive {:gpio, 1, _timestamp, 1}
 
-    :ok = GPIO.set_edge_mode(gpio1, :none)
+    :ok = GPIO.set_interrupts(gpio1, :none)
     :ok = GPIO.write(gpio0, 0)
     refute_receive {:gpio, 1, _timestamp, 0}
 
@@ -191,7 +191,7 @@ defmodule Circuits.GPIOTest do
     {:ok, gpio0} = GPIO.open(0, :output)
     {:ok, gpio1} = GPIO.open(1, :input)
 
-    :ok = GPIO.set_edge_mode(gpio1, :both)
+    :ok = GPIO.set_interrupts(gpio1, :both)
     assert_receive {:gpio, 1, _timestamp, 0}
 
     :ok = GPIO.write(gpio0, 1)

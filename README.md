@@ -88,11 +88,11 @@ iex> Circuits.GPIO.read(gpio)
 ```
 
 If you'd like to get a message when the button is pressed or released, call the
-`set_edge_mode` function. You can trigger on the `:rising` edge, `:falling` edge
+`set_interrupts` function. You can trigger on the `:rising` edge, `:falling` edge
 or `:both`.
 
 ```elixir
-iex> Circuits.GPIO.set_edge_mode(gpio, :both)
+iex> Circuits.GPIO.set_interrupts(gpio, :both)
 :ok
 
 iex> flush
@@ -101,7 +101,7 @@ iex> flush
 :ok
 ```
 
-Note that after calling `set_edge_mode`, the calling process will receive an
+Note that after calling `set_interrupts`, the calling process will receive an
 initial message with the state of the pin. This prevents the race condition
 between getting the initial state of the pin and turning on interrupts. Without
 it, you could get the state of the pin, it could change states, and then you

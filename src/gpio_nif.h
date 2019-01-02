@@ -25,11 +25,11 @@
 
 #define MAX_GPIO_LISTENERS 32
 
-enum edge_mode {
-    EDGE_NONE,
-    EDGE_RISING,
-    EDGE_FALLING,
-    EDGE_BOTH
+enum trigger_mode {
+    TRIGGER_NONE,
+    TRIGGER_RISING,
+    TRIGGER_FALLING,
+    TRIGGER_BOTH
 };
 
 enum pull_mode {
@@ -51,7 +51,7 @@ struct gpio_priv {
 
 struct gpio_config {
     bool is_output;
-    enum edge_mode edge;
+    enum trigger_mode trigger;
     enum pull_mode pull;
     bool suppress_glitches;
     ErlNifPid pid;
@@ -141,12 +141,12 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env);
 int hal_apply_direction(struct gpio_pin *pin);
 
 /**
- * Apply GPIO change notification state
+ * Apply GPIO interrupt settings
  *
- * @param pin the pin and notification edge info
+ * @param pin the pin and notification trigger info
  * @return 0 on success
  */
-int hal_apply_edge_mode(struct gpio_pin *pin, ErlNifEnv *env);
+int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env);
 
 /**
  * Apply GPIO pull mode settings

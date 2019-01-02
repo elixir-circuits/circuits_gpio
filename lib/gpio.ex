@@ -4,7 +4,7 @@ defmodule Circuits.GPIO do
   @type pin_number :: non_neg_integer()
   @type pin_direction :: :input | :output
   @type value :: 0 | 1
-  @type edge :: :rising | :falling | :both | :none
+  @type trigger :: :rising | :falling | :both | :none
   @type pull_mode :: :not_set | :none | :pullup | :pulldown
 
   # Public API
@@ -48,7 +48,7 @@ defmodule Circuits.GPIO do
 
   @doc """
   Enable or disable pin value change notifications. The notifications
-  are sent based on the edge mode parameter:
+  are sent based on the trigger parameter:
 
   * :none - No notifications are sent
   * :rising - Send a notification when the pin changes from 0 to 1
@@ -71,8 +71,8 @@ defmodule Circuits.GPIO do
   Where `pin_number` is the pin that changed values, `timestamp` is roughly when
   the transition occurred in nanoseconds, and `value` is the new value.
   """
-  @spec set_edge_mode(reference(), edge(), list()) :: :ok | {:error, atom()}
-  def set_edge_mode(gpio, edge \\ :both, opts \\ []) do
+  @spec set_interrupts(reference(), trigger(), list()) :: :ok | {:error, atom()}
+  def set_interrupts(gpio, trigger, opts \\ []) do
     suppress_glitches = Keyword.get(opts, :suppress_glitches, true)
 
     receiver =
@@ -82,7 +82,7 @@ defmodule Circuits.GPIO do
         _ -> self()
       end
 
-    Nif.set_edge_mode(gpio, edge, suppress_glitches, receiver)
+    Nif.set_interrupts(gpio, trigger, suppress_glitches, receiver)
   end
 
   @doc """
@@ -125,9 +125,8 @@ defmodule Circuits.GPIO do
     defdelegate open(pin_number, pin_direction), to: Circuits.GPIO
     defdelegate read(gpio), to: Circuits.GPIO
     defdelegate write(gpio, value), to: Circuits.GPIO
-    defdelegate set_edge_mode(gpio), to: Circuits.GPIO
-    defdelegate set_edge_mode(gpio, edge), to: Circuits.GPIO
-    defdelegate set_edge_mode(gpio, edge, suppress_glitches), to: Circuits.GPIO
+    defdelegate set_interrupts(gpio, trigger), to: Circuits.GPIO
+    defdelegate set_interrupts(gpio, trigger, opts), to: Circuits.GPIO
     defdelegate set_direction(gpio, pin_direction), to: Circuits.GPIO
     defdelegate set_pull_mode(gpio, pull_mode), to: Circuits.GPIO
     defdelegate pin(gpio), to: Circuits.GPIO

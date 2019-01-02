@@ -148,16 +148,16 @@ static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
     return priv->atom_ok;
 }
 
-static int get_edgemode(ErlNifEnv *env, ERL_NIF_TERM term, enum edge_mode *mode)
+static int get_trigger(ErlNifEnv *env, ERL_NIF_TERM term, enum trigger_mode *mode)
 {
     char buffer[16];
     if (!enif_get_atom(env, term, buffer, sizeof(buffer), ERL_NIF_LATIN1))
         return false;
 
-    if (strcmp("none", buffer) == 0) *mode = EDGE_NONE;
-    else if (strcmp("rising", buffer) == 0) *mode = EDGE_RISING;
-    else if (strcmp("falling", buffer) == 0) *mode = EDGE_FALLING;
-    else if (strcmp("both", buffer) == 0) *mode = EDGE_BOTH;
+    if (strcmp("none", buffer) == 0) *mode = TRIGGER_NONE;
+    else if (strcmp("rising", buffer) == 0) *mode = TRIGGER_RISING;
+    else if (strcmp("falling", buffer) == 0) *mode = TRIGGER_FALLING;
+    else if (strcmp("both", buffer) == 0) *mode = TRIGGER_BOTH;
     else return false;
 
     return true;
@@ -191,7 +191,7 @@ static int get_pull_mode(ErlNifEnv *env, ERL_NIF_TERM term, enum pull_mode *pull
     return true;
 }
 
-static ERL_NIF_TERM set_edge_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM set_interrupts(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
     struct gpio_pin *pin;
@@ -201,16 +201,16 @@ static ERL_NIF_TERM set_edge_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
         return enif_make_badarg(env);
 
     struct gpio_config old_config = pin->config;
-    if (!get_edgemode(env, argv[1], &pin->config.edge) ||
+    if (!get_trigger(env, argv[1], &pin->config.trigger) ||
             !enif_get_boolean(env, argv[2], &pin->config.suppress_glitches) ||
             !enif_get_local_pid(env, argv[3], &pin->config.pid)) {
         pin->config = old_config;
         return enif_make_badarg(env);
     }
 
-    if (hal_apply_edge_mode(pin, env) < 0) {
+    if (hal_apply_interrupts(pin, env) < 0) {
         pin->config = old_config;
-        return make_error_tuple(env, "write_int_edge");
+        return make_error_tuple(env, "hal_apply_interrupts");
     }
 
     return priv->atom_ok;
@@ -285,7 +285,7 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     pin->pin_number = pin_number;
     pin->hal_priv = priv->hal_priv;
     pin->config.is_output = is_output;
-    pin->config.edge = EDGE_NONE;
+    pin->config.trigger = TRIGGER_NONE;
     pin->config.pull = PULL_NOT_SET;
     pin->config.suppress_glitches = false;
 
@@ -334,7 +334,7 @@ static ErlNifFunc nif_funcs[] = {
     {"close", 1, close_gpio, 0},
     {"read", 1, read_gpio, 0},
     {"write", 2, write_gpio, 0},
-    {"set_edge_mode", 4, set_edge_mode, 0},
+    {"set_interrupts", 4, set_interrupts, 0},
     {"set_direction", 2, set_direction, 0},
     {"set_pull_mode", 2, set_pull_mode, 0},
     {"pin", 1, pin_gpio, 0},
