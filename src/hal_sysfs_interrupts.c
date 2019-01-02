@@ -39,7 +39,7 @@ struct gpio_monitor_info {
     int fd;
     ErlNifPid pid;
     int last_value;
-    enum edge_mode mode;
+    enum trigger_mode trigger;
     bool suppress_glitches;
 };
 
@@ -108,22 +108,22 @@ static int handle_gpio_update(ErlNifEnv *env,
 {
     int rc = 1;
     switch (info->mode) {
-    case EDGE_NONE:
+    case TRIGGER_NONE:
         // Shouldn't happen.
         rc = 0;
         break;
 
-    case EDGE_RISING:
+    case TRIGGER_RISING:
         if (value || !info->suppress_glitches)
             rc = send_gpio_message(env, atom_gpio, info->pin_number, &info->pid, timestamp, 1);
         break;
 
-    case EDGE_FALLING:
+    case TRIGGER_FALLING:
         if (!value || !info->suppress_glitches)
             rc = send_gpio_message(env, atom_gpio, info->pin_number, &info->pid, timestamp, 0);
         break;
 
-    case EDGE_BOTH:
+    case TRIGGER_BOTH:
         if (value != info->last_value) {
             rc = send_gpio_message(env, atom_gpio, info->pin_number, &info->pid, timestamp, value);
             info->last_value = value;
@@ -240,10 +240,10 @@ int update_polling_thread(struct gpio_pin *pin)
 
     struct gpio_monitor_info message;
     message.pin_number = pin->pin_number;
-    message.fd = (pin->config.edge == EDGE_NONE) ? -1 : pin->fd;
+    message.fd = (pin->config.trigger == TRIGGER_NONE) ? -1 : pin->fd;
     message.pid = pin->config.pid;
     message.last_value = -1;
-    message.mode = pin->config.edge;
+    message.mode = pin->config.trigger;
     if (write(priv->pipe_fds[1], &message, sizeof(message)) != sizeof(message)) {
         error("Error writing polling thread!");
         return -1;

@@ -27,7 +27,7 @@
 struct stub_priv {
     int value[NUM_GPIOS / 2];
     ErlNifPid pid[NUM_GPIOS];
-    enum edge_mode mode[NUM_GPIOS];
+    enum trigger_mode mode[NUM_GPIOS];
 };
 
 ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info)
@@ -74,7 +74,7 @@ void hal_close_gpio(struct gpio_pin *pin)
 {
     if (pin->fd >= 0) {
         struct stub_priv *hal_priv = pin->hal_priv;
-        hal_priv->mode[pin->pin_number] = EDGE_NONE;
+        hal_priv->mode[pin->pin_number] = TRIGGER_NONE;
         pin->fd = -1;
     }
 }
@@ -95,16 +95,16 @@ static void maybe_send_notification(ErlNifEnv *env, struct stub_priv *hal_priv, 
     int value = hal_priv->value[pin_number / 2];
     int sendit = 0;
     switch (hal_priv->mode[pin_number]) {
-    case EDGE_BOTH:
+    case TRIGGER_BOTH:
         sendit = 1;
         break;
-    case EDGE_FALLING:
+    case TRIGGER_FALLING:
         sendit = (value == 0);
         break;
-    case EDGE_RISING:
+    case TRIGGER_RISING:
         sendit = (value != 0);
         break;
-    case EDGE_NONE:
+    case TRIGGER_NONE:
         sendit = 0;
         break;
     }
@@ -127,11 +127,11 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
     return 0;
 }
 
-int hal_apply_edge_mode(struct gpio_pin *pin, ErlNifEnv *env)
+int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 {
     struct stub_priv *hal_priv = pin->hal_priv;
 
-    hal_priv->mode[pin->pin_number] = pin->config.edge;
+    hal_priv->mode[pin->pin_number] = pin->config.trigger;
     hal_priv->pid[pin->pin_number] = pin->config.pid;
 
     maybe_send_notification(env, hal_priv, pin->pin_number);

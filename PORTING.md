@@ -43,7 +43,7 @@ The remain modifications should mostly be mechanical:
    While you're at it, review the arguments to open to not include any
    `GenServer` options.
 3. Change calls to `ElixirALE.GPIO.set_int/2` to
-   `Circuits.GPIO.set_edge_mode/2`.
+   `Circuits.GPIO.set_interrupts/3`.
 4. Change the pattern match for the GPIO interrupt events to match 4 tuples.
    They have the form `{:gpio, <pin_number>, <timestamp>, <value>}`
 5. Review calls to `write/2` to ensure that they pass `0` or `1`. `ElixirALE`

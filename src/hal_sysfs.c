@@ -61,17 +61,17 @@ static int export_pin(int pin_number)
     return 0;
 }
 
-static const char *edge_mode_string(enum edge_mode mode)
+static const char *edge_mode_string(enum trigger_mode mode)
 {
     switch (mode) {
     default:
-    case EDGE_NONE:
+    case TRIGGER_NONE:
         return "none";
-    case EDGE_FALLING:
+    case TRIGGER_FALLING:
         return "falling";
-    case EDGE_RISING:
+    case TRIGGER_RISING:
         return "rising";
-    case EDGE_BOTH:
+    case TRIGGER_BOTH:
         return "both";
     }
 }
@@ -148,8 +148,8 @@ int hal_open_gpio(struct gpio_pin *pin,
         strcpy(error_str, "error_setting_direction");
         goto error;
     }
-    if (hal_apply_edge_mode(pin, env) < 0) {
-        strcpy(error_str, "error_setting_edge_mode");
+    if (hal_apply_interrupts(pin, env) < 0) {
+        strcpy(error_str, "error_setting_interrupts");
         goto error;
     }
 
@@ -165,8 +165,8 @@ void hal_close_gpio(struct gpio_pin *pin)
 {
     if (pin->fd >= 0) {
         // Turn off interrupts if they're on.
-        if (pin->config.edge != EDGE_NONE) {
-            pin->config.edge = EDGE_NONE;
+        if (pin->config.trigger != TRIGGER_NONE) {
+            pin->config.trigger = TRIGGER_NONE;
             update_polling_thread(pin);
         }
         close(pin->fd);
@@ -197,7 +197,7 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
     return (int) pwrite(pin->fd, &buff, sizeof(buff), 0);
 }
 
-int hal_apply_edge_mode(struct gpio_pin *pin, ErlNifEnv *env)
+int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 {
     (void) env;
 
@@ -208,7 +208,7 @@ int hal_apply_edge_mode(struct gpio_pin *pin, ErlNifEnv *env)
          * for a first-time initialization issue where the file doesn't appear
          * quickly after export */
         int retries = 1000;
-        while (sysfs_write_file(edge_path, edge_mode_string(pin->config.edge)) <= 0 && retries > 0) {
+        while (sysfs_write_file(edge_path, edge_mode_string(pin->config.trigger)) <= 0 && retries > 0) {
             usleep(1000);
             retries--;
         }
