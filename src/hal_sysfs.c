@@ -32,9 +32,27 @@ size_t hal_priv_size()
     return sizeof(struct sysfs_priv);
 }
 
-static ssize_t sysfs_write_file(const char *pathname, const char *value)
+/* This is a workaround for a first-time initialization issue where the file doesn't appear
+ * quickly after export.
+ */
+static int retry_open(const char *pathname, int flags, int retries)
 {
-    int fd = open(pathname, O_WRONLY);
+    do {
+        int fd = open(pathname, flags);
+        if (fd >= 0)
+            return fd;
+
+        error("Error opening %s", pathname);
+        usleep(1000);
+        retries--;
+    } while (retries > 0);
+
+    return -1;
+}
+
+static ssize_t sysfs_write_file(const char *pathname, const char *value, int retries)
+{
+    int fd = retry_open(pathname, O_WRONLY, retries);
     if (fd < 0) {
         error("Error opening %s", pathname);
         return -1;
@@ -51,11 +69,29 @@ static ssize_t sysfs_write_file(const char *pathname, const char *value)
     return written;
 }
 
+static ssize_t sysfs_read_file(const char *pathname, char *value, size_t len, int retries)
+{
+    int fd = retry_open(pathname, O_RDONLY, retries);
+    if (fd < 0) {
+        error("Error opening %s", pathname);
+        return -1;
+    }
+
+    ssize_t amount_read = read(fd, value, len);
+    close(fd);
+
+    if (amount_read <= 0) {
+        error("Error writing '%s' to %s", value, pathname);
+        return -1;
+    }
+    return amount_read;
+}
+
 static int export_pin(int pin_number)
 {
     char pinstr[16];
     sprintf(pinstr, "%d", pin_number);
-    if (sysfs_write_file("/sys/class/gpio/export", pinstr) <= 0)
+    if (sysfs_write_file("/sys/class/gpio/export", pinstr, 0) <= 0)
         return - 1;
 
     return 0;
@@ -203,18 +239,12 @@ int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 
     char edge_path[64];
     sprintf(edge_path, "/sys/class/gpio/gpio%d/edge", pin->pin_number);
-    if (access(edge_path, F_OK) != -1) {
-        /* Allow 1000 * 1ms = 1 second max for retries. This is a workaround
-         * for a first-time initialization issue where the file doesn't appear
-         * quickly after export */
-        int retries = 1000;
-        while (sysfs_write_file(edge_path, edge_mode_string(pin->config.trigger)) <= 0 && retries > 0) {
-            usleep(1000);
-            retries--;
-        }
-        if (retries == 0)
-            return -1;
-    }
+
+    /* Allow 1000 * 1ms = 1 second max for retries. This is a workaround
+     * for a first-time initialization issue where the file doesn't appear
+     * quickly after export */
+    if (sysfs_write_file(edge_path, edge_mode_string(pin->config.trigger), 1000) < 0)
+        return -1;
 
     // Tell polling thread to wait for notifications
     if (update_polling_thread(pin) < 0)
@@ -227,17 +257,37 @@ int hal_apply_direction(struct gpio_pin *pin)
 {
     char direction_path[64];
     sprintf(direction_path, "/sys/class/gpio/gpio%d/direction", pin->pin_number);
-    if (access(direction_path, F_OK) != -1) {
-        const char *dir_string = (pin->config.is_output ? "out" : "in");
-        int retries = 1000; /* Allow 1000 * 1ms = 1 second max for retries */
-        while (sysfs_write_file(direction_path, dir_string) <= 0 && retries > 0) {
-            usleep(1000);
-            retries--;
+
+    /* Allow 1000 * 1ms = 1 second max for retries. See hal_apply_interrupts too. */
+    char current_dir[16];
+    if (sysfs_read_file(direction_path, current_dir, sizeof(current_dir), 1000) < 0)
+        return -1;
+
+    /* Linux only reports "in" and "out". (current_dir is NOT null terminated here) */
+    int current_is_output = (current_dir[0] == 'o');
+
+    if (pin->config.is_output == 0) {
+        // Input
+        if (!current_is_output)
+            return 0;
+        else
+            return sysfs_write_file(direction_path, "in", 0);
+    } else {
+        // Output
+        if (pin->config.initial_value < 0) {
+            // Output, don't set
+            if (current_is_output)
+                return 0;
+            else
+                return sysfs_write_file(direction_path, "out", 0);
+        } else if (pin->config.initial_value == 0) {
+            // Set as output and initialize low
+            return sysfs_write_file(direction_path, "low", 0);
+        } else {
+            // Set as output and initialize high
+            return sysfs_write_file(direction_path, "high", 0);
         }
-        if (retries == 0)
-            return -1;
     }
-    return 0;
 }
 
 int hal_apply_pull_mode(struct gpio_pin *pin)

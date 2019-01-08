@@ -62,6 +62,10 @@ int hal_open_gpio(struct gpio_pin *pin,
     // For test purposes, pins 0-63 work and everything else fails
     if (pin->pin_number >= 0 && pin->pin_number < NUM_GPIOS) {
         pin->fd = pin->pin_number;
+
+        if (pin->config.is_output && pin->config.initial_value != -1)
+            hal_write_gpio(pin, pin->config.initial_value, env);
+
         *error_str = '\0';
         return 0;
     } else {

@@ -205,4 +205,29 @@ defmodule Circuits.GPIOTest do
 
     GPIO.close(gpio0)
   end
+
+  test "opening as an output doesn't change the output by default" do
+    {:ok, gpio0} = GPIO.open(0, :output)
+    :ok = GPIO.write(gpio0, 1)
+    GPIO.close(gpio0)
+
+    {:ok, gpio0} = GPIO.open(0, :output)
+    assert GPIO.read(gpio0) == 1
+    :ok = GPIO.write(gpio0, 0)
+    GPIO.close(gpio0)
+
+    {:ok, gpio0} = GPIO.open(0, :output)
+    assert GPIO.read(gpio0) == 0
+    GPIO.close(gpio0)
+  end
+
+  test "can set the output on open" do
+    {:ok, gpio0} = GPIO.open(0, :output, initial_value: 1)
+    assert GPIO.read(gpio0) == 1
+    GPIO.close(gpio0)
+
+    {:ok, gpio0} = GPIO.open(0, :output, initial_value: 0)
+    assert GPIO.read(gpio0) == 0
+    GPIO.close(gpio0)
+  end
 end

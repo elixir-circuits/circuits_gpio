@@ -10,12 +10,21 @@ defmodule Circuits.GPIO do
   # Public API
 
   @doc """
-  Open a GPIO for use. `pin` should be a valid GPIO pin number on the system
-  and `pin_direction` should be `:input` or `:output`.
+  Open a GPIO for use.
+
+  `pin` should be a valid GPIO pin number on the system and `pin_direction`
+  should be `:input` or `:output`. If opening as an output, then be sure to set
+  the `:initial_value` option if you need the set to be glitch free.
+
+  Options:
+
+  * :initial_value - Set to `:not_set`, `0` or `1` if this is an output.
+    `:not_set` is the default.
   """
-  @spec open(pin_number(), pin_direction()) :: {:ok, reference()} | {:error, atom()}
-  def open(pin_number, pin_direction) do
-    Nif.open(pin_number, pin_direction)
+  @spec open(pin_number(), pin_direction(), keyword()) :: {:ok, reference()} | {:error, atom()}
+  def open(pin_number, pin_direction, options \\ []) do
+    value = Keyword.get(options, :initial_value, :not_set)
+    Nif.open(pin_number, pin_direction, value)
   end
 
   @doc """

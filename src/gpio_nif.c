@@ -176,6 +176,19 @@ static int get_direction(ErlNifEnv *env, ERL_NIF_TERM term, bool *is_output)
     return true;
 }
 
+static int get_value(ErlNifEnv *env, ERL_NIF_TERM term, int *value)
+{
+    int v;
+    if (enif_get_int(env, term, &v)) {
+        // Force v to be 0 or 1
+        *value = !!v;
+    } else {
+        // Interpret anything else as ":not_set"
+        *value = -1;
+    }
+    return true;
+}
+
 static int get_pull_mode(ErlNifEnv *env, ERL_NIF_TERM term, enum pull_mode *pull)
 {
     char buffer[16];
@@ -275,9 +288,11 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
 
     bool is_output;
     int pin_number;
-    if (argc != 2 ||
+    int initial_value;
+    if (argc != 3 ||
             !enif_get_int(env, argv[0], &pin_number) ||
-            !get_direction(env, argv[1], &is_output))
+            !get_direction(env, argv[1], &is_output) ||
+            !get_value(env, argv[2], &initial_value))
         return enif_make_badarg(env);
 
     struct gpio_pin *pin = enif_alloc_resource(priv->gpio_pin_rt, sizeof(struct gpio_pin));
@@ -288,6 +303,7 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     pin->config.trigger = TRIGGER_NONE;
     pin->config.pull = PULL_NOT_SET;
     pin->config.suppress_glitches = false;
+    pin->config.initial_value = initial_value;
 
     char error_str[64];
     if (hal_open_gpio(pin, error_str, env) < 0) {
@@ -330,7 +346,7 @@ static ERL_NIF_TERM gpio_info(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
 }
 
 static ErlNifFunc nif_funcs[] = {
-    {"open", 2, open_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
+    {"open", 3, open_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
     {"close", 1, close_gpio, 0},
     {"read", 1, read_gpio, 0},
     {"write", 2, write_gpio, 0},

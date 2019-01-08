@@ -54,6 +54,7 @@ struct gpio_config {
     enum trigger_mode trigger;
     enum pull_mode pull;
     bool suppress_glitches;
+    int initial_value;
     ErlNifPid pid;
 };
 
@@ -134,6 +135,12 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env);
 
 /**
  * Apply GPIO direction settings
+ *
+ * This should set the GPIO to an input or an output. If setting
+ * as an output, it should check the initial_value. If the
+ * initial_value is < 0 then the GPIO should retain its value
+ * if already an output. If set to 0 or 1, the GPIO should be
+ * initialized to that value.
  *
  * @param pin which one
  * @return 0 on success
