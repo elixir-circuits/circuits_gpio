@@ -64,7 +64,7 @@ iex> Circuits.GPIO.close(gpio)
 :ok
 ```
 
-_Note that the call to `Circuits.GPIO.close/1` is not necessary, as the garbage 
+_Note that the call to `Circuits.GPIO.close/1` is not necessary, as the garbage
 collector will free up any unreferenced GPIOs. It can be used to explicitly
 de-allocate connections you know you will not need anymore._
 
@@ -229,7 +229,7 @@ The following advice from Elixir/ALE may also be useful: You'll need to fake out
 the hardware. Code to do this depends on what your hardware actually does, but
 here's one example:
 
-* http://www.cultivatehq.com/posts/compiling-and-testing-elixir-nerves-on-your-host-machine/
+* [Compiling and testing Elixir Nerves on your host machine](https://cultivatehq.com/posts/compiling-and-testing-elixir-nerves-on-your-host-machine/)
 
 ### How do I call Circuits.GPIO from Erlang?
 
