@@ -103,8 +103,8 @@ iex> Circuits.GPIO.set_interrupts(gpio, :both)
 :ok
 
 iex> flush
-{:gpio, 17, 1233456, 1}
-{:gpio, 17, 1234567, 0}
+{:circuits_gpio, 17, 1233456, 1}
+{:circuits_gpio, 17, 1234567, 0}
 :ok
 ```
 

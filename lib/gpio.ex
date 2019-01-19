@@ -119,7 +119,7 @@ defmodule Circuits.GPIO do
   Notifications look like:
 
   ```
-  {:gpio, pin_number, timestamp, value}
+  {:circuits_gpio, pin_number, timestamp, value}
   ```
 
   Where `pin_number` is the pin that changed values, `timestamp` is roughly when

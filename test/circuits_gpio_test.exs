@@ -121,7 +121,7 @@ defmodule Circuits.GPIOTest do
     {:ok, gpio1} = GPIO.open(1, :input)
 
     :ok = GPIO.set_interrupts(gpio1, :both)
-    assert_receive {:gpio, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio, 1, _timestamp, 0}
 
     GPIO.close(gpio0)
     GPIO.close(gpio1)
@@ -132,13 +132,13 @@ defmodule Circuits.GPIOTest do
     {:ok, gpio1} = GPIO.open(1, :input)
 
     :ok = GPIO.set_interrupts(gpio1, :both)
-    assert_receive {:gpio, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio, 1, _timestamp, 0}
 
     :ok = GPIO.write(gpio0, 1)
-    assert_receive {:gpio, 1, _timestamp, 1}
+    assert_receive {:circuits_gpio, 1, _timestamp, 1}
 
     :ok = GPIO.write(gpio0, 0)
-    assert_receive {:gpio, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio, 1, _timestamp, 0}
 
     GPIO.close(gpio0)
     GPIO.close(gpio1)
@@ -149,13 +149,13 @@ defmodule Circuits.GPIOTest do
     {:ok, gpio1} = GPIO.open(1, :input)
 
     :ok = GPIO.set_interrupts(gpio1, :falling)
-    assert_receive {:gpio, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio, 1, _timestamp, 0}
 
     :ok = GPIO.write(gpio0, 1)
-    refute_receive {:gpio, 1, _timestamp, 1}
+    refute_receive {:circuits_gpio, 1, _timestamp, 1}
 
     :ok = GPIO.write(gpio0, 0)
-    assert_receive {:gpio, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio, 1, _timestamp, 0}
 
     GPIO.close(gpio0)
     GPIO.close(gpio1)
@@ -166,13 +166,13 @@ defmodule Circuits.GPIOTest do
     {:ok, gpio1} = GPIO.open(1, :input)
 
     :ok = GPIO.set_interrupts(gpio1, :rising)
-    refute_receive {:gpio, 1, _timestamp, 0}
+    refute_receive {:circuits_gpio, 1, _timestamp, 0}
 
     :ok = GPIO.write(gpio0, 1)
-    assert_receive {:gpio, 1, _timestamp, 1}
+    assert_receive {:circuits_gpio, 1, _timestamp, 1}
 
     :ok = GPIO.write(gpio0, 0)
-    refute_receive {:gpio, 1, _timestamp, 0}
+    refute_receive {:circuits_gpio, 1, _timestamp, 0}
 
     GPIO.close(gpio0)
     GPIO.close(gpio1)
@@ -183,14 +183,14 @@ defmodule Circuits.GPIOTest do
     {:ok, gpio1} = GPIO.open(1, :input)
 
     :ok = GPIO.set_interrupts(gpio1, :both)
-    assert_receive {:gpio, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio, 1, _timestamp, 0}
 
     :ok = GPIO.write(gpio0, 1)
-    assert_receive {:gpio, 1, _timestamp, 1}
+    assert_receive {:circuits_gpio, 1, _timestamp, 1}
 
     :ok = GPIO.set_interrupts(gpio1, :none)
     :ok = GPIO.write(gpio0, 0)
-    refute_receive {:gpio, 1, _timestamp, 0}
+    refute_receive {:circuits_gpio, 1, _timestamp, 0}
 
     GPIO.close(gpio0)
     GPIO.close(gpio1)
@@ -201,16 +201,16 @@ defmodule Circuits.GPIOTest do
     {:ok, gpio1} = GPIO.open(1, :input)
 
     :ok = GPIO.set_interrupts(gpio1, :both)
-    assert_receive {:gpio, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio, 1, _timestamp, 0}
 
     :ok = GPIO.write(gpio0, 1)
-    assert_receive {:gpio, 1, _timestamp, 1}
+    assert_receive {:circuits_gpio, 1, _timestamp, 1}
 
     GPIO.close(gpio1)
     Process.sleep(10)
 
     :ok = GPIO.write(gpio0, 0)
-    refute_receive {:gpio, 1, _timestamp, 0}
+    refute_receive {:circuits_gpio, 1, _timestamp, 0}
 
     GPIO.close(gpio0)
   end

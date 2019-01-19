@@ -145,7 +145,7 @@ void *gpio_poller_thread(void *arg)
     debug("gpio_poller_thread started");
 
     ErlNifEnv *env = enif_alloc_env();
-    ERL_NIF_TERM atom_gpio = enif_make_atom(env, "gpio");
+    ERL_NIF_TERM atom_gpio = enif_make_atom(env, "circuits_gpio");
 
     init_listeners(monitor_info);
     for (;;) {
