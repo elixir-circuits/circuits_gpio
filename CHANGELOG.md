@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.0
+
+* New features
+  * Support `pull_mode` initializion in `open/3`.
+
 ## v0.2.0
 
 * New features
