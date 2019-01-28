@@ -112,6 +112,10 @@ defmodule Circuits.GPIOTest do
     GPIO.close(gpio)
   end
 
+  test "raises on bad open option" do
+    assert_raise ArgumentError, fn -> GPIO.open(1, :input, bogus: true) end
+  end
+
   test "initial interrupt on set_interrupts" do
     {:ok, gpio0} = GPIO.open(0, :output)
     {:ok, gpio1} = GPIO.open(1, :input)

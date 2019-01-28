@@ -7,6 +7,8 @@ defmodule Circuits.GPIO do
   @type trigger :: :rising | :falling | :both | :none
   @type pull_mode :: :not_set | :none | :pullup | :pulldown
 
+  @type open_option :: {:initial_value, value() | :not_set} | {:pull_mode, pull_mode()}
+
   # Public API
 
   @doc """
@@ -23,12 +25,30 @@ defmodule Circuits.GPIO do
   * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
      input pin. `:not_set` is the default.
   """
-  @spec open(pin_number(), pin_direction(), keyword()) :: {:ok, reference()} | {:error, atom()}
+  @spec open(pin_number(), pin_direction(), [open_option()]) ::
+          {:ok, reference()} | {:error, atom()}
   def open(pin_number, pin_direction, options \\ []) do
+    check_open_options(options)
+
     value = Keyword.get(options, :initial_value, :not_set)
     pull_mode = Keyword.get(options, :pull_mode, :not_set)
 
     Nif.open(pin_number, pin_direction, value, pull_mode)
+  end
+
+  defp check_open_options([]), do: :ok
+
+  defp check_open_options([{:initial_value, value} | rest]) when value in [:not_set, 0, 1] do
+    check_open_options(rest)
+  end
+
+  defp check_open_options([{:pull_mode, value} | rest])
+       when value in [:not_set, :pullup, :pulldown, :none] do
+    check_open_options(rest)
+  end
+
+  defp check_open_options([bad_option | _]) do
+    raise ArgumentError.exception("Unsupported option to GPIO.open/3: #{inspect(bad_option)}")
   end
 
   @doc """
