@@ -1,12 +1,33 @@
 defmodule Circuits.GPIO do
   alias Circuits.GPIO.Nif
 
+  @moduledoc """
+  Control GPIOs from Elixir
+
+  If you're coming from Elixir/ALE, check out our [porting guide](PORTING.md).
+
+  `Circuits.GPIO` works great with LEDs, buttons, many kinds of sensors, and
+  simple control of motors. In general, if a device requires high speed
+  transactions or has hard real-time constraints in its interactions, this is not
+  the right library. For those devices, see if there's a Linux kernel driver.
+  """
+
+  @typedoc "A GPIO pin number. See your device's documentation for how these connect to wires"
   @type pin_number :: non_neg_integer()
+
+  @typedoc "The GPIO direction (input or output)"
   @type pin_direction :: :input | :output
+
+  @typedoc "GPIO logic value (low = 0 or high = 1)"
   @type value :: 0 | 1
+
+  @typedoc "Trigger edge for pin change notifications"
   @type trigger :: :rising | :falling | :both | :none
+
+  @typedoc "Pull mode for platforms that support controllable pullups and pulldowns"
   @type pull_mode :: :not_set | :none | :pullup | :pulldown
 
+  @typedoc "Options for open/3"
   @type open_option :: {:initial_value, value() | :not_set} | {:pull_mode, pull_mode()}
 
   # Public API
@@ -152,8 +173,9 @@ defmodule Circuits.GPIO do
 
   defmodule :circuits_gpio do
     @moduledoc """
-    Provide an Erlang friendly interface to Circuits
-    Example Erlang code:  circuits_gpio:open(5, output)
+    Erlang interface to Circuits.GPIO
+
+    Example Erlang code:  `circuits_gpio:open(5, output)`
     """
     defdelegate open(pin_number, pin_direction), to: Circuits.GPIO
     defdelegate read(gpio), to: Circuits.GPIO
