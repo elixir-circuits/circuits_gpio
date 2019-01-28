@@ -107,6 +107,11 @@ defmodule Circuits.GPIOTest do
     GPIO.close(gpio)
   end
 
+  test "can set pull mode in open" do
+    {:ok, gpio} = GPIO.open(1, :input, pull_mode: :pullup)
+    GPIO.close(gpio)
+  end
+
   test "initial interrupt on set_interrupts" do
     {:ok, gpio0} = GPIO.open(0, :output)
     {:ok, gpio1} = GPIO.open(1, :input)

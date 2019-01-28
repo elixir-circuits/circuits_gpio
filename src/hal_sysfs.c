@@ -184,6 +184,10 @@ int hal_open_gpio(struct gpio_pin *pin,
         strcpy(error_str, "error_setting_direction");
         goto error;
     }
+    if (hal_apply_pull_mode(pin) < 0) {
+        strcpy(error_str, "error_setting_pull_mode");
+        goto error;
+    }
     if (hal_apply_interrupts(pin, env) < 0) {
         strcpy(error_str, "error_setting_interrupts");
         goto error;

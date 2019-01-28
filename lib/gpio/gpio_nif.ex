@@ -10,7 +10,7 @@ defmodule Circuits.GPIO.Nif do
     :erlang.load_nif(to_charlist(nif_binary), 0)
   end
 
-  def open(_pin_number, _pin_direction, _initial_value) do
+  def open(_pin_number, _pin_direction, _initial_value, _pull_mode) do
     :erlang.nif_error(:nif_not_loaded)
   end
 

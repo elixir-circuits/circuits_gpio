@@ -20,11 +20,15 @@ defmodule Circuits.GPIO do
 
   * :initial_value - Set to `:not_set`, `0` or `1` if this is an output.
     `:not_set` is the default.
+  * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
+     input pin. `:not_set` is the default.
   """
   @spec open(pin_number(), pin_direction(), keyword()) :: {:ok, reference()} | {:error, atom()}
   def open(pin_number, pin_direction, options \\ []) do
     value = Keyword.get(options, :initial_value, :not_set)
-    Nif.open(pin_number, pin_direction, value)
+    pull_mode = Keyword.get(options, :pull_mode, :not_set)
+
+    Nif.open(pin_number, pin_direction, value, pull_mode)
   end
 
   @doc """
