@@ -12,7 +12,7 @@ defmodule Circuits.GPIO.MixProject do
       compilers: [:elixir_make | Mix.compilers()],
       make_targets: ["all"],
       make_clean: ["clean"],
-      make_env: make_env(),
+      make_env: &make_env/0,
       docs: [extras: ["README.md"], main: "readme"],
       aliases: [docs: ["docs", &copy_images/1], format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
@@ -21,7 +21,10 @@ defmodule Circuits.GPIO.MixProject do
   end
 
   defp make_env() do
-    %{"MIX_ENV" => to_string(Mix.env())}
+    %{
+      "MIX_ENV" => to_string(Mix.env()),
+      "PREFIX" => Path.join(Mix.Project.compile_path(), "..")
+    }
     |> Map.merge(ei_env())
   end
 

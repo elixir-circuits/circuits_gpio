@@ -8,10 +8,12 @@
 # ERL_EI_LIBDIR path to libei.a (Required for crosscompile)
 # LDFLAGS	linker flags for linking all binaries
 # ERL_LDFLAGS	additional linker flags for projects referencing Erlang libraries
+# PREFIX the path to the installation direction (defaults to the current directory)
 
-NIF=priv/gpio_nif.so
+PREFIX ?= .
+NIF = $(PREFIX)/priv/gpio_nif.so
 
-TARGETS=$(NIF)
+TARGETS = $(NIF)
 
 NIF_LDFLAGS = $(LDFLAGS)
 TARGET_CFLAGS = $(shell src/detect_target.sh)
@@ -51,10 +53,10 @@ HEADERS =$(wildcard src/*.h)
 calling_from_make:
 	mix compile
 
-all: priv $(TARGETS)
+all: $(PREFIX)/priv $(TARGETS)
 
-priv:
-	mkdir -p priv
+$(PREFIX)/priv:
+	mkdir -p $@
 
 $(NIF): $(HEADERS) Makefile
 
