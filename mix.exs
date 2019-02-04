@@ -16,6 +16,7 @@ defmodule Circuits.GPIO.MixProject do
       docs: [extras: ["README.md"], main: "readme"],
       aliases: [docs: ["docs", &copy_images/1], format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
+      build_embedded: true,
       deps: deps()
     ]
   end
