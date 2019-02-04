@@ -44,6 +44,7 @@ jobs:
       - run: mix deps.get
       - run: mix format --check-formatted
       - run: mix hex.build
+      - run: mix compile
       - run: mix test
       - run: mix docs
       - run: mix dialyzer --halt-exit-status
@@ -67,6 +68,7 @@ jobs:
       - <<: *install_elixir
       - <<: *install_hex_rebar
       - run: mix deps.get
+      - run: mix compile
       - run: mix test
 
   build_elixir_1_6_otp_20:
@@ -83,6 +85,7 @@ jobs:
       - <<: *install_elixir
       - <<: *install_hex_rebar
       - run: mix deps.get
+      - run: mix compile
       - run: mix test
 
 workflows:
