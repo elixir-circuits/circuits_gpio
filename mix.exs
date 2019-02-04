@@ -21,9 +21,15 @@ defmodule Circuits.GPIO.MixProject do
   end
 
   defp make_env() do
+    base =
+      Mix.Project.compile_path()
+      |> Path.join("..")
+      |> Path.expand()
+
     %{
       "MIX_ENV" => to_string(Mix.env()),
-      "PREFIX" => Path.join(Mix.Project.compile_path(), "..")
+      "PREFIX" => Path.join(base, "priv"),
+      "BUILD" => Path.join(base, "obj")
     }
     |> Map.merge(ei_env())
   end
