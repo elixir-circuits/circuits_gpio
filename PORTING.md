@@ -37,7 +37,7 @@ signals. Put the `Circuits.GPIO.open` call in your `init/1` callback.
 
 The remain modifications should mostly be mechanical:
 
-1. Rename references to `ElixirALE.GPIO` to to `Circuits.GPIO` and `elixir_ale`
+1. Rename references to `ElixirALE.GPIO` to `Circuits.GPIO` and `elixir_ale`
    to `circuits_gpio`
 2. Change calls to `ElixirALE.GPIO.start_link/2` to `Circuits.GPIO.open/2`.
    While you're at it, review the arguments to open to not include any
