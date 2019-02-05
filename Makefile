@@ -66,7 +66,7 @@ all: install
 
 install: $(PREFIX) $(BUILD) $(NIF)
 
-$(OBJ): $(BUILD) $(HEADERS) Makefile
+$(OBJ): $(HEADERS) Makefile
 
 $(BUILD)/%.o: src/%.c
 	$(CC) -c $(ERL_CFLAGS) $(CFLAGS) -o $@ $<
