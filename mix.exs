@@ -13,7 +13,7 @@ defmodule Circuits.GPIO.MixProject do
       make_targets: ["all"],
       make_clean: ["clean"],
       make_env: &make_env/0,
-      docs: [extras: ["README.md"], main: "readme"],
+      docs: [extras: ["README.md", "PORTING.md"], main: "readme"],
       aliases: [docs: ["docs", &copy_images/1], format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
       build_embedded: true,
