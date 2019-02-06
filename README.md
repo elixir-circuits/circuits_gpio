@@ -59,7 +59,14 @@ iex> {:ok, gpio} = Circuits.GPIO.open(18, :output)
 
 iex> Circuits.GPIO.write(gpio, 1)
 :ok
+
+iex> Circuits.GPIO.close(gpio)
+:ok
 ```
+
+_Note that the call to `Circuits.GPIO.close/1` is not necessary, as the garbage 
+collector will free up any unreferenced GPIOs. It can be used to explicitly
+de-allocate connections you know you will not need anymore._
 
 Input works similarly. Here's an example of a button with a pull down resistor
 connected.
