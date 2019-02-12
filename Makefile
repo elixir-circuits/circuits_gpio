@@ -7,8 +7,7 @@
 #
 # Variables to override:
 #
-# BUILD         where to store intermediate files (defaults to src directory)
-# PREFIX        path to the installation direction (defaults to ./priv)
+# MIX_COMPILE_PATH path to the build's ebin directory
 #
 # CC            C compiler
 # CROSSCOMPILE	crosscompiler prefix, if any
@@ -19,8 +18,8 @@
 # LDFLAGS	linker flags for linking all binaries
 # ERL_LDFLAGS	additional linker flags for projects referencing Erlang libraries
 
-PREFIX ?= priv
-BUILD ?= src
+PREFIX = $(MIX_COMPILE_PATH)/../priv
+BUILD = $(MIX_COMPILE_PATH)/../obj
 
 NIF = $(PREFIX)/gpio_nif.so
 

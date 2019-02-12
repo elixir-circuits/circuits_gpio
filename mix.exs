@@ -12,40 +12,12 @@ defmodule Circuits.GPIO.MixProject do
       compilers: [:elixir_make | Mix.compilers()],
       make_targets: ["all"],
       make_clean: ["clean"],
-      make_env: &make_env/0,
       docs: [extras: ["README.md", "PORTING.md"], main: "readme"],
       aliases: [docs: ["docs", &copy_images/1], format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
       build_embedded: true,
       deps: deps()
     ]
-  end
-
-  defp make_env() do
-    base =
-      Mix.Project.compile_path()
-      |> Path.join("..")
-      |> Path.expand()
-
-    %{
-      "MIX_ENV" => to_string(Mix.env()),
-      "PREFIX" => Path.join(base, "priv"),
-      "BUILD" => Path.join(base, "obj")
-    }
-    |> Map.merge(ei_env())
-  end
-
-  defp ei_env() do
-    case System.get_env("ERL_EI_INCLUDE_DIR") do
-      nil ->
-        %{
-          "ERL_EI_INCLUDE_DIR" => "#{:code.root_dir()}/usr/include",
-          "ERL_EI_LIBDIR" => "#{:code.root_dir()}/usr/lib"
-        }
-
-      _ ->
-        %{}
-    end
   end
 
   def application, do: []
@@ -73,7 +45,7 @@ defmodule Circuits.GPIO.MixProject do
 
   defp deps do
     [
-      {:elixir_make, "~> 0.4", runtime: false},
+      {:elixir_make, "~> 0.5", runtime: false},
       {:ex_doc, "~> 0.11", only: :dev, runtime: false},
       {:dialyxir, "1.0.0-rc.4", only: :dev, runtime: false}
     ]
