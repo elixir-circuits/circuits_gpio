@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.4.0
+
+The GPIO interrupt notification messages have been changed for consistency with
+other circuits projects. The initial element of the tuple is now
+`:circuits_gpio`, so messages will look like:
+
+`{:circuits_gpio, 19, 83268239, 1}`
+
+Please update your project if you call `set_interrupts/2`.
+
+No more backwards incompatible changes are expected until after 1.0.
+
 ## v0.3.1
 
 * Bug fixes
