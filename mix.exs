@@ -16,6 +16,9 @@ defmodule Circuits.GPIO.MixProject do
       aliases: [docs: ["docs", &copy_images/1], format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
       build_embedded: true,
+      dialyzer: [
+        flags: [:unmatched_returns, :error_handling, :race_conditions, :underspecs]
+      ],
       deps: deps()
     ]
   end
