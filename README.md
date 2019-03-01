@@ -77,7 +77,8 @@ If you're not familiar with pull up or pull down resistors, they're resistors
 whose purpose is to drive a wire high or low when the button isn't pressed. In
 this case, it drives the wire low. Many processors have ways of configuring
 internal resistors to accomplish the same effect without needing to add an
-external resistor.  It's platform-dependent and not shown here.
+external resistor. If you're using a Raspberry Pi, you can use [the built-in
+pull-up/pull-down resistors](#internal-pull-uppull-down).
 
 The code looks like this in `Circuits.GPIO`:
 
@@ -114,6 +115,8 @@ between getting the initial state of the pin and turning on interrupts. Without
 it, you could get the state of the pin, it could change states, and then you
 could start waiting on it for interrupts. If that happened, you would be out of
 sync.
+
+### Internal pull-up/pull-down
 
 To connect or disconnect an internal pull-up or pull-down resistor to a GPIO
 pin, call the `set_pull_mode` function.
