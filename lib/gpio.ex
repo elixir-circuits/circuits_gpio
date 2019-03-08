@@ -123,7 +123,8 @@ defmodule Circuits.GPIO do
   ```
 
   Where `pin_number` is the pin that changed values, `timestamp` is roughly when
-  the transition occurred in nanoseconds, and `value` is the new value.
+  the transition occurred in nanoseconds since host system boot time,
+  and `value` is the new value.
   """
   @spec set_interrupts(reference(), trigger(), list()) :: :ok | {:error, atom()}
   def set_interrupts(gpio, trigger, opts \\ []) do
