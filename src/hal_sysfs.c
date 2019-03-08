@@ -174,7 +174,8 @@ int hal_open_gpio(struct gpio_pin *pin,
             return -1;
         }
 
-        pin->fd = open(value_path, O_RDWR);
+        // wait up to 1000ms for the gpio symlink to be created
+        pin->fd = retry_open(value_path, O_RDWR, 1000);
         if (pin->fd < 0) {
             strcpy(error_str, "access_denied");
             return -1;
