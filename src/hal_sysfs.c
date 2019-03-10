@@ -42,9 +42,9 @@ static int retry_open(const char *pathname, int flags, int retries)
         if (fd >= 0)
             return fd;
 
-        error("Error opening %s", pathname);
-        usleep(1000);
         retries--;
+        debug("Error opening %s. Retrying %d times", pathname, retries);
+        usleep(1000);
     } while (retries > 0);
 
     return -1;
