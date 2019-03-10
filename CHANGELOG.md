@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.1
+
+* Bug fixes
+  * Fix a race condition on Raspbian where Circuits.GPIO would try to open the
+    GPIO sysfs file before udev had a chance to fix its permissions.
+  * Fix RPi platform detection on Raspbian so that pull-ups/pull-downs work
+    without passing any flags.
+
 ## v0.4.0
 
 The GPIO interrupt notification messages have been changed for consistency with
