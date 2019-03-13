@@ -125,6 +125,11 @@ defmodule Circuits.GPIO do
   Where `pin_number` is the pin that changed values, `timestamp` is roughly when
   the transition occurred in nanoseconds since host system boot time,
   and `value` is the new value.
+
+  NOTE: You will need to store the `Circuits.GPIO` reference somewhere (like
+  your `GenServer`'s state) so that it doesn't get garbage collected. Event
+  messages stop when it gets collected. If you only get one message and you are
+  expecting more, this is likely the case.
   """
   @spec set_interrupts(reference(), trigger(), list()) :: :ok | {:error, atom()}
   def set_interrupts(gpio, trigger, opts \\ []) do
