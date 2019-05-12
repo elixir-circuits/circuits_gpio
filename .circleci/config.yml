@@ -20,7 +20,7 @@ install_system_deps: &install_system_deps
     name: Install system dependencies
     command: |
       apt update
-      apt install -y unzip astyle
+      apt install -y unzip
 
 defaults: &defaults
   working_directory: ~/repo
