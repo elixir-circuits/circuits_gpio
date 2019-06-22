@@ -52,7 +52,7 @@ jobs:
       - run: mix deps.get
       - run: mix format --check-formatted
       - run: mix compile
-      - run: mix docs
+      - run: MIX_ENV=docs mix docs
       - run: mix hex.build
       - run: mix test
       - run: mdl --style .circleci/md-style.rb *.md
