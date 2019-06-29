@@ -175,6 +175,10 @@ iex> Circuits.GPIO.read(gpio1)
 
 The stub HAL is fairly limited, but it does support interrupts.
 
+In case `Circuits.GPIO` is used as a dependency the stub will not be present.
+Currently the stub is only available when the `:env` dependency option is set
+to `:test`.
+
 ## FAQ
 
 ### How does Circuits.GPIO compare to Elixir/ALE?
