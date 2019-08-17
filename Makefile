@@ -24,7 +24,7 @@ BUILD  = $(MIX_APP_PATH)/obj
 NIF = $(PREFIX)/gpio_nif.so
 
 TARGET_CFLAGS = $(shell src/detect_target.sh)
-CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter -pedantic
+CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter -pedantic -fPIC
 CFLAGS += $(TARGET_CFLAGS)
 
 # Check that we're on a supported build platform
