@@ -27,6 +27,9 @@ TARGET_CFLAGS = $(shell src/detect_target.sh)
 CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter -pedantic
 CFLAGS += $(TARGET_CFLAGS)
 
+$(info "**** MIX_ENV set to [$(MIX_ENV)] ****")
+$(info "**** CIRCUIT_MIX_ENV set to [$(CIRCUIT_MIX_ENV)] ****")
+
 # Check that we're on a supported build platform
 ifeq ($(CROSSCOMPILE),)
     # Not crosscompiling.
@@ -36,7 +39,7 @@ ifeq ($(CROSSCOMPILE),)
 	HAL_SRC = src/hal_stub.c
         LDFLAGS += -undefined dynamic_lookup -dynamiclib
     else
-        ifeq ($(MIX_ENV),test)
+        ifneq ($(filter $(CIRCUIT_MIX_ENV) $(MIX_ENV),test),)
             $(warning Compiling stub NIF to support 'mix test')
             HAL_SRC = src/hal_stub.c
         endif
