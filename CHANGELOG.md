@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.2
+
+* Bug fixes
+  * Fix pullup/pulldown support for the Raspberry Pi 4
+
 ## v0.4.1
 
 * Bug fixes
