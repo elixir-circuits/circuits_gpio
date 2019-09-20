@@ -69,6 +69,9 @@ defmodule Circuits.GPIOTest do
       send(me, {:done, length(x)})
     end)
 
+    # Wait a tehth of a second to allow spawned task to complete
+    Process.sleep(100)
+
     assert_receive {:done, ^count}
 
     # Wait a fraction of a second to allow GC to run since there's
