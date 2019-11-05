@@ -244,6 +244,7 @@ int update_polling_thread(struct gpio_pin *pin)
     message.pid = pin->config.pid;
     message.last_value = -1;
     message.trigger = pin->config.trigger;
+    message.suppress_glitches = pin->config.suppress_glitches;
     if (write(priv->pipe_fds[1], &message, sizeof(message)) != sizeof(message)) {
         error("Error writing polling thread!");
         return -1;
