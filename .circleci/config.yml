@@ -22,28 +22,20 @@ install_system_deps: &install_system_deps
       apt update
       apt install -y unzip
 
-install_mdl: &install_mdl
-  run:
-    name: Install Markdown Lint
-    command: |
-      apt install -y ruby
-      gem install mdl
-
 defaults: &defaults
   working_directory: ~/repo
 
 jobs:
   build_elixir_1_9_otp_22:
     docker:
-      - image: erlang:22.0
+      - image: erlang:22.1
         environment:
-          ELIXIR_VERSION: 1.9.1-otp-22
+          ELIXIR_VERSION: 1.9.4-otp-22
           LC_ALL: C.UTF-8
     <<: *defaults
     steps:
       - checkout
       - <<: *install_system_deps
-      - <<: *install_mdl
       - <<: *install_elixir
       - <<: *install_hex_rebar
       - restore_cache:
@@ -55,7 +47,6 @@ jobs:
       - run: MIX_ENV=docs mix docs
       - run: mix hex.build
       - run: mix test
-      - run: mdl --style .circleci/md-style.rb *.md
       - run: mix dialyzer --halt-exit-status
       - save_cache:
           key: v1-mix-cache-{{ checksum "mix.lock" }}
