@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.4.3
+
+* Bug fixes
+  * Fix GPIO glitch suppression when interrupts were enabled. Glitch suppression
+    filters out transitions on a GPIO line that are too fast for Linux and the
+    NIF to see both the rising and falling edges. Turning it off synthesizes
+    events. You can identify synthesized events since they have the same
+    timestamp to the nanosecond. See `Circuits.GPIO.set_interrupts/3`.
+
+* Improvement
+  * It's possible to enable the "stub" on Linux by setting
+    `CIRCUITS_MIX_ENV=test`. This can be useful for unit testing code that uses
+    Circuits.GPIO. Thanks to Enrico Rivarola for adding this!
+
 ## v0.4.2
 
 * Bug fixes
