@@ -57,7 +57,7 @@ ERL_LDFLAGS ?= -L$(ERL_EI_LIBDIR) -lei
 
 HAL_SRC ?= src/hal_sysfs.c src/hal_sysfs_interrupts.c src/hal_rpi.c
 HAL_SRC += src/nif_utils.c
-SRC =$(HAL_SRC) src/gpio_nif.c
+SRC = $(HAL_SRC) src/gpio_nif.c
 HEADERS =$(wildcard src/*.h)
 OBJ = $(SRC:src/%.c=$(BUILD)/%.o)
 
@@ -76,13 +76,10 @@ $(BUILD)/%.o: src/%.c
 $(NIF): $(OBJ)
 	$(CC) -o $@ $(ERL_LDFLAGS) $(LDFLAGS) $^
 
-$(PREFIX):
-	mkdir -p $@
-
-$(BUILD):
+$(PREFIX) $(BUILD):
 	mkdir -p $@
 
 clean:
-	$(RM) $(NIF) $(BUILD)/*.o
+	$(RM) $(NIF) $(OBJ)
 
 .PHONY: all clean calling_from_make install

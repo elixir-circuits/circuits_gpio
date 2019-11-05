@@ -45,6 +45,7 @@ defmodule Circuits.GPIO.MixProject do
         "README.md",
         "PORTING.md",
         "LICENSE",
+        "CHANGELOG.md",
         "Makefile"
       ],
       licenses: ["Apache-2.0"],
