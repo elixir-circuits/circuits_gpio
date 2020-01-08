@@ -49,6 +49,7 @@ ifeq ($(CROSSCOMPILE),)
 else
 # Crosscompiled build
 LDFLAGS += -fPIC -shared
+CFLAGS += -fPIC
 endif
 
 # Set Erlang-specific compile and linker flags
