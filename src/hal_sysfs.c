@@ -189,7 +189,10 @@ int hal_open_gpio(struct gpio_pin *pin,
         strcpy(error_str, "error_setting_pull_mode");
         goto error;
     }
-    if (hal_apply_interrupts(pin, env) < 0) {
+    // Only call hal_apply_interrupts if there's a trigger. While sysfs limits
+    // users to one "interrupt" handler, it's still nice to be able to check a
+    // a GPIO's state.
+    if (pin->config.trigger != TRIGGER_NONE && hal_apply_interrupts(pin, env) < 0) {
         strcpy(error_str, "error_setting_interrupts");
         goto error;
     }
