@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.4.5
+
+* Bug fixes
+  * Opening a GPIO to read its state won't clear the interrupt status of another
+    listener. Registering for interrupts a second time will still clear out the
+    first registree, though. That's a limitation of the interface. However, for
+    debugging, it can be nice to look at a GPIO without affecting the program
+    and this change allows for that.
+
 ## v0.4.4
 
 * Bug fixes
