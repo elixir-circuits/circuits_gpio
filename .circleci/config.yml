@@ -26,6 +26,34 @@ defaults: &defaults
   working_directory: ~/repo
 
 jobs:
+  build_elixir_1_10_otp_23:
+    docker:
+      - image: erlang:23.0
+        environment:
+          ELIXIR_VERSION: 1.10.3-otp-23
+          LC_ALL: C.UTF-8
+    <<: *defaults
+    steps:
+      - checkout
+      - <<: *install_system_deps
+      - <<: *install_elixir
+      - <<: *install_hex_rebar
+      - restore_cache:
+          keys:
+            - v1-mix-cache-{{ checksum "mix.lock" }}
+      - run: mix deps.get
+      - run: mix format --check-formatted
+      - run: mix compile
+      - run: MIX_ENV=docs mix docs
+      - run: mix hex.build
+      - run: mix test
+      - run: mix dialyzer --halt-exit-status
+      - save_cache:
+          key: v1-mix-cache-{{ checksum "mix.lock" }}
+          paths:
+            - _build
+            - deps
+
   build_elixir_1_10_otp_22:
     docker:
       - image: erlang:22.3
@@ -156,6 +184,7 @@ workflows:
   version: 2
   build_test:
     jobs:
+      - build_elixir_1_10_otp_23
       - build_elixir_1_10_otp_22
       - build_elixir_1_9_otp_22
       - build_elixir_1_8_otp_22
