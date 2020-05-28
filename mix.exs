@@ -55,7 +55,7 @@ defmodule Circuits.GPIO.MixProject do
 
   defp deps(elixir_version) when elixir_version >= {1, 7, 0} do
     [
-      {:ex_doc, "~> 0.11", only: :docs, runtime: false},
+      {:ex_doc, "~> 0.22", only: :docs, runtime: false},
       {:dialyxir, "~> 1.0.0-rc.6", only: :dev, runtime: false}
       | deps()
     ]
@@ -71,7 +71,7 @@ defmodule Circuits.GPIO.MixProject do
 
   defp docs do
     [
-      extras: ["README.md", "PORTING.md"],
+      extras: ["README.md", "PORTING.md", "CHANGELOG.md"],
       main: "readme",
       source_ref: "v#{@version}",
       source_url: @source_url
