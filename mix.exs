@@ -25,7 +25,12 @@ defmodule Circuits.GPIO.MixProject do
       dialyzer: [
         flags: [:unmatched_returns, :error_handling, :race_conditions, :underspecs]
       ],
-      deps: deps(@elixir_version)
+      deps: deps(@elixir_version),
+      preferred_cli_env: %{
+        docs: :docs,
+        "hex.publish": :docs,
+        "hex.build": :docs
+      }
     ]
   end
 
