@@ -102,16 +102,6 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
     return 0;
 }
 
-static void unload(ErlNifEnv *env, void *priv_data)
-{
-    (void) env;
-
-    struct gpio_priv *priv = priv_data;
-    debug("unload");
-
-    hal_unload(&priv->hal_priv);
-}
-
 static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
@@ -359,4 +349,4 @@ static ErlNifFunc nif_funcs[] = {
     {"info", 0, gpio_info, 0}
 };
 
-ERL_NIF_INIT(Elixir.Circuits.GPIO.Nif, nif_funcs, load, NULL, NULL, unload)
+ERL_NIF_INIT(Elixir.Circuits.GPIO.Nif, nif_funcs, load, NULL, NULL, NULL)
