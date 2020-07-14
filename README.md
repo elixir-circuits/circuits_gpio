@@ -119,7 +119,7 @@ sync.
 
 ### Internal pull-up/pull-down
 
-To connect or disconnect an internal pull-up or pull-down resistor to a GPIO
+To connect or disconnect an internal [pull-up or pull-down resistor](https://github.com/raspberrypilearning/physical-computing-guide/blob/master/pull_up_down.md) to a GPIO
 pin, call the `set_pull_mode` function.
 
 ```elixir
