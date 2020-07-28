@@ -242,4 +242,30 @@ defmodule Circuits.GPIOTest do
     assert GPIO.read(gpio0) == 0
     GPIO.close(gpio0)
   end
+
+  test "unloading NIF" do
+    # The theory here is that there shouldn't be a crash if this is reloaded a
+    # few times.
+    for _times <- 1..10 do
+      assert {:module, Circuits.GPIO} == :code.ensure_loaded(Circuits.GPIO)
+      assert {:module, Circuits.GPIO.Nif} == :code.ensure_loaded(Circuits.GPIO.Nif)
+
+      # Try running something to verify that it works.
+      {:ok, gpio} = GPIO.open(1, :input)
+      assert is_reference(gpio)
+
+      assert GPIO.info().pins_open == 1
+
+      GPIO.close(gpio)
+      assert GPIO.info().pins_open == 0
+
+      assert true == :code.delete(Circuits.GPIO.Nif)
+      assert true == :code.delete(Circuits.GPIO)
+
+      # The purge will call the unload which can be verified by turning DEBUG on
+      # in the C code.
+      assert false == :code.purge(Circuits.GPIO.Nif)
+      assert false == :code.purge(Circuits.GPIO)
+    end
+  end
 end
