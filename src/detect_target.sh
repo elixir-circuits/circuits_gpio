@@ -4,7 +4,7 @@
 # Detect the platform and output -D flags for use in compilion
 #
 
-if [ -z $CC ]; then
+if [ -z "$CC" ]; then
   CC=cc
 fi
 
