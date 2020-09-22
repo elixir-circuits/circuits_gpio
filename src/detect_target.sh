@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #
-# Detect the platform and output -D flags for use in compilion
+# Detect the platform and output -D flags for use in compilation
 #
 
 if [ -z "$CC" ]; then
