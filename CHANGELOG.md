@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4.6
+
+* Bug fixes
+  * Fix quoting issue that was causing failures on Yocto. Thanks to Zander
+    Erasmus for this.
+
 ## v0.4.5
 
 * Bug fixes
