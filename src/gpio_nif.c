@@ -53,7 +53,13 @@ static void gpio_pin_down(ErlNifEnv *env, void *obj, ErlNifPid *pid, ErlNifMonit
 #endif
 }
 
+#if (ERL_NIF_MAJOR_VERSION == 2 && ERL_NIF_MINOR_VERSION >= 16)
+// OTP-24 and later
+static ErlNifResourceTypeInit gpio_pin_init = {gpio_pin_dtor, gpio_pin_stop, gpio_pin_down, 3, NULL};
+#else
+// Old way
 static ErlNifResourceTypeInit gpio_pin_init = {gpio_pin_dtor, gpio_pin_stop, gpio_pin_down};
+#endif
 
 int send_gpio_message(ErlNifEnv *env,
                       ERL_NIF_TERM atom_gpio,
