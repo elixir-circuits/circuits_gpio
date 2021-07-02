@@ -173,7 +173,7 @@ void *gpio_poller_thread(void *arg)
             if (errno == EINTR)
                 continue;
 
-            error("poll failed. errno=%d", rc);
+            error("poll failed. errno=%d", errno);
             break;
         }
 
