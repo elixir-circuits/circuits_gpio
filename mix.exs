@@ -1,7 +1,7 @@
 defmodule Circuits.GPIO.MixProject do
   use Mix.Project
 
-  @version "0.4.6"
+  @version "0.4.7"
   @source_url "https://github.com/elixir-circuits/circuits_gpio"
 
   {:ok, system_version} = Version.parse(System.version())

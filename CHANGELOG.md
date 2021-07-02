@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.4.7
+
+* Bug fixes
+  * Fix hang when unloading the NIF. This bug caused `:init.stop` to never
+    return and anything else that would try to unload this module.
+  * Fix C compiler warnings with OTP 24
+
+The minimum Elixir version has been changed from 1.4 to 1.6. Elixir 1.4 might
+still work, but it's no longer being verified on CI.
+
 ## v0.4.6
 
 * Bug fixes
