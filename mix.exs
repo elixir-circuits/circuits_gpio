@@ -11,7 +11,7 @@ defmodule Circuits.GPIO.MixProject do
     [
       app: :circuits_gpio,
       version: @version,
-      elixir: "~> 1.4",
+      elixir: "~> 1.6",
       description: description(),
       package: package(),
       source_url: @source_url,
