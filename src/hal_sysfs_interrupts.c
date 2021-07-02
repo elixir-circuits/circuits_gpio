@@ -181,7 +181,12 @@ void *gpio_poller_thread(void *arg)
         // enif_monotonic_time only works in scheduler threads
         //ErlNifTime timestamp = enif_monotonic_time(ERL_NIF_NSEC);
 
-        if (fdset[count - 1].revents & (POLLIN | POLLHUP)) {
+        short revents = fdset[count - 1].revents;
+        if (revents & (POLLERR | POLLNVAL)) {
+            // Socket closed so quit thread. This happens on NIF unload.
+            break;
+        }
+        if (revents & (POLLIN | POLLHUP)) {
             struct gpio_monitor_info message;
             ssize_t amount_read = read(*pipefd, &message, sizeof(message));
             if (amount_read != sizeof(message)) {
