@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.0 - 10-20-2021
+
+This release only changes the version number. No code has changed.
+
 ## v0.4.8
 
 This release only has doc and build output cleanup. No code has changed.
