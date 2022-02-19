@@ -61,7 +61,7 @@ defmodule Circuits.GPIOTest do
 
     # Expect that the process dying will free up all of the pins
     me = self()
-    count = 10000
+    count = 10_000
 
     spawn_link(fn ->
       x = Enum.map(1..count, fn _ -> {:ok, _ref} = GPIO.open(1, :input) end)

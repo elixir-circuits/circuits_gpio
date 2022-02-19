@@ -61,6 +61,7 @@ defmodule Circuits.GPIO.MixProject do
   defp deps(elixir_version) when elixir_version >= {1, 7, 0} do
     [
       {:ex_doc, "~> 0.22", only: :docs, runtime: false},
+      {:credo, "~> 1.6", only: :dev, runtime: false},
       {:dialyxir, "~> 1.1.0", only: :dev, runtime: false}
       | deps()
     ]
