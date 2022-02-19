@@ -19,7 +19,7 @@ defmodule Circuits.GPIO.MixProject do
       make_targets: ["all"],
       make_clean: ["clean"],
       docs: docs(),
-      aliases: [docs: ["docs", &copy_images/1], format: [&format_c/1, "format"]],
+      aliases: [format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
       build_embedded: true,
       dialyzer: [
@@ -77,16 +77,12 @@ defmodule Circuits.GPIO.MixProject do
 
   defp docs do
     [
+      assets: "assets",
       extras: ["README.md", "PORTING.md", "CHANGELOG.md"],
       main: "readme",
       source_ref: "v#{@version}",
       source_url: @source_url
     ]
-  end
-
-  # Copy the images referenced by docs, since ex_doc doesn't do this.
-  defp copy_images(_) do
-    File.cp_r("assets", "doc/assets")
   end
 
   defp format_c([]) do
