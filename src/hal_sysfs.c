@@ -267,33 +267,22 @@ int hal_apply_direction(struct gpio_pin *pin)
     sprintf(direction_path, "/sys/class/gpio/gpio%d/direction", pin->pin_number);
 
     /* Allow 1000 * 1ms = 1 second max for retries. See hal_apply_interrupts too. */
-    char current_dir[16];
-    if (sysfs_read_file(direction_path, current_dir, sizeof(current_dir), 1000) < 0)
-        return -1;
-
-    /* Linux only reports "in" and "out". (current_dir is NOT null terminated here) */
-    int current_is_output = (current_dir[0] == 'o');
+    int retries = 1000;
 
     if (pin->config.is_output == 0) {
         // Input
-        if (!current_is_output)
-            return 0;
-        else
-            return sysfs_write_file(direction_path, "in", 0);
+        return sysfs_write_file(direction_path, "in", retries);
     } else {
         // Output
         if (pin->config.initial_value < 0) {
             // Output, don't set
-            if (current_is_output)
-                return 0;
-            else
-                return sysfs_write_file(direction_path, "out", 0);
+            return sysfs_write_file(direction_path, "out", retries);
         } else if (pin->config.initial_value == 0) {
             // Set as output and initialize low
-            return sysfs_write_file(direction_path, "low", 0);
+            return sysfs_write_file(direction_path, "low", retries);
         } else {
             // Set as output and initialize high
-            return sysfs_write_file(direction_path, "high", 0);
+            return sysfs_write_file(direction_path, "high", retries);
         }
     }
 }
