@@ -276,10 +276,7 @@ int hal_apply_direction(struct gpio_pin *pin)
 
     if (pin->config.is_output == 0) {
         // Input
-        if (!current_is_output)
-            return 0;
-        else
-            return sysfs_write_file(direction_path, "in", 0);
+        return sysfs_write_file(direction_path, "in", 0);
     } else {
         // Output
         if (pin->config.initial_value < 0) {
