@@ -22,9 +22,7 @@ defmodule Circuits.GPIO.MixProject do
       aliases: [format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
       build_embedded: true,
-      dialyzer: [
-        flags: [:unmatched_returns, :error_handling, :race_conditions, :underspecs]
-      ],
+      dialyzer: dialyzer(),
       deps: deps(@elixir_version),
       preferred_cli_env: %{
         docs: :docs,
@@ -72,6 +70,14 @@ defmodule Circuits.GPIO.MixProject do
   defp deps() do
     [
       {:elixir_make, "~> 0.6", runtime: false}
+    ]
+  end
+
+  defp dialyzer() do
+    [
+      flags: [:missing_return, :extra_return, :unmatched_returns, :error_handling, :underspecs],
+      list_unused_filters: true,
+      plt_file: {:no_warn, "_build/plts/dialyzer.plt"}
     ]
   end
 
