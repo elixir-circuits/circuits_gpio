@@ -176,20 +176,4 @@ defmodule Circuits.GPIO do
   """
   @spec info() :: map()
   defdelegate info(), to: Nif
-
-  defmodule :circuits_gpio do
-    @moduledoc """
-    Erlang interface to Circuits.GPIO
-
-    Example Erlang code:  `circuits_gpio:open(5, output)`
-    """
-    defdelegate open(pin_number, pin_direction), to: Circuits.GPIO
-    defdelegate read(gpio), to: Circuits.GPIO
-    defdelegate write(gpio, value), to: Circuits.GPIO
-    defdelegate set_interrupts(gpio, trigger), to: Circuits.GPIO
-    defdelegate set_interrupts(gpio, trigger, opts), to: Circuits.GPIO
-    defdelegate set_direction(gpio, pin_direction), to: Circuits.GPIO
-    defdelegate set_pull_mode(gpio, pull_mode), to: Circuits.GPIO
-    defdelegate pin(gpio), to: Circuits.GPIO
-  end
 end
