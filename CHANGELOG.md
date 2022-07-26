@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.0.1 - 7-26-2022
+
+* Bug fixes
+  * On at least one device, the pin direction reported by Linux does not match
+    the actual pin direction. This release forces the pin direction for inputs.
+    It cannot do this for outputs, since setting a pin to output has a side
+    effect on the pin state. This technically is a bug in a Linux driver port,
+    but it was harmless to workaround for inputs so that's what's done. Thanks
+    to @pojiro for investigating and fixing this issue.
+
 ## v1.0.0 - 10-20-2021
 
 This release only changes the version number. No code has changed.
