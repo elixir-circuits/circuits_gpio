@@ -236,8 +236,3 @@ here's one example:
 
 * [Compiling and testing Elixir Nerves on your host machine](https://cultivatehq.com/posts/compiling-and-testing-elixir-nerves-on-your-host-machine/)
 
-### How do I call Circuits.GPIO from Erlang?
-
-`Circuits.GPIO` provides an Erlang-friendly binding to simplify calls from
-Erlang code. Instead of prefixing calls with: `'Elixir.Circuits.GPIO':` you may
-use the binding: `circuits_gpio:`.  For example: `circuits_gpio:open(5, output)`.
