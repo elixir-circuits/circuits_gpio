@@ -1,6 +1,4 @@
 defmodule Circuits.GPIO do
-  alias Circuits.GPIO.Nif
-
   @moduledoc """
   Control GPIOs from Elixir
 
@@ -11,6 +9,7 @@ defmodule Circuits.GPIO do
   transactions or has hard real-time constraints in its interactions, this is not
   the right library. For those devices, see if there's a Linux kernel driver.
   """
+  alias Circuits.GPIO.Nif
 
   @typedoc "A GPIO pin number. See your device's documentation for how these connect to wires"
   @type pin_number :: non_neg_integer()
