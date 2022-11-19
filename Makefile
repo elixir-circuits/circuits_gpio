@@ -8,6 +8,8 @@
 # Variables to override:
 #
 # MIX_APP_PATH  path to the build directory
+# MIX_ENV       Mix build environment - "test" forces use of the stub
+# CIRCUITS_MIX_ENV Alternative way to force "test" mode when using circuits_gpio as a dependency
 #
 # CC            C compiler
 # CROSSCOMPILE	crosscompiler prefix, if any
