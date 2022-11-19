@@ -23,7 +23,7 @@ BUILD  = $(MIX_APP_PATH)/obj
 
 NIF = $(PREFIX)/gpio_nif.so
 
-TARGET_CFLAGS = $(shell src/detect_target.sh)
+TARGET_CFLAGS = $(shell c_src/detect_target.sh)
 CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter -pedantic
 CFLAGS += $(TARGET_CFLAGS)
 
@@ -36,12 +36,12 @@ ifeq ($(CROSSCOMPILE),)
     ifeq ($(shell uname -s),Darwin)
         $(warning Elixir Circuits only works on Nerves and Linux.)
         $(warning Compiling a stub NIF for testing.)
-	HAL_SRC = src/hal_stub.c
+	HAL_SRC = c_src/hal_stub.c
         LDFLAGS += -undefined dynamic_lookup -dynamiclib
     else
         ifneq ($(filter $(CIRCUITS_MIX_ENV) $(MIX_ENV),test),)
             $(warning Compiling stub NIF to support 'mix test')
-            HAL_SRC = src/hal_stub.c
+            HAL_SRC = c_src/hal_stub.c
         endif
         LDFLAGS += -fPIC -shared
         CFLAGS += -fPIC
@@ -56,11 +56,11 @@ endif
 ERL_CFLAGS ?= -I$(ERL_EI_INCLUDE_DIR)
 ERL_LDFLAGS ?= -L$(ERL_EI_LIBDIR) -lei
 
-HAL_SRC ?= src/hal_sysfs.c src/hal_sysfs_interrupts.c src/hal_rpi.c
-HAL_SRC += src/nif_utils.c
-SRC = $(HAL_SRC) src/gpio_nif.c
-HEADERS =$(wildcard src/*.h)
-OBJ = $(SRC:src/%.c=$(BUILD)/%.o)
+HAL_SRC ?= c_src/hal_sysfs.c c_src/hal_sysfs_interrupts.c c_src/hal_rpi.c
+HAL_SRC += c_src/nif_utils.c
+SRC = $(HAL_SRC) c_src/gpio_nif.c
+HEADERS =$(wildcard c_src/*.h)
+OBJ = $(SRC:c_src/%.c=$(BUILD)/%.o)
 
 calling_from_make:
 	mix compile
@@ -71,7 +71,7 @@ install: $(PREFIX) $(BUILD) $(NIF)
 
 $(OBJ): $(HEADERS) Makefile
 
-$(BUILD)/%.o: src/%.c
+$(BUILD)/%.o: c_src/%.c
 	@echo " CC $(notdir $@)"
 	$(CC) -c $(ERL_CFLAGS) $(CFLAGS) -o $@ $<
 

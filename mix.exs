@@ -38,8 +38,8 @@ defmodule Circuits.GPIO.MixProject do
     %{
       files: [
         "lib",
-        "src/*.[ch]",
-        "src/*.sh",
+        "c_src/*.[ch]",
+        "c_src/*.sh",
         "mix.exs",
         "README.md",
         "PORTING.md",
@@ -85,7 +85,7 @@ defmodule Circuits.GPIO.MixProject do
         Mix.Shell.IO.info("Install astyle to format C code.")
 
       astyle ->
-        System.cmd(astyle, ["-n", "src/*.c"], into: IO.stream(:stdio, :line))
+        System.cmd(astyle, ["-n", "c_src/*.c"], into: IO.stream(:stdio, :line))
     end
   end
 
