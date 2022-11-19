@@ -19,9 +19,9 @@ install_system_deps: &install_system_deps
         apk add build-base linux-headers
 
 jobs:
-  build_elixir_1_13_otp_25:
+  build_elixir_1_14_otp_25:
     docker:
-      - image: hexpm/elixir:1.13.4-erlang-25.0-alpine-3.15.4
+      - image: hexpm/elixir:1.14.2-erlang-25.1.2-alpine-3.16.2
     <<: *defaults
     steps:
       - checkout
@@ -44,9 +44,20 @@ jobs:
             - _build
             - deps
 
+  build_elixir_1_13_otp_24:
+    docker:
+      - image: hexpm/elixir:1.13.4-erlang-24.3.4-alpine-3.15.3
+    <<: *defaults
+    steps:
+      - checkout
+      - <<: *install_hex_rebar
+      - <<: *install_system_deps
+      - run: mix deps.get
+      - run: mix test
+
   build_elixir_1_12_otp_24:
     docker:
-      - image: hexpm/elixir:1.12.3-erlang-24.1.2-alpine-3.14.2
+      - image: hexpm/elixir:1.12.3-erlang-24.3.4.2-alpine-3.16.0
     <<: *defaults
     steps:
       - checkout
@@ -77,59 +88,12 @@ jobs:
       - run: mix deps.get
       - run: mix test
 
-  build_elixir_1_9_otp_22:
-    docker:
-      - image: hexpm/elixir:1.9.4-erlang-22.3.4.18-alpine-3.13.3
-    <<: *defaults
-    steps:
-      - checkout
-      - <<: *install_hex_rebar
-      - <<: *install_system_deps
-      - run: mix deps.get
-      - run: mix test
-
-  build_elixir_1_8_otp_22:
-    docker:
-      - image: hexpm/elixir:1.8.2-erlang-22.3.4.9-alpine-3.12.0
-    <<: *defaults
-    steps:
-      - checkout
-      - <<: *install_hex_rebar
-      - <<: *install_system_deps
-      - run: mix deps.get
-      - run: mix test
-
-  build_elixir_1_7_otp_21:
-    docker:
-      - image: hexpm/elixir:1.7.4-erlang-21.3.8.15-alpine-3.12.0
-    <<: *defaults
-    steps:
-      - checkout
-      - <<: *install_hex_rebar
-      - <<: *install_system_deps
-      - run: mix deps.get
-      - run: mix test
-
-  build_elixir_1_6_otp_20:
-    docker:
-      - image: hexpm/elixir:1.6.6-erlang-20.3.8.23-alpine-3.12.0
-    <<: *defaults
-    steps:
-      - checkout
-      - <<: *install_hex_rebar
-      - <<: *install_system_deps
-      - run: mix deps.get
-      - run: mix test
-
 workflows:
   version: 2
   build_test:
     jobs:
-      - build_elixir_1_13_otp_25
+      - build_elixir_1_14_otp_25
+      - build_elixir_1_13_otp_24
       - build_elixir_1_12_otp_24
       - build_elixir_1_11_otp_23
       - build_elixir_1_10_otp_23
-      - build_elixir_1_9_otp_22
-      - build_elixir_1_8_otp_22
-      - build_elixir_1_7_otp_21
-      - build_elixir_1_6_otp_20
