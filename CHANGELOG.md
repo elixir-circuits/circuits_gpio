@@ -1,6 +1,14 @@
 # Changelog
 
-## v1.0.1 - 7-26-2022
+## v1.1.0 - 2022-12-31
+
+* Changes
+  * Remove Erlang convenience functions since no one used them
+  * Require Elixir 1.10 or later. Previous versions probably work, but won't be
+    supported. This opens up the possibility of using Elixir 1.10+ features in
+    future releases.
+
+## v1.0.1 - 2022-7-26
 
 * Bug fixes
   * On at least one device, the pin direction reported by Linux does not match
@@ -10,7 +18,7 @@
     but it was harmless to workaround for inputs so that's what's done. Thanks
     to @pojiro for investigating and fixing this issue.
 
-## v1.0.0 - 10-20-2021
+## v1.0.0 - 2021-10-20
 
 This release only changes the version number. No code has changed.
 
