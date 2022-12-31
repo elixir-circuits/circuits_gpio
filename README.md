@@ -3,6 +3,7 @@
 [![Hex version](https://img.shields.io/hexpm/v/circuits_gpio.svg "Hex version")](https://hex.pm/packages/circuits_gpio)
 [![API docs](https://img.shields.io/hexpm/v/circuits_gpio.svg?label=hexdocs "API docs")](https://hexdocs.pm/circuits_gpio/Circuits.GPIO.html)
 [![CircleCI](https://circleci.com/gh/elixir-circuits/circuits_gpio.svg?style=svg)](https://circleci.com/gh/elixir-circuits/circuits_gpio)
+[![REUSE status](https://api.reuse.software/badge/github.com/elixir-circuits/circuits_gpio)](https://api.reuse.software/info/github.com/elixir-circuits/circuits_gpio)
 
 `Circuits.GPIO` lets you control or read from GPIOs on Nerves or other Linux-based
 devices.
