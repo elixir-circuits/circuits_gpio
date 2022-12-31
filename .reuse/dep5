@@ -1,0 +1,21 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: circuits_gpio
+Upstream-Contact: Frank Hunleth <fhunleth@troodon-software.com>
+Source: https://github.com/elixir-circuits/circuits_gpio
+
+Files: README.md CHANGELOG.md PORTING.md RELEASE.md
+Copyright: 2014 Frank Hunleth
+License: CC-BY-4.0
+
+Files: .gitignore .github/dependabot.yml .circleci/config.yml .circleci/md-style.rb
+Copyright: None
+License: CC0-1.0
+
+Files: .formatter.exs mix.lock .credo.exs mix.exs
+Copyright: None
+License: CC0-1.0
+
+Files: assets/images/schematic-gpio-led.png assets/images/schematic-gpio-button.png
+Copyright: 2013 Erlang Solutions
+License: SHL-0.51
+

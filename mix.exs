@@ -43,7 +43,7 @@ defmodule Circuits.GPIO.MixProject do
         "mix.exs",
         "README.md",
         "PORTING.md",
-        "LICENSE",
+        "LICENSES/*",
         "CHANGELOG.md",
         "Makefile"
       ],
