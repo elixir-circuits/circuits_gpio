@@ -13,6 +13,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+ERL_NIF_TERM atom_ok;
+ERL_NIF_TERM atom_error;
+
 static void release_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
 {
     if (pin->fd >= 0) {
@@ -91,6 +94,9 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
 #endif
     debug("load");
 
+    atom_ok = enif_make_atom(env, "ok");
+    atom_error = enif_make_atom(env, "error");
+
     size_t extra_size = hal_priv_size();
     struct gpio_priv *priv = enif_alloc(sizeof(struct gpio_priv) + extra_size);
     if (!priv) {
@@ -99,8 +105,6 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
     }
 
     priv->pins_open = 0;
-    priv->atom_ok = enif_make_atom(env, "ok");
-
     priv->gpio_pin_rt = enif_open_resource_type_x(env, "gpio_pin", &gpio_pin_init, ERL_NIF_RT_CREATE, NULL);
 
     if (hal_load(&priv->hal_priv) < 0) {
@@ -155,7 +159,7 @@ static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
     if (hal_write_gpio(pin, value, env) < 0)
         return enif_raise_exception(env, enif_make_atom(env, strerror(errno)));
 
-    return priv->atom_ok;
+    return atom_ok;
 }
 
 static int get_trigger(ErlNifEnv *env, ERL_NIF_TERM term, enum trigger_mode *mode)
@@ -236,7 +240,7 @@ static ERL_NIF_TERM set_interrupts(ErlNifEnv *env, int argc, const ERL_NIF_TERM 
         return make_error_tuple(env, "hal_apply_interrupts");
     }
 
-    return priv->atom_ok;
+    return atom_ok;
 }
 
 static ERL_NIF_TERM set_direction(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -257,7 +261,7 @@ static ERL_NIF_TERM set_direction(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
         return make_error_tuple(env, "write_pin_direction");
     }
 
-    return priv->atom_ok;
+    return atom_ok;
 }
 
 static ERL_NIF_TERM set_pull_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -278,7 +282,7 @@ static ERL_NIF_TERM set_pull_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
         return make_error_tuple(env, "write_pull_mode");
     }
 
-    return priv->atom_ok;
+    return atom_ok;
 }
 
 static ERL_NIF_TERM pin_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -342,7 +346,7 @@ static ERL_NIF_TERM close_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
 
     release_gpio_pin(priv, pin);
 
-    return priv->atom_ok;
+    return atom_ok;
 }
 static ERL_NIF_TERM gpio_info(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {

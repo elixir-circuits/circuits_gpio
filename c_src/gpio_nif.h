@@ -44,8 +44,6 @@ enum pull_mode {
 };
 
 struct gpio_priv {
-    ERL_NIF_TERM atom_ok;
-
     ErlNifResourceType *gpio_pin_rt;
 
     int pins_open;
@@ -68,6 +66,10 @@ struct gpio_pin {
     void *hal_priv;
     struct gpio_config config;
 };
+
+// Atoms
+extern ERL_NIF_TERM atom_ok;
+extern ERL_NIF_TERM atom_error;
 
 // HAL
 
