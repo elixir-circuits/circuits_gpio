@@ -13,25 +13,46 @@ defmodule Circuits.GPIO do
   transactions or has hard real-time constraints in its interactions, this is not
   the right library. For those devices, see if there's a Linux kernel driver.
   """
-  alias Circuits.GPIO.Nif
+  alias Circuits.GPIO.Handle
 
-  @typedoc "A GPIO pin number. See your device's documentation for how these connect to wires"
-  @type pin_number :: non_neg_integer()
+  @typedoc """
+  Backends specify an implementation of a Circuits.SPI.Backend behaviour
+
+  The second parameter of the Backend 2-tuple is a list of options. These are
+  passed to the behaviour function call implementations.
+  """
+  @type backend() :: {module(), keyword()}
+
+  @typedoc """
+  The names or numbers for one or more GPIO pins
+
+  See your device's documentation for how pins are labelled on your
+  device. Currently only numbers are supported by backends, but future backends
+  should support other ways.
+  """
+  @type pin_spec() :: non_neg_integer()
 
   @typedoc "The GPIO direction (input or output)"
-  @type pin_direction :: :input | :output
+  @type pin_direction() :: :input | :output
 
   @typedoc "GPIO logic value (low = 0 or high = 1)"
-  @type value :: 0 | 1
+  @type value() :: 0 | 1
 
   @typedoc "Trigger edge for pin change notifications"
-  @type trigger :: :rising | :falling | :both | :none
+  @type trigger() :: :rising | :falling | :both | :none
 
   @typedoc "Pull mode for platforms that support controllable pullups and pulldowns"
-  @type pull_mode :: :not_set | :none | :pullup | :pulldown
+  @type pull_mode() :: :not_set | :none | :pullup | :pulldown
 
-  @typedoc "Options for open/3"
-  @type open_option :: {:initial_value, value() | :not_set} | {:pull_mode, pull_mode()}
+  @typedoc """
+  Options for `open/3`
+  """
+  @type open_options() :: [initial_value: value() | :not_set, pull_mode: pull_mode()]
+
+  @typedoc """
+  Options for `set_interrupt/2`
+  """
+  @type interrupt_options() :: [suppress_glitches: boolean(), receiver: pid() | atom()]
 
   # Public API
 
@@ -49,30 +70,41 @@ defmodule Circuits.GPIO do
   * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
      input pin. `:not_set` is the default.
   """
-  @spec open(pin_number(), pin_direction(), [open_option()]) ::
-          {:ok, reference()} | {:error, atom()}
+  @spec open(pin_spec(), pin_direction(), open_options()) ::
+          {:ok, Handle.t()} | {:error, atom()}
   def open(pin_number, pin_direction, options \\ []) do
-    check_open_options(options)
+    check_options!(options)
 
-    value = Keyword.get(options, :initial_value, :not_set)
-    pull_mode = Keyword.get(options, :pull_mode, :not_set)
+    {backend, backend_defaults} = default_backend()
 
-    Nif.open(pin_number, pin_direction, value, pull_mode)
+    all_options =
+      backend_defaults
+      |> Keyword.merge(options)
+      |> Keyword.put_new(:initial_value, :not_set)
+      |> Keyword.put_new(:pull_mode, :not_set)
+
+    backend.open(pin_number, pin_direction, all_options)
   end
 
-  defp check_open_options([]), do: :ok
+  defp check_options!([]), do: :ok
 
-  defp check_open_options([{:initial_value, value} | rest]) when value in [:not_set, 0, 1] do
-    check_open_options(rest)
+  defp check_options!([{:initial_value, value} | rest]) do
+    unless value in [:not_set, 0, 1],
+      do: raise(ArgumentError, ":initial_value should be :not_set, 0, or 1")
+
+    check_options!(rest)
   end
 
-  defp check_open_options([{:pull_mode, value} | rest])
-       when value in [:not_set, :pullup, :pulldown, :none] do
-    check_open_options(rest)
+  defp check_options!([{:pull_mode, value} | rest]) do
+    unless value in [:not_set, :pullup, :pulldown, :none],
+      do: raise(ArgumentError, ":pull_mode should be :not_set, :pullup, :pulldown, or :none")
+
+    check_options!(rest)
   end
 
-  defp check_open_options([bad_option | _]) do
-    raise ArgumentError.exception("Unsupported option to GPIO.open/3: #{inspect(bad_option)}")
+  defp check_options!([_unknown_option | rest]) do
+    # Ignore unknown options - the backend might use them
+    check_options!(rest)
   end
 
   @doc """
@@ -81,27 +113,21 @@ defmodule Circuits.GPIO do
   This is optional. The garbage collector will free GPIO resources that aren't in
   use, but this will free them sooner.
   """
-  @spec close(reference()) :: :ok
-  def close(gpio) do
-    Nif.close(gpio)
-  end
+  @spec close(Handle.t()) :: :ok
+  defdelegate close(handle), to: Handle
 
   @doc """
   Read the current value on a pin.
   """
-  @spec read(reference()) :: value()
-  def read(gpio) do
-    Nif.read(gpio)
-  end
+  @spec read(Handle.t()) :: value()
+  defdelegate read(handle), to: Handle
 
   @doc """
   Set the value of a pin. The pin should be configured to an output
   for this to work.
   """
-  @spec write(reference(), value()) :: :ok
-  def write(gpio, value) do
-    Nif.write(gpio, value)
-  end
+  @spec write(Handle.t(), value()) :: :ok
+  defdelegate write(handle, value), to: Handle
 
   @doc """
   Enable or disable pin value change notifications. The notifications
@@ -134,42 +160,28 @@ defmodule Circuits.GPIO do
   messages stop when it gets collected. If you only get one message and you are
   expecting more, this is likely the case.
   """
-  @spec set_interrupts(reference(), trigger(), list()) :: :ok | {:error, atom()}
-  def set_interrupts(gpio, trigger, opts \\ []) do
-    suppress_glitches = Keyword.get(opts, :suppress_glitches, true)
-
-    receiver =
-      case Keyword.get(opts, :receiver) do
-        pid when is_pid(pid) -> pid
-        name when is_atom(name) -> Process.whereis(name) || self()
-        _ -> self()
-      end
-
-    Nif.set_interrupts(gpio, trigger, suppress_glitches, receiver)
-  end
+  @spec set_interrupts(Handle.t(), trigger(), interrupt_options()) :: :ok | {:error, atom()}
+  defdelegate set_interrupts(handle, trigger, options \\ []), to: Handle
 
   @doc """
   Change the direction of the pin.
   """
-  @spec set_direction(reference(), pin_direction()) :: :ok | {:error, atom()}
-  def set_direction(gpio, pin_direction) do
-    Nif.set_direction(gpio, pin_direction)
-  end
+  @spec set_direction(Handle.t(), pin_direction()) :: :ok | {:error, atom()}
+  defdelegate set_direction(handle, pin_direction), to: Handle
 
   @doc """
   Enable or disable internal pull-up or pull-down resistor to GPIO pin
   """
-  @spec set_pull_mode(reference(), pull_mode()) :: :ok | {:error, atom()}
-  def set_pull_mode(gpio, pull_mode) do
-    Nif.set_pull_mode(gpio, pull_mode)
-  end
+  @spec set_pull_mode(Handle.t(), pull_mode()) :: :ok | {:error, atom()}
+  defdelegate set_pull_mode(gpio, pull_mode), to: Handle
 
   @doc """
   Get the GPIO pin number
   """
-  @spec pin(reference) :: pin_number
-  def pin(gpio) do
-    Nif.pin(gpio)
+  @spec pin(Handle.t()) :: pin_spec()
+  def pin(handle) do
+    info = Handle.info(handle)
+    info.pin
   end
 
   @doc """
@@ -177,6 +189,17 @@ defmodule Circuits.GPIO do
 
   This may be helpful when debugging issues.
   """
-  @spec info() :: map()
-  defdelegate info(), to: Nif
+  @spec info(backend() | nil) :: map()
+  def info(backend \\ nil)
+
+  def info(nil), do: info(default_backend())
+  def info({backend, _options}), do: backend.info()
+
+  defp default_backend() do
+    case Application.get_env(:circuits_gpio, :default_backend) do
+      nil -> {Circuits.GPIO.NilBackend, []}
+      m when is_atom(m) -> {m, []}
+      {m, o} = value when is_atom(m) and is_list(o) -> value
+    end
+  end
 end

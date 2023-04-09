@@ -12,8 +12,7 @@
 # Variables to override:
 #
 # MIX_APP_PATH  path to the build directory
-# MIX_ENV       Mix build environment - "test" forces use of the stub
-# CIRCUITS_MIX_ENV Alternative way to force "test" mode when using circuits_gpio as a dependency
+# CIRCUITS_GPIO_SYSFS Backend to build - `"normal"`, `"test"`, or `"disabled"` will build a NIF
 #
 # CC            C compiler
 # CROSSCOMPILE	crosscompiler prefix, if any
@@ -33,29 +32,36 @@ TARGET_CFLAGS = $(shell c_src/detect_target.sh)
 CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter -pedantic
 CFLAGS += $(TARGET_CFLAGS)
 
-$(info "**** MIX_ENV set to [$(MIX_ENV)] ****")
-$(info "**** CIRCUITS_MIX_ENV set to [$(CIRCUITS_MIX_ENV)] ****")
+$(info "**** CIRCUITS_GPIO_SYSFS set to [$(CIRCUITS_GPIO_SYSFS)] ****")
 
 # Check that we're on a supported build platform
 ifeq ($(CROSSCOMPILE),)
-    # Not crosscompiling.
-    ifeq ($(shell uname -s),Darwin)
-        $(warning Elixir Circuits only works on Nerves and Linux.)
-        $(warning Compiling a stub NIF for testing.)
-	HAL_SRC = c_src/hal_stub.c
-        LDFLAGS += -undefined dynamic_lookup -dynamiclib
-    else
-        ifneq ($(filter $(CIRCUITS_MIX_ENV) $(MIX_ENV),test),)
-            $(warning Compiling stub NIF to support 'mix test')
-            HAL_SRC = c_src/hal_stub.c
-        endif
-        LDFLAGS += -fPIC -shared
-        CFLAGS += -fPIC
-    endif
+# Not crosscompiling, so check that we're on Linux for whether to compile the NIF.
+ifeq ($(shell uname -s),Linux)
+CFLAGS += -fPIC
+LDFLAGS += -fPIC -shared
+else
+LDFLAGS += -undefined dynamic_lookup -dynamiclib
+ifeq ($(CIRCUITS_GPIO_SYSFS),normal)
+$(error Circuits.GPIO Linux sysfs backend is not supported on non-Linux platforms. Review circuits_spi backend configuration or report an issue if improperly detected.)
+endif
+endif
 else
 # Crosscompiled build
 LDFLAGS += -fPIC -shared
 CFLAGS += -fPIC
+endif
+
+ifeq ($(CIRCUITS_GPIO_SYSFS),normal)
+# Enable real GPIO calls. This is the default and works with Nerves
+else
+ifeq ($(CIRCUITS_GPIO_SYSFS),test)
+# Stub out ioctls and send back test data
+HAL_SRC = c_src/hal_stub.c
+else
+# Don't build NIF
+NIF =
+endif
 endif
 
 # Set Erlang-specific compile and linker flags
