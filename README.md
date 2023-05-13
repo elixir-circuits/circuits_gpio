@@ -31,7 +31,7 @@ include `circuits_gpio` as a dependency in your `mix.exs` like this:
 
 ```elixir
 def deps do
-  [{:circuits_gpio, "~> 1.0"}]
+  [{:circuits_gpio, "~> 2.0"}]
 end
 ```
 
