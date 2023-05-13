@@ -1,21 +1,29 @@
-# Elixir Circuits - GPIO
+# Circuits - GPIO
 
 [![Hex version](https://img.shields.io/hexpm/v/circuits_gpio.svg "Hex version")](https://hex.pm/packages/circuits_gpio)
 [![API docs](https://img.shields.io/hexpm/v/circuits_gpio.svg?label=hexdocs "API docs")](https://hexdocs.pm/circuits_gpio/Circuits.GPIO.html)
 [![CircleCI](https://circleci.com/gh/elixir-circuits/circuits_gpio.svg?style=svg)](https://circleci.com/gh/elixir-circuits/circuits_gpio)
 [![REUSE status](https://api.reuse.software/badge/github.com/elixir-circuits/circuits_gpio)](https://api.reuse.software/info/github.com/elixir-circuits/circuits_gpio)
 
-`Circuits.GPIO` lets you control or read from GPIOs on Nerves or other Linux-based
-devices.
+`Circuits.GPIO` lets you use GPIOs in Elixir.
 
-If you're coming from Elixir/ALE, check out our [porting guide](PORTING.md).
+*This is the v2.0 development branch. It's not ready yet. Most users will want
+to follow the [maint-v1.x branch](https://github.com/elixir-circuits/circuits_gpio/tree/maint-v1.x).*
 
-`Circuits.GPIO` works great with LEDs, buttons, many kinds of sensors, and
-simple control of motors. In general, if a device requires high speed
-transactions or has hard real-time constraints in its interactions, this is not
-the right library. For those devices, see if there's a Linux kernel driver.
+`Circuits.GPIO` v2.0  is an almost backwards compatible update to `Circuits.GPIO`
+v1.x. Here's what's new:
 
-## Getting started
+* Linux or Nerves are no longer required. In fact, the NIF supporting them won't
+  be compiled if you don't want it.
+* Develop using simulated GPIOs to work with LEDs and buttons with
+  [CircuitsSim](https://github.com/elixir-circuits/circuits_sim)
+
+If you've used `Circuits.GPIO` v1.x, nearly all of your code will be the same. If
+you're a library author, we'd appreciate if you could try this out and update
+your `:circuits_gpio` dependency to allow v2.0. Details can be found in our
+[porting guide](PORTING.md).
+
+## Getting started on Nerves and Linux
 
 If you're natively compiling `circuits_gpio` on a Raspberry Pi or using Nerves,
 everything should work like any other Elixir library. Normally, you would
@@ -183,20 +191,6 @@ manually enable it, set `CIRCUITS_MIX_ENV` to `test` and rebuild
 
 ## FAQ
 
-### How does Circuits.GPIO compare to Elixir/ALE?
-
-`Circuits.GPIO` is almost Elixir/ALE 2.0. The API for Elixir/ALE became
-difficult to change so we started again with `Circuits.GPIO`. The main
-improvements are:
-
-* Improved performance and lower resource usage
-* Timestamps on interrupts
-* A hardware abstraction layer to support multiple ways of interfacing with the
-  low level GPIO interfaces
-
-See the [Porting Guide](PORTING.md) for more information if you're an Elixir/ALE
-user.
-
 ### Where can I get help?
 
 Most issues people have are on how to communicate with hardware for the first
@@ -204,7 +198,7 @@ time. Since `Circuits.GPIO` is a thin wrapper on the Linux sys class interface,
 you may find help by searching for similar issues when using Python or C.
 
 For help specifically with `Circuits.GPIO`, you may also find help on the nerves
-channel on the [elixir-lang Slack](https://elixir-slackin.herokuapp.com/).  Many
+channel on the [elixir-lang Slack](https://elixir-lang.slack.com/).  Many
 [Nerves](http://nerves-project.org) users also use `Circuits.GPIO`.
 
 ### I tried turning on and off a GPIO as fast as I could. Why was it slow?
@@ -228,14 +222,10 @@ If you're still intent on optimizing GPIO access, you may be interested in
 
 ### Can I develop code that uses GPIO on my laptop?
 
-See whether the "stub" HAL (described above) works for you or could be improved
-to support your use case.
-
-The following advice from Elixir/ALE may also be useful: You'll need to fake out
-the hardware. Code to do this depends on what your hardware actually does, but
-here's one example:
-
-* [Compiling and testing Elixir Nerves on your host machine](https://cultivatehq.com/posts/compiling-and-testing-elixir-nerves-on-your-host-machine/)
+The intended way to support this is to have a custom `Circuits.GPIO.Backend`
+that runs on your laptop. The
+[CircuitsSim](https://github.com/elixir-circuits/circuits_sim) is an example of
+a project that provides simulated LEDs and buttons.
 
 ## License
 
