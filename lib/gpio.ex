@@ -50,7 +50,7 @@ defmodule Circuits.GPIO do
      input pin. `:not_set` is the default.
   """
   @spec open(pin_number(), pin_direction(), [open_option()]) ::
-          {:ok, reference()} | {:error, atom()}
+          {:ok, reference()} | {:error, any()}
   def open(pin_number, pin_direction, options \\ []) do
     check_open_options(options)
 
