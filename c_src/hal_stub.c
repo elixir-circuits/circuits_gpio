@@ -26,7 +26,7 @@ ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info)
     return info;
 }
 
-size_t hal_priv_size()
+size_t hal_priv_size(void)
 {
     return sizeof(struct stub_priv);
 }
