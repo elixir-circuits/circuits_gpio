@@ -43,7 +43,7 @@ LDFLAGS += -fPIC -shared
 else
 LDFLAGS += -undefined dynamic_lookup -dynamiclib
 ifeq ($(CIRCUITS_GPIO_SYSFS),normal)
-$(error Circuits.GPIO Linux sysfs backend is not supported on non-Linux platforms. Review circuits_spi backend configuration or report an issue if improperly detected.)
+$(error Circuits.GPIO Linux sysfs backend is not supported on non-Linux platforms. Review circuits_gpio backend configuration or report an issue if improperly detected.)
 endif
 endif
 else

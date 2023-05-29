@@ -16,7 +16,7 @@ defmodule Circuits.GPIO do
   alias Circuits.GPIO.Handle
 
   @typedoc """
-  Backends specify an implementation of a Circuits.SPI.Backend behaviour
+  Backends specify an implementation of a Circuits.GPIO.Backend behaviour
 
   The second parameter of the Backend 2-tuple is a list of options. These are
   passed to the behaviour function call implementations.
