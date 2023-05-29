@@ -6,6 +6,15 @@ defmodule Circuits.GPIOTest do
   use ExUnit.Case
   alias Circuits.GPIO
 
+  setup do
+    # Verify the test is being run with a clean environment
+    assert GPIO.info().pins_open == 0, "Some other test didn't stop cleanly"
+
+    # Verify that the test leaves the environment clean
+    on_exit(fn -> assert GPIO.info().pins_open == 0, "Test didn't close all opened GPIOs" end)
+    :ok
+  end
+
   # Many of these tests take advantage of the "stub" HAL. The "stub"
   # HAL connects GPIO 0 to 1, 2 to 3, etc. It is useful for testing
   # the interface and much of the NIF source code without needing
@@ -15,13 +24,13 @@ defmodule Circuits.GPIOTest do
     info = GPIO.info()
 
     assert is_map(info)
-    assert info.name == :stub
+    assert info.name == Circuits.GPIO.Sysfs
     assert info.pins_open == 0
   end
 
   test "opening and closing a pin gets counted" do
     {:ok, gpio} = GPIO.open(1, :input)
-    assert is_reference(gpio)
+    assert is_struct(gpio, Circuits.GPIO.Sysfs)
 
     assert GPIO.info().pins_open == 1
 
@@ -119,8 +128,9 @@ defmodule Circuits.GPIOTest do
     GPIO.close(gpio)
   end
 
-  test "raises on bad open option" do
-    assert_raise ArgumentError, fn -> GPIO.open(1, :input, bogus: true) end
+  test "ignores unknown open options" do
+    {:ok, gpio} = GPIO.open(1, :input, bogus: true)
+    GPIO.close(gpio)
   end
 
   test "initial interrupt on set_interrupts" do
@@ -256,7 +266,7 @@ defmodule Circuits.GPIOTest do
 
       # Try running something to verify that it works.
       {:ok, gpio} = GPIO.open(1, :input)
-      assert is_reference(gpio)
+      assert is_struct(gpio, Circuits.GPIO.Sysfs)
 
       assert GPIO.info().pins_open == 1
 

@@ -181,7 +181,7 @@ defmodule Circuits.GPIO do
   @spec pin(Handle.t()) :: pin_spec()
   def pin(handle) do
     info = Handle.info(handle)
-    info.pin
+    info.pin_spec
   end
 
   @doc """

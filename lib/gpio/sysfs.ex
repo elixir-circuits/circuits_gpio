@@ -26,7 +26,7 @@ defmodule Circuits.GPIO.Sysfs do
 
   @impl Backend
   def info() do
-    Nif.info() |> Map.put(:name,  __MODULE__)
+    Nif.info() |> Map.put(:name, __MODULE__)
   end
 
   defimpl Handle do
@@ -42,7 +42,7 @@ defmodule Circuits.GPIO.Sysfs do
 
     @impl Handle
     def set_direction(%Circuits.GPIO.Sysfs{ref: ref}, pin_direction) do
-      Nif.set_pull_mode(ref, pin_direction)
+      Nif.set_direction(ref, pin_direction)
     end
 
     @impl Handle
@@ -70,8 +70,8 @@ defmodule Circuits.GPIO.Sysfs do
     end
 
     @impl Handle
-    def info(%Circuits.GPIO.Sysfs{}) do
-      Nif.info()
+    def info(%Circuits.GPIO.Sysfs{ref: ref}) do
+      %{pin_spec: Nif.pin(ref)}
     end
   end
 end
