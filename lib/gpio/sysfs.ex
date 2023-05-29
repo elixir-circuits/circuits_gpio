@@ -26,7 +26,7 @@ defmodule Circuits.GPIO.Sysfs do
 
   @impl Backend
   def info() do
-    %{name: __MODULE__}
+    Nif.info() |> Map.put(:name,  __MODULE__)
   end
 
   defimpl Handle do
