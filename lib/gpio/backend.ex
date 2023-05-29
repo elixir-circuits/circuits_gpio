@@ -6,6 +6,7 @@ defmodule Circuits.GPIO.Backend do
   @moduledoc """
   Backends provide the connection to the real or virtual GPIO controllers
   """
+  alias Circuits.GPIO
   alias Circuits.GPIO.Handle
 
   @doc """
