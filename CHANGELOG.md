@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.0.0-pre.0 - 2023-05-30
+
+This is a major update to Circuits.GPIO that removes the requirement to use
+Nerves or Linux. The API is almost the same and the default is to compile and
+use the Linux backend, so changes may not be needed.
+
+This is a prerelease so APIs may still change before the v2.0.0 release.
+
+* Changes
+  * Support alternative backends for different operating systems or for
+    simulated hardware
+  * Defer loading the Linux NIF until `Circuits.GPIO.open/2` is called
+
 ## v1.1.0 - 2022-12-31
 
 * Changes
