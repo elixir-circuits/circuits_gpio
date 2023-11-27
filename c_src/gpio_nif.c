@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2018 Frank Hunleth, Mark Sebald, Matt Ludwigs
 //
 // SPDX-License-Identifier: Apache-2.0
+#define DEBUG
 
 #include "gpio_nif.h"
 
@@ -299,17 +300,28 @@ static ERL_NIF_TERM pin_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
 static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
-
+    int pin_spec_tuple_arity;
     bool is_output;
     int pin_number;
     int initial_value;
     enum pull_mode pull;
+    const ERL_NIF_TERM* pin_spec_tuple;
+
+    debug("arg check");
     if (argc != 4 ||
-            !enif_get_int(env, argv[0], &pin_number) ||
+            !enif_get_tuple(env, argv[0], &pin_spec_tuple_arity, &pin_spec_tuple) ||
             !get_direction(env, argv[1], &is_output) ||
             !get_value(env, argv[2], &initial_value) ||
             !get_pull_mode(env, argv[3], &pull))
         return enif_make_badarg(env);
+
+    if(pin_spec_tuple_arity != 2) return enif_make_badarg(env);
+    if(!enif_get_int(env, pin_spec_tuple[1], &pin_number)) return enif_make_badarg(env);
+
+    ErlNifBinary gpiochip_binary;
+    debug("inspect_binary");
+    if(!enif_inspect_binary(env, pin_spec_tuple[0], &gpiochip_binary))
+    debug("pin_spec = .{.gpiochip = %s, .pin_number = %d}", gpiochip_binary.data, pin_number);
 
     struct gpio_pin *pin = enif_alloc_resource(priv->gpio_pin_rt, sizeof(struct gpio_pin));
     pin->fd = -1;

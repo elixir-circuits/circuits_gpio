@@ -62,6 +62,7 @@ struct gpio_config {
 
 struct gpio_pin {
     int pin_number;
+    int gpiochip_number;
     int fd;
     void *hal_priv;
     struct gpio_config config;
