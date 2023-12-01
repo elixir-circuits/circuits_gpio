@@ -8,7 +8,10 @@
 #include <stdint.h>
 #include "erl_nif.h"
 
-struct hal_gpio_priv {
+#include <linux/gpio.h>
+#include <errno.h>
+
+struct hal_cdev_gpio_priv {
     ErlNifTid poller_tid;
     int pipe_fds[2];
 
@@ -19,6 +22,8 @@ struct hal_gpio_priv {
 };
 
 struct gpio_pin;
+
+typedef struct gpiochip_info gpiochip_info_t;
 
 int hal_gpio_read_gpio(int fd);
 void *gpio_poller_thread(void *arg);

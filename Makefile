@@ -68,7 +68,8 @@ endif
 ERL_CFLAGS ?= -I$(ERL_EI_INCLUDE_DIR)
 ERL_LDFLAGS ?= -L$(ERL_EI_LIBDIR) -lei
 
-HAL_SRC ?= c_src/hal_sysfs.c c_src/hal_sysfs_interrupts.c c_src/hal_rpi.c c_src/hal_cdev_gpio.c
+HAL_SRC ?= c_src/hal_rpi.c c_src/hal_cdev_gpio.c
+# HAL_SRC ?= c_src/hal_sysfs.c c_src/hal_sysfs_interrupts.c c_src/hal_rpi.c c_src/hal_cdev_gpio.c
 HAL_SRC += c_src/nif_utils.c
 SRC = $(HAL_SRC) c_src/gpio_nif.c
 HEADERS =$(wildcard c_src/*.h)
