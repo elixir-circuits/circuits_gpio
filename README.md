@@ -1,16 +1,16 @@
 # Circuits - GPIO
 
-[![Hex version](https://img.shields.io/hexpm/v/circuits_gpio.svg "Hex version")](https://hex.pm/packages/circuits_gpio)
-[![API docs](https://img.shields.io/hexpm/v/circuits_gpio.svg?label=hexdocs "API docs")](https://hexdocs.pm/circuits_gpio/Circuits.GPIO.html)
-[![CircleCI](https://circleci.com/gh/elixir-circuits/circuits_gpio.svg?style=svg)](https://circleci.com/gh/elixir-circuits/circuits_gpio)
-[![REUSE status](https://api.reuse.software/badge/github.com/elixir-circuits/circuits_gpio)](https://api.reuse.software/info/github.com/elixir-circuits/circuits_gpio)
+[![Hex version](https://img.shields.io/hexpm/v/circuits_gpio2.svg "Hex version")](https://hex.pm/packages/circuits_gpio2)
+[![API docs](https://img.shields.io/hexpm/v/circuits_gpio2.svg?label=hexdocs "API docs")](https://hexdocs.pm/circuits_gpio2/Circuits.GPIO2.html)
+[![CircleCI](https://circleci.com/gh/elixir-circuits/circuits_gpio2.svg?style=svg)](https://circleci.com/gh/elixir-circuits/circuits_gpio2)
+[![REUSE status](https://api.reuse.software/badge/github.com/elixir-circuits/circuits_gpio2)](https://api.reuse.software/info/github.com/elixir-circuits/circuits_gpio2)
 
-`Circuits.GPIO` lets you use GPIOs in Elixir.
+`Circuits.GPIO2` lets you use GPIOs in Elixir.
 
 *This is the v2.0 development branch. It's not ready yet. Most users will want
-to follow the [maint-v1.x branch](https://github.com/elixir-circuits/circuits_gpio/tree/maint-v1.x).*
+to follow the [maint-v1.x branch](https://github.com/elixir-circuits/circuits_gpio2/tree/maint-v1.x).*
 
-`Circuits.GPIO` v2.0  is an almost backwards compatible update to `Circuits.GPIO`
+`Circuits.GPIO2` v2.0  is an almost backwards compatible update to `Circuits.GPIO2`
 v1.x. Here's what's new:
 
 * Linux or Nerves are no longer required. In fact, the NIF supporting them won't
@@ -18,20 +18,20 @@ v1.x. Here's what's new:
 * Develop using simulated GPIOs to work with LEDs and buttons with
   [CircuitsSim](https://github.com/elixir-circuits/circuits_sim)
 
-If you've used `Circuits.GPIO` v1.x, nearly all of your code will be the same. If
+If you've used `Circuits.GPIO2` v1.x, nearly all of your code will be the same. If
 you're a library author, we'd appreciate if you could try this out and update
-your `:circuits_gpio` dependency to allow v2.0. Details can be found in our
+your `:circuits_gpio2` dependency to allow v2.0. Details can be found in our
 [porting guide](PORTING.md).
 
 ## Getting started on Nerves and Linux
 
-If you're natively compiling `circuits_gpio` on a Raspberry Pi or using Nerves,
+If you're natively compiling `circuits_gpio2` on a Raspberry Pi or using Nerves,
 everything should work like any other Elixir library. Normally, you would
-include `circuits_gpio` as a dependency in your `mix.exs` like this:
+include `circuits_gpio2` as a dependency in your `mix.exs` like this:
 
 ```elixir
 def deps do
-  [{:circuits_gpio, "~> 2.0"}]
+  [{:circuits_gpio2, "~> 2.0"}]
 end
 ```
 
@@ -41,7 +41,7 @@ from source per instructions [here](http://elinux.org/Erlang).
 
 ## Examples
 
-`Circuits.GPIO` only supports simple uses of the GPIO interface in Linux, but
+`Circuits.GPIO2` only supports simple uses of the GPIO interface in Linux, but
 you can still do quite a bit. The following examples were tested on a Raspberry
 Pi that was connected to an [Erlang Embedded Demo
 Board](http://solderpad.com/omerk/erlhwdemo/). There's nothing special about
@@ -64,17 +64,17 @@ To turn on the LED that's connected to the net (or wire) labeled `GPIO18`, run
 the following:
 
 ```elixir
-iex> {:ok, gpio} = Circuits.GPIO.open(18, :output)
+iex> {:ok, gpio} = Circuits.GPIO2.open(18, :output)
 {:ok, #Reference<...>}
 
-iex> Circuits.GPIO.write(gpio, 1)
+iex> Circuits.GPIO2.write(gpio, 1)
 :ok
 
-iex> Circuits.GPIO.close(gpio)
+iex> Circuits.GPIO2.close(gpio)
 :ok
 ```
 
-_Note that the call to `Circuits.GPIO.close/1` is not necessary, as the garbage
+_Note that the call to `Circuits.GPIO2.close/1` is not necessary, as the garbage
 collector will free up any unreferenced GPIOs. It can be used to explicitly
 de-allocate connections you know you will not need anymore._
 
@@ -90,18 +90,18 @@ internal resistors to accomplish the same effect without needing to add an
 external resistor. If you're using a Raspberry Pi, you can use [the built-in
 pull-up/pull-down resistors](#internal-pull-uppull-down).
 
-The code looks like this in `Circuits.GPIO`:
+The code looks like this in `Circuits.GPIO2`:
 
 ```elixir
-iex> {:ok, gpio} = Circuits.GPIO.open(17, :input)
+iex> {:ok, gpio} = Circuits.GPIO2.open(17, :input)
 {:ok, #Reference<...>}
 
-iex> Circuits.GPIO.read(gpio)
+iex> Circuits.GPIO2.read(gpio)
 0
 
 # Push the button down
 
-iex> Circuits.GPIO.read(gpio)
+iex> Circuits.GPIO2.read(gpio)
 1
 ```
 
@@ -110,12 +110,12 @@ If you'd like to get a message when the button is pressed or released, call the
 or `:both`.
 
 ```elixir
-iex> Circuits.GPIO.set_interrupts(gpio, :both)
+iex> Circuits.GPIO2.set_interrupts(gpio, :both)
 :ok
 
 iex> flush
-{:circuits_gpio, 17, 1233456, 1}
-{:circuits_gpio, 17, 1234567, 0}
+{:circuits_gpio2, 17, 1233456, 1}
+{:circuits_gpio2, 17, 1234567, 0}
 :ok
 ```
 
@@ -132,7 +132,7 @@ To connect or disconnect an internal [pull-up or pull-down resistor](https://git
 pin, call the `set_pull_mode` function.
 
 ```elixir
-iex> Circuits.GPIO.set_pull_mode(gpio, pull_mode)
+iex> Circuits.GPIO2.set_pull_mode(gpio, pull_mode)
 :ok
 ```
 
@@ -148,20 +148,20 @@ maintained, even when the CPU is powered down.
 To get the GPIO pin number for a gpio reference, call the `pin` function.
 
 ```elixir
-iex> Circuits.GPIO.pin(gpio)
+iex> Circuits.GPIO2.pin(gpio)
 17
 ```
 
 ## Testing
 
-`Circuits.GPIO` supports a "stub" hardware abstraction layer on platforms
+`Circuits.GPIO2` supports a "stub" hardware abstraction layer on platforms
 without GPIO support and when `MIX_ENV=test`. The stub allows for some
 limited unit testing without real hardware.
 
 To use it, first check that you're using the "stub" HAL:
 
 ```elixir
-iex> Circuits.GPIO.info
+iex> Circuits.GPIO2.info
 %{name: :stub, pins_open: 0}
 ```
 
@@ -171,35 +171,35 @@ GPIO 1 as an input, you can write to GPIO 0 and see the result on GPIO 1.
 Here's an example:
 
 ```elixir
-iex> {:ok, gpio0} = Circuits.GPIO.open(0, :output)
+iex> {:ok, gpio0} = Circuits.GPIO2.open(0, :output)
 {:ok, #Reference<0.801050056.3201171470.249048>}
-iex> {:ok, gpio1} = Circuits.GPIO.open(1, :input)
+iex> {:ok, gpio1} = Circuits.GPIO2.open(1, :input)
 {:ok, #Reference<0.801050056.3201171470.249052>}
-iex> Circuits.GPIO.read(gpio1)
+iex> Circuits.GPIO2.read(gpio1)
 0
-iex> Circuits.GPIO.write(gpio0, 1)
+iex> Circuits.GPIO2.write(gpio0, 1)
 :ok
-iex> Circuits.GPIO.read(gpio1)
+iex> Circuits.GPIO2.read(gpio1)
 1
 ```
 
 The stub HAL is fairly limited, but it does support interrupts.
 
-If `Circuits.GPIO` is used as a dependency the stub may not be present. To
+If `Circuits.GPIO2` is used as a dependency the stub may not be present. To
 manually enable it, set `CIRCUITS_MIX_ENV` to `test` and rebuild
-`circuits_gpio`.
+`circuits_gpio2`.
 
 ## FAQ
 
 ### Where can I get help?
 
 Most issues people have are on how to communicate with hardware for the first
-time. Since `Circuits.GPIO` is a thin wrapper on the Linux sys class interface,
+time. Since `Circuits.GPIO2` is a thin wrapper on the Linux sys class interface,
 you may find help by searching for similar issues when using Python or C.
 
-For help specifically with `Circuits.GPIO`, you may also find help on the nerves
+For help specifically with `Circuits.GPIO2`, you may also find help on the nerves
 channel on the [elixir-lang Slack](https://elixir-lang.slack.com/).  Many
-[Nerves](http://nerves-project.org) users also use `Circuits.GPIO`.
+[Nerves](http://nerves-project.org) users also use `Circuits.GPIO2`.
 
 ### I tried turning on and off a GPIO as fast as I could. Why was it slow?
 
@@ -222,7 +222,7 @@ If you're still intent on optimizing GPIO access, you may be interested in
 
 ### Can I develop code that uses GPIO on my laptop?
 
-The intended way to support this is to have a custom `Circuits.GPIO.Backend`
+The intended way to support this is to have a custom `Circuits.GPIO2.Backend`
 that runs on your laptop. The
 [CircuitsSim](https://github.com/elixir-circuits/circuits_sim) is an example of
 a project that provides simulated LEDs and buttons.

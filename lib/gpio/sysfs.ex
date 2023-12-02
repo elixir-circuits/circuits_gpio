@@ -2,15 +2,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-defmodule Circuits.GPIO.Sysfs do
+defmodule Circuits.GPIO2.Sysfs do
   @moduledoc """
-  Circuits.GPIO backend that uses the Linux sysfs for controlling GPIOs
+  Circuits.GPIO2 backend that uses the Linux sysfs for controlling GPIOs
   """
-  @behaviour Circuits.GPIO.Backend
+  @behaviour Circuits.GPIO2.Backend
 
-  alias Circuits.GPIO.Backend
-  alias Circuits.GPIO.Handle
-  alias Circuits.GPIO.Nif
+  alias Circuits.GPIO2.Backend
+  alias Circuits.GPIO2.Handle
+  alias Circuits.GPIO2.Nif
 
   defstruct [:ref]
 
@@ -31,27 +31,27 @@ defmodule Circuits.GPIO.Sysfs do
 
   defimpl Handle do
     @impl Handle
-    def read(%Circuits.GPIO.Sysfs{ref: ref}) do
+    def read(%Circuits.GPIO2.Sysfs{ref: ref}) do
       Nif.read(ref)
     end
 
     @impl Handle
-    def write(%Circuits.GPIO.Sysfs{ref: ref}, value) do
+    def write(%Circuits.GPIO2.Sysfs{ref: ref}, value) do
       Nif.write(ref, value)
     end
 
     @impl Handle
-    def set_direction(%Circuits.GPIO.Sysfs{ref: ref}, pin_direction) do
+    def set_direction(%Circuits.GPIO2.Sysfs{ref: ref}, pin_direction) do
       Nif.set_direction(ref, pin_direction)
     end
 
     @impl Handle
-    def set_pull_mode(%Circuits.GPIO.Sysfs{ref: ref}, pull_mode) do
+    def set_pull_mode(%Circuits.GPIO2.Sysfs{ref: ref}, pull_mode) do
       Nif.set_pull_mode(ref, pull_mode)
     end
 
     @impl Handle
-    def set_interrupts(%Circuits.GPIO.Sysfs{ref: ref}, trigger, options) do
+    def set_interrupts(%Circuits.GPIO2.Sysfs{ref: ref}, trigger, options) do
       suppress_glitches = Keyword.get(options, :suppress_glitches, true)
 
       receiver =
@@ -65,12 +65,12 @@ defmodule Circuits.GPIO.Sysfs do
     end
 
     @impl Handle
-    def close(%Circuits.GPIO.Sysfs{ref: ref}) do
+    def close(%Circuits.GPIO2.Sysfs{ref: ref}) do
       Nif.close(ref)
     end
 
     @impl Handle
-    def info(%Circuits.GPIO.Sysfs{ref: ref}) do
+    def info(%Circuits.GPIO2.Sysfs{ref: ref}) do
       %{pin_spec: Nif.pin(ref)}
     end
   end

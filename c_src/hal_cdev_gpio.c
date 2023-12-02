@@ -10,11 +10,16 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <sys/ioctl.h>
+#include "linux/gpio.h"
 
 #include "hal_cdev_gpio.h"
+
 #define CONSUMER	"circuits-gpio"
+
+typedef struct gpiochip_info gpiochip_info_t;
 
 size_t hal_priv_size()
 {

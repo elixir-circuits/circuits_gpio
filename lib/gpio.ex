@@ -2,21 +2,21 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-defmodule Circuits.GPIO do
+defmodule Circuits.GPIO2 do
   @moduledoc """
   Control GPIOs from Elixir
 
   If you're coming from Elixir/ALE, check out our [porting guide](PORTING.md).
 
-  `Circuits.GPIO` works great with LEDs, buttons, many kinds of sensors, and
+  `Circuits.GPIO2` works great with LEDs, buttons, many kinds of sensors, and
   simple control of motors. In general, if a device requires high speed
   transactions or has hard real-time constraints in its interactions, this is not
   the right library. For those devices, see if there's a Linux kernel driver.
   """
-  alias Circuits.GPIO.Handle
+  alias Circuits.GPIO2.Handle
 
   @typedoc """
-  Backends specify an implementation of a Circuits.GPIO.Backend behaviour
+  Backends specify an implementation of a Circuits.GPIO2.Backend behaviour
 
   The second parameter of the Backend 2-tuple is a list of options. These are
   passed to the behaviour function call implementations.
@@ -148,14 +148,14 @@ defmodule Circuits.GPIO do
   Notifications look like:
 
   ```
-  {:circuits_gpio, pin_number, timestamp, value}
+  {:circuits_gpio2, pin_number, timestamp, value}
   ```
 
   Where `pin_number` is the pin that changed values, `timestamp` is roughly when
   the transition occurred in nanoseconds since host system boot time,
   and `value` is the new value.
 
-  NOTE: You will need to store the `Circuits.GPIO` reference somewhere (like
+  NOTE: You will need to store the `Circuits.GPIO2` reference somewhere (like
   your `GenServer`'s state) so that it doesn't get garbage collected. Event
   messages stop when it gets collected. If you only get one message and you are
   expecting more, this is likely the case.
@@ -196,8 +196,8 @@ defmodule Circuits.GPIO do
   def info({backend, _options}), do: backend.info()
 
   defp default_backend() do
-    case Application.get_env(:circuits_gpio, :default_backend) do
-      nil -> {Circuits.GPIO.NilBackend, []}
+    case Application.get_env(:circuits_gpio2, :default_backend) do
+      nil -> {Circuits.GPIO2.NilBackend, []}
       m when is_atom(m) -> {m, []}
       {m, o} = value when is_atom(m) and is_list(o) -> value
     end

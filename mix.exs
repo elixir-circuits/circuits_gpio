@@ -1,13 +1,13 @@
-defmodule Circuits.GPIO.MixProject do
+defmodule Circuits.GPIO2.MixProject do
   use Mix.Project
 
   @version "2.0.0-pre.0"
   @description "Use GPIOs in Elixir"
-  @source_url "https://github.com/elixir-circuits/circuits_gpio"
+  @source_url "https://github.com/elixir-circuits/circuits_gpio2"
 
   def project do
     [
-      app: :circuits_gpio,
+      app: :circuits_gpio2,
       version: @version,
       elixir: "~> 1.11",
       description: @description,
@@ -31,7 +31,7 @@ defmodule Circuits.GPIO.MixProject do
 
   def application do
     # IMPORTANT: This provides a default at runtime and at compile-time when
-    # circuits_gpio is pulled in as a dependency.
+    # circuits_gpio2 is pulled in as a dependency.
     [env: [default_backend: default_backend()]]
   end
 
@@ -81,28 +81,28 @@ defmodule Circuits.GPIO.MixProject do
   end
 
   defp default_backend(), do: default_backend(Mix.env(), Mix.target())
-  defp default_backend(:test, _target), do: {Circuits.GPIO.Sysfs, test: true}
+  defp default_backend(:test, _target), do: {Circuits.GPIO2.Sysfs, test: true}
 
   defp default_backend(_env, :host) do
     case :os.type() do
-      {:unix, :linux} -> Circuits.GPIO.Sysfs
-      _ -> {Circuits.GPIO.Sysfs, test: true}
+      {:unix, :linux} -> Circuits.GPIO2.Sysfs
+      _ -> {Circuits.GPIO2.Sysfs, test: true}
     end
   end
 
   # Assume Nerves for a default
-  defp default_backend(_env, _not_host), do: Circuits.GPIO.Sysfs
+  defp default_backend(_env, _not_host), do: Circuits.GPIO2.Sysfs
 
   defp set_make_env(_args) do
     # Since user configuration hasn't been loaded into the application
     # environment when `project/1` is called, load it here for building
     # the NIF.
-    backend = Application.get_env(:circuits_gpio, :default_backend, default_backend())
+    backend = Application.get_env(:circuits_gpio2, :default_backend, default_backend())
 
     System.put_env("CIRCUITS_GPIO_SYSFS", sysfs_compile_mode(backend))
   end
 
-  defp sysfs_compile_mode({Circuits.GPIO.Sysfs, options}) do
+  defp sysfs_compile_mode({Circuits.GPIO2.Sysfs, options}) do
     if Keyword.get(options, :test) do
       "test"
     else
@@ -110,7 +110,7 @@ defmodule Circuits.GPIO.MixProject do
     end
   end
 
-  defp sysfs_compile_mode(Circuits.GPIO.Sysfs) do
+  defp sysfs_compile_mode(Circuits.GPIO2.Sysfs) do
     "normal"
   end
 

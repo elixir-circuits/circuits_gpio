@@ -385,4 +385,4 @@ static ErlNifFunc nif_funcs[] = {
     {"info", 0, gpio_info, 0}
 };
 
-ERL_NIF_INIT(Elixir.Circuits.GPIO.Nif, nif_funcs, load, NULL, NULL, unload)
+ERL_NIF_INIT(Elixir.Circuits.GPIO2.Nif, nif_funcs, load, NULL, NULL, unload)

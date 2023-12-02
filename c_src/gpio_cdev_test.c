@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 
-#include <linux/gpio.h>
+#include "linux/gpio.h"
 
 #define log_location stderr
 //#define LOG_PATH "/tmp/circuits_gpio.log"
@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
         error("usage: %s /dev/gpiochipN", argv[0]);
         exit(1);
     }
-    
+
     char *path = argv[1];
 
     gpiochip_info_t info;

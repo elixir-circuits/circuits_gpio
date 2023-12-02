@@ -2,13 +2,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-defmodule Circuits.GPIO.NilBackend do
+defmodule Circuits.GPIO2.NilBackend do
   @moduledoc """
-  Circuits.GPIO backend when nothing else is available
+  Circuits.GPIO2 backend when nothing else is available
   """
-  @behaviour Circuits.GPIO.Backend
+  @behaviour Circuits.GPIO2.Backend
 
-  alias Circuits.GPIO.Backend
+  alias Circuits.GPIO2.Backend
 
   @doc """
   Open a GPIO
