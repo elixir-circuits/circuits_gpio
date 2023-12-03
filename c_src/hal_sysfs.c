@@ -4,14 +4,73 @@
 
 #include "gpio_nif.h"
 
-#include <string.h>
-
-#include <stdint.h>
 #include <fcntl.h>
+#include <limits.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "hal_sysfs.h"
+
+/* Some time between Linux 5.10 and Linux 5.15, GPIO numbering changed on
+ * AM335x devices (Beaglebone, etc.). These devices have 4 banks of 32 GPIOs.
+ * They used to be alphabetically sorted for file names which mirrored the
+ * order they showed up in the I/O address map. Now they show up. Now they show
+ * up with the bank at address 0x44c00000 coming after all of the 0x48000000
+ * banks.
+ *
+ * To get the original mapping, GPIO numbers between 0 and 127 need to be
+ * rotated by 32. I.e., x' = (x + 32) % 128.
+ *
+ * The real fix would be to embrace cdev and stop using GPIO numbers and the
+ * sysfs interface, but that requires changing a lot of code, so work around
+ * it.
+ */
+static int bbb_rotate_gpio = 0;
+
+static void check_bbb_linux_5_15_gpio_change()
+{
+    // Check for the gpiochip ordering that has the 0x44c00000 controller
+    // ordered AFTER the 0x48000000.
+    //
+    // These are ordered so that the for loop fails as soon as possible on
+    // non-AM335x platforms. Since few devices get up to gpiochip3, the
+    // readlink(2) call should fail and there shouldn't even be a string
+    // compare.
+    static const char *symlink_value[] = {
+        "/sys/bus/gpio/devices/gpiochip3",
+        "../../../devices/platform/ocp/44c00000.interconnect/44c00000.interconnect:segment@200000/44e07000.target-module/44e07000.gpio/gpiochip3",
+        "/sys/bus/gpio/devices/gpiochip0",
+        "../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@0/4804c000.target-module/4804c000.gpio/gpiochip0",
+        "/sys/bus/gpio/devices/gpiochip1",
+        "../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@100000/481ac000.target-module/481ac000.gpio/gpiochip1",
+        "/sys/bus/gpio/devices/gpiochip2",
+        "../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@100000/481ae000.target-module/481ae000.gpio/gpiochip2"
+    };
+
+    char path[PATH_MAX];
+    int i;
+
+    bbb_rotate_gpio = 0;
+    for (i = 0; i < 8; i += 2) {
+        ssize_t path_len = readlink(symlink_value[i], path, sizeof(path) - 1);
+        if (path_len < 0)
+            return;
+
+        path[path_len] = '\0';
+        if (strcmp(symlink_value[i + 1], path) != 0)
+            return;
+    }
+    bbb_rotate_gpio = 1;
+}
+
+static int fix_gpio_number(int pin_number)
+{
+    if (!bbb_rotate_gpio || pin_number >= 128)
+        return pin_number;
+
+    return (pin_number + 32) & 0x7f;
+}
 
 size_t hal_priv_size()
 {
@@ -102,6 +161,11 @@ ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info)
 {
     enif_make_map_put(env, info, enif_make_atom(env, "name"), enif_make_atom(env, "sysfs"), &info);
 
+    if (bbb_rotate_gpio < 0)
+        check_bbb_linux_5_15_gpio_change();
+
+    enif_make_map_put(env, info, enif_make_atom(env, "remap_bbb_gpios"), bbb_rotate_gpio ? enif_make_atom(env, "true") : enif_make_atom(env, "false"), &info);
+
 #ifdef TARGET_RPI
     return rpi_info(env, hal_priv, info);
 #else
@@ -124,6 +188,8 @@ int hal_load(void *hal_priv)
         error("enif_thread_create failed");
         return 1;
     }
+
+    check_bbb_linux_5_15_gpio_change();
 
     return 0;
 }
@@ -151,11 +217,12 @@ int hal_open_gpio(struct gpio_pin *pin,
 {
     *error_str = '\0';
 
+    int pin_number = fix_gpio_number(pin->pin_number);
     char value_path[64];
-    sprintf(value_path, "/sys/class/gpio/gpio%d/value", pin->pin_number);
+    sprintf(value_path, "/sys/class/gpio/gpio%d/value", pin_number);
     pin->fd = open(value_path, O_RDWR);
     if (pin->fd < 0) {
-        if (export_pin(pin->pin_number) < 0) {
+        if (export_pin(pin_number) < 0) {
             strcpy(error_str, "export_failed");
             return -1;
         }
@@ -232,7 +299,8 @@ int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
     (void) env;
 
     char edge_path[64];
-    sprintf(edge_path, "/sys/class/gpio/gpio%d/edge", pin->pin_number);
+    int pin_number = fix_gpio_number(pin->pin_number);
+    sprintf(edge_path, "/sys/class/gpio/gpio%d/edge", pin_number);
 
     /* Allow 1000 * 1ms = 1 second max for retries. This is a workaround
      * for a first-time initialization issue where the file doesn't appear
@@ -250,7 +318,8 @@ int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 int hal_apply_direction(struct gpio_pin *pin)
 {
     char direction_path[64];
-    sprintf(direction_path, "/sys/class/gpio/gpio%d/direction", pin->pin_number);
+    int pin_number = fix_gpio_number(pin->pin_number);
+    sprintf(direction_path, "/sys/class/gpio/gpio%d/direction", pin_number);
 
     /* Allow 1000 * 1ms = 1 second max for retries. See hal_apply_interrupts too. */
     char current_dir[16];
