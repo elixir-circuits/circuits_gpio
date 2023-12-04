@@ -32,39 +32,39 @@ static int gpio_get_chipinfo_ioctl(int fd, gpiochip_info_t* info) {
 
 static int get_value_v2(int fd)
 {
-	struct gpio_v2_line_values vals;
-	int ret;
+    struct gpio_v2_line_values vals;
+    int ret;
 
-	memset(&vals, 0, sizeof(vals));
-	vals.mask = 1;
-	ret = ioctl(fd, GPIO_V2_LINE_GET_VALUES_IOCTL, &vals);
-	if (ret == -1)
-		return -errno;
-	return vals.bits & 0x1;
+    memset(&vals, 0, sizeof(vals));
+    vals.mask = 1;
+    ret = ioctl(fd, GPIO_V2_LINE_GET_VALUES_IOCTL, &vals);
+    if (ret == -1)
+        return -errno;
+    return vals.bits & 0x1;
 }
 
 static int request_line_v2(int fd, unsigned int offset,
-			   uint64_t flags, unsigned int val)
+                           uint64_t flags, unsigned int val)
 {
-	struct gpio_v2_line_request req;
-	int ret;
+    struct gpio_v2_line_request req;
+    int ret;
 
-	memset(&req, 0, sizeof(req));
-	req.num_lines = 1;
-	req.offsets[0] = offset;
-	req.config.flags = flags;
-	strcpy(req.consumer, CONSUMER);
-	if (flags & GPIO_V2_LINE_FLAG_OUTPUT) {
-		req.config.num_attrs = 1;
-		req.config.attrs[0].mask = 1;
-		req.config.attrs[0].attr.id = GPIO_V2_LINE_ATTR_ID_OUTPUT_VALUES;
-		if (val)
-			req.config.attrs[0].attr.values = 1;
-	}
-	ret = ioctl(fd, GPIO_V2_GET_LINE_IOCTL, &req);
-	if (ret == -1)
-		return -errno;
-	return req.fd;
+    memset(&req, 0, sizeof(req));
+    req.num_lines = 1;
+    req.offsets[0] = offset;
+    req.config.flags = flags;
+    strcpy(req.consumer, CONSUMER);
+    if (flags & GPIO_V2_LINE_FLAG_OUTPUT) {
+        req.config.num_attrs = 1;
+        req.config.attrs[0].mask = 1;
+        req.config.attrs[0].attr.id = GPIO_V2_LINE_ATTR_ID_OUTPUT_VALUES;
+        if (val)
+            req.config.attrs[0].attr.values = 1;
+    }
+    ret = ioctl(fd, GPIO_V2_GET_LINE_IOCTL, &req);
+    if (ret == -1)
+        return -errno;
+    return req.fd;
 }
 
 #if 0
@@ -106,7 +106,7 @@ int hal_load(void *hal_priv)
         error("enif_thread_create failed");
         return 1;
     }
-*/
+    */
     return 0;
 }
 
@@ -117,10 +117,10 @@ void hal_unload(void *hal_priv)
     // Close everything related to the listening thread so that it exits
     close(priv->pipe_fds[0]);
     close(priv->pipe_fds[1]);
-/*
-    // If the listener thread hasn't exited already, it should do so soon.
-    enif_thread_join(priv->poller_tid, NULL);
-    */
+    /*
+        // If the listener thread hasn't exited already, it should do so soon.
+        enif_thread_join(priv->poller_tid, NULL);
+        */
 }
 
 int hal_open_gpio(struct gpio_pin *pin,
@@ -218,11 +218,11 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
 int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 {
     (void) env;
-/*
-    // Tell polling thread to wait for notifications
-    if (update_polling_thread(pin) < 0)
-        return -1;
-*/
+    /*
+        // Tell polling thread to wait for notifications
+        if (update_polling_thread(pin) < 0)
+            return -1;
+    */
     return 0;
 }
 

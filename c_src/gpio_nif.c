@@ -321,7 +321,7 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     ErlNifBinary gpiochip_binary;
     debug("inspect_binary");
     if(!enif_inspect_binary(env, pin_spec_tuple[0], &gpiochip_binary))
-    debug("pin_spec = .{.gpiochip = %s, .pin_number = %d}", gpiochip_binary.data, pin_number);
+        debug("line_spec = .{.gpiochip = %s, .pin_number = %d}", gpiochip_binary.data, pin_number);
 
     struct gpio_pin *pin = enif_alloc_resource(priv->gpio_pin_rt, sizeof(struct gpio_pin));
     pin->fd = -1;

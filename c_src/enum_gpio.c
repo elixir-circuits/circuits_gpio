@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
         if (ioctl(fd, GPIO_GET_CHIPINFO_IOCTL, &info) < 0)
             break;
 
-        int j;
+        unsigned int j;
         for (j = 0; j < info.lines; j++) {
             struct gpio_v2_line_info line;
             memset(&line, 0, sizeof(struct gpio_v2_line_info));
