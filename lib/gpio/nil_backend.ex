@@ -10,6 +10,11 @@ defmodule Circuits.GPIO2.NilBackend do
 
   alias Circuits.GPIO2.Backend
 
+  @impl Backend
+  def enumerate() do
+    []
+  end
+
   @doc """
   Open a GPIO
 

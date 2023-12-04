@@ -15,11 +15,16 @@ defmodule Circuits.GPIO2.Sysfs do
   defstruct [:ref]
 
   @impl Backend
-  def open(pin_spec, direction, options) do
+  def enumerate() do
+    []
+  end
+
+  @impl Backend
+  def open(line_spec, direction, options) do
     value = Keyword.fetch!(options, :initial_value)
     pull_mode = Keyword.fetch!(options, :pull_mode)
 
-    with {:ok, ref} <- Nif.open(pin_spec, direction, value, pull_mode) do
+    with {:ok, ref} <- Nif.open(line_spec, direction, value, pull_mode) do
       {:ok, %__MODULE__{ref: ref}}
     end
   end
@@ -41,8 +46,8 @@ defmodule Circuits.GPIO2.Sysfs do
     end
 
     @impl Handle
-    def set_direction(%Circuits.GPIO2.Sysfs{ref: ref}, pin_direction) do
-      Nif.set_direction(ref, pin_direction)
+    def set_direction(%Circuits.GPIO2.Sysfs{ref: ref}, line_direction) do
+      Nif.set_direction(ref, line_direction)
     end
 
     @impl Handle
@@ -71,7 +76,7 @@ defmodule Circuits.GPIO2.Sysfs do
 
     @impl Handle
     def info(%Circuits.GPIO2.Sysfs{ref: ref}) do
-      %{pin_spec: Nif.pin(ref)}
+      %{line_spec: Nif.pin(ref)}
     end
   end
 end

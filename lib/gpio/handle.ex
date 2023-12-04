@@ -9,7 +9,7 @@ defprotocol Circuits.GPIO2.Handle do
 
   alias Circuits.GPIO2
 
-  @type info() :: %{pin_spec: GPIO2.pin_spec()}
+  @type info() :: %{line_spec: GPIO2.line_spec()}
 
   @doc """
   Return the current GPIO state
@@ -26,8 +26,8 @@ defprotocol Circuits.GPIO2.Handle do
   @doc """
   Change the direction of the GPIO
   """
-  @spec set_direction(t(), GPIO2.pin_direction()) :: :ok | {:error, atom()}
-  def set_direction(handle, pin_direction)
+  @spec set_direction(t(), GPIO2.line_direction()) :: :ok | {:error, atom()}
+  def set_direction(handle, line_direction)
 
   @doc """
   Change the pull mode of an input GPIO

@@ -24,16 +24,52 @@ defmodule Circuits.GPIO2 do
   @type backend() :: {module(), keyword()}
 
   @typedoc """
-  The names or numbers for one or more GPIO pins
+  GPIO controller
 
-  See your device's documentation for how pins are labelled on your
-  device. Currently only numbers are supported by backends, but future backends
-  should support other ways.
+  GPIO controllers manage one or more GPIO lines. They're referred to
+  by strings. For example, you'll mostly see `"gpiochip0"`, etc. but
+  they could be anything or even empty strings there's no reason to
+  differentiate controllers on a device.
   """
-  @type pin_spec() :: non_neg_integer()
+  @type controller() :: String.t()
+
+  @typedoc """
+  GPIO line offset on a controller
+
+  GPIOs are numbered based on how they're connected to a controller. The
+  details are controller specific, but usually the first one is `0`, then `1`, etc.
+  """
+  @type line_offset() :: non_neg_integer()
+
+  @typedoc """
+  A GPIO controller or line label
+
+  Labels provide aliases for GPIO lines and controllers. They're system-specific.
+  On Linux, labels are provided in device tree files.
+  """
+  @type label() :: String.t()
+
+  @typedoc """
+  An identifier for a GPIO line
+
+  Call `Circuits.GPIO.enumerate/0` to see what GPIOs are available on your device. Several
+  ways exist to refer to GPIOs due to variations in devices and programmer preference.
+
+  Options:
+
+  1. `index` - Many examples exist where GPIOs are referred to by a GPIO number. There are issues
+     with this strategy since GPIO indices can change. It is so common that it's still supported. Prefer other ways when
+     you're able to change code.
+  2. `{controller, line_offset}` - Specify a line on a specific GPIO controller. E.g., `{"gpiochip0", 10}`
+  3. `label` - Specify a GPIO line label. The first controller that has a matching line is used. This lets
+     you move the mapping of GPIOs to peripheral connections to a device tree file or other central place. E.g., `"LED_ENABLE"`
+  4. `{label, label}` - Specify both GPIO controller and line labels. E.g., `{"primary-gpios", "PIO4"}`
+  """
+  @type line_spec() ::
+          non_neg_integer() | {controller(), line_offset()} | label() | {label(), label()}
 
   @typedoc "The GPIO direction (input or output)"
-  @type pin_direction() :: :input | :output
+  @type line_direction() :: :input | :output
 
   @typedoc "GPIO logic value (low = 0 or high = 1)"
   @type value() :: 0 | 1
@@ -59,7 +95,7 @@ defmodule Circuits.GPIO2 do
   @doc """
   Open a GPIO for use.
 
-  `pin` should be a valid GPIO pin number on the system and `pin_direction`
+  `pin` should be a valid GPIO pin number on the system and `line_direction`
   should be `:input` or `:output`. If opening as an output, then be sure to set
   the `:initial_value` option if you need the set to be glitch free.
 
@@ -70,9 +106,9 @@ defmodule Circuits.GPIO2 do
   * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
      input pin. `:not_set` is the default.
   """
-  @spec open(pin_spec(), pin_direction(), open_options()) ::
+  @spec open(line_spec(), line_direction(), open_options()) ::
           {:ok, Handle.t()} | {:error, atom()}
-  def open(pin_number, pin_direction, options \\ []) do
+  def open(pin_number, line_direction, options \\ []) do
     check_options!(options)
 
     {backend, backend_defaults} = default_backend()
@@ -83,7 +119,7 @@ defmodule Circuits.GPIO2 do
       |> Keyword.put_new(:initial_value, :not_set)
       |> Keyword.put_new(:pull_mode, :not_set)
 
-    backend.open(pin_number, pin_direction, all_options)
+    backend.open(pin_number, line_direction, all_options)
   end
 
   defp check_options!([]), do: :ok
@@ -166,8 +202,8 @@ defmodule Circuits.GPIO2 do
   @doc """
   Change the direction of the pin.
   """
-  @spec set_direction(Handle.t(), pin_direction()) :: :ok | {:error, atom()}
-  defdelegate set_direction(handle, pin_direction), to: Handle
+  @spec set_direction(Handle.t(), line_direction()) :: :ok | {:error, atom()}
+  defdelegate set_direction(handle, line_direction), to: Handle
 
   @doc """
   Enable or disable internal pull-up or pull-down resistor to GPIO pin
@@ -178,10 +214,10 @@ defmodule Circuits.GPIO2 do
   @doc """
   Get the GPIO pin number
   """
-  @spec pin(Handle.t()) :: pin_spec()
+  @spec pin(Handle.t()) :: line_spec()
   def pin(handle) do
     info = Handle.info(handle)
-    info.pin_spec
+    info.line_spec
   end
 
   @doc """
