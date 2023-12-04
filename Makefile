@@ -79,7 +79,7 @@ calling_from_make:
 
 all: install
 
-install: $(PREFIX) $(BUILD) $(NIF)
+install: $(PREFIX) $(BUILD) $(NIF) $(PREFIX)/enum_gpio
 
 $(OBJ): $(HEADERS) Makefile
 
@@ -90,6 +90,10 @@ $(BUILD)/%.o: c_src/%.c
 $(NIF): $(OBJ)
 	@echo " LD $(notdir $@)"
 	$(CC) -o $@ $(ERL_LDFLAGS) $(LDFLAGS) $^
+
+$(PREFIX)/enum_gpio: c_src/enum_gpio.c
+	$(CC) -o $@ $(ERL_LDFLAGS) $(LDFLAGS) $(ERL_CFLAGS) $(CFLAGS) $^
+
 
 $(PREFIX) $(BUILD):
 	mkdir -p $@

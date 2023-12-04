@@ -1,0 +1,705 @@
+
+Linux 5.10
+
+iex(31)> File.read_link!("/sys/bus/gpio/devices/gpiochip0")
+"../../../devices/platform/ocp/44c00000.interconnect/44c00000.interconnect:segment@200000/44e07000.target-module/44e07000.gpio/gpiochip0"
+iex(32)> File.read_link!("/sys/bus/gpio/devices/gpiochip1")
+"../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@0/4804c000.target-module/4804c000.gpio/gpiochip1"
+iex(33)> File.read_link!("/sys/bus/gpio/devices/gpiochip2")
+"../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@100000/481ac000.target-module/481ac000.gpio/gpiochip2"
+iex(34)> File.read_link!("/sys/bus/gpio/devices/gpiochip3")
+"../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@100000/481ae000.target-module/481ae000.gpio/gpiochip3"
+
+Linux 5.15
+
+0-31 -> 32-63
+32-63 -> 64-95
+64-95 -> 96-127
+96-127 -> 0-31
+
+x' = (x + 32) mod 128
+iex(3)> File.read_link!("/sys/bus/gpio/devices/gpiochip0")
+"../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@0/4804c000.target-module/4804c000.gpio/gpiochip0"
+iex(4)> File.read_link!("/sys/bus/gpio/devices/gpiochip1")
+"../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@100000/481ac000.target-module/481ac000.gpio/gpiochip1"
+iex(5)> File.read_link!("/sys/bus/gpio/devices/gpiochip2")
+"../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@100000/481ae000.target-module/481ae000.gpio/gpiochip2"
+iex(6)> File.read_link!("/sys/bus/gpio/devices/gpiochip3")
+"../../../devices/platform/ocp/44c00000.interconnect/44c00000.interconnect:segment@200000/44e07000.target-module/44e07000.gpio/gpiochip3"
+
+Linux 6.1
+
+iex(2)> File.read_link!("/sys/bus/gpio/devices/gpiochip0")
+"../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@0/4804c000.target-module/4804c000.gpio/gpiochip0"
+iex(3)> File.read_link!("/sys/bus/gpio/devices/gpiochip1")
+"../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@100000/481ac000.target-module/481ac000.gpio/gpiochip1"
+iex(4)> File.read_link!("/sys/bus/gpio/devices/gpiochip2")
+"../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@100000/481ae000.target-module/481ae000.gpio/gpiochip2"
+iex(5)> File.read_link!("/sys/bus/gpio/devices/gpiochip3")
+"../../../devices/platform/ocp/44c00000.interconnect/44c00000.interconnect:segment@200000/44e07000.target-module/44e07000.gpio/gpiochip3"
+
+
+BBB
+iex(15)> cmd("/usr/bin/gpioinfo")
+gpiochip0 - 32 lines:
+	line   0: "P8_25 [mmc1_dat0]" unused input active-high
+	line   1: "[mmc1_dat1]" unused input active-high
+	line   2: "P8_5 [mmc1_dat2]" unused input active-high
+	line   3: "P8_6 [mmc1_dat3]" unused input active-high
+	line   4: "P8_23 [mmc1_dat4]" unused input active-high
+	line   5: "P8_22 [mmc1_dat5]" unused input active-high
+	line   6: "P8_3 [mmc1_dat6]" unused input active-high
+	line   7: "P8_4 [mmc1_dat7]" unused input active-high
+	line   8:         "NC"       unused   input  active-high
+	line   9:         "NC"       unused   input  active-high
+	line  10:         "NC"       unused   input  active-high
+	line  11:         "NC"       unused   input  active-high
+	line  12:      "P8_12"       unused   input  active-high
+	line  13:      "P8_11"       unused   input  active-high
+	line  14:      "P8_16"       unused   input  active-high
+	line  15:      "P8_15"       unused   input  active-high
+	line  16:     "P9_15A"       unused   input  active-high
+	line  17:      "P9_23"       unused   input  active-high
+	line  18: "P9_14 [ehrpwm1a]" unused input active-high
+	line  19: "P9_16 [ehrpwm1b]" unused input active-high
+	line  20: "[emmc rst]"       unused   input  active-high
+	line  21: "[usr0 led]" "beaglebone:green:usr0" output active-high [used]
+	line  22: "[usr1 led]" "beaglebone:green:usr1" output active-high [used]
+	line  23: "[usr2 led]" "beaglebone:green:usr2" output active-high [used]
+	line  24: "[usr3 led]" "beaglebone:green:usr3" output active-high [used]
+	line  25: "[hdmi irq]"       unused   input  active-high
+	line  26: "[usb vbus oc]" unused input active-high
+	line  27: "[hdmi audio]" "enable" output active-high [used]
+	line  28:      "P9_12"       unused   input  active-high
+	line  29:      "P8_26"       unused   input  active-high
+	line  30: "P8_21 [emmc]" unused input active-high
+	line  31: "P8_20 [emmc]" unused input active-high
+gpiochip1 - 32 lines:
+	line   0:     "P9_15B"       unused   input  active-high
+	line   1:      "P8_18"       unused   input  active-high
+	line   2:       "P8_7"       unused   input  active-high
+	line   3:       "P8_8"       unused   input  active-high
+	line   4:      "P8_10"       unused   input  active-high
+	line   5:       "P8_9"       unused   input  active-high
+	line   6: "P8_45 [hdmi]" unused input active-high
+	line   7: "P8_46 [hdmi]" unused input active-high
+	line   8: "P8_43 [hdmi]" unused input active-high
+	line   9: "P8_44 [hdmi]" unused input active-high
+	line  10: "P8_41 [hdmi]" unused input active-high
+	line  11: "P8_42 [hdmi]" unused input active-high
+	line  12: "P8_39 [hdmi]" unused input active-high
+	line  13: "P8_40 [hdmi]" unused input active-high
+	line  14: "P8_37 [hdmi]" unused input active-high
+	line  15: "P8_38 [hdmi]" unused input active-high
+	line  16: "P8_36 [hdmi]" unused input active-high
+	line  17: "P8_34 [hdmi]" unused input active-high
+	line  18: "[rmii1_rxd3]" unused input active-high
+	line  19: "[rmii1_rxd2]" unused input active-high
+	line  20: "[rmii1_rxd1]" unused input active-high
+	line  21: "[rmii1_rxd0]" unused input active-high
+	line  22: "P8_27 [hdmi]" unused input active-high
+	line  23: "P8_29 [hdmi]" unused input active-high
+	line  24: "P8_28 [hdmi]" unused input active-high
+	line  25: "P8_30 [hdmi]" unused input active-high
+	line  26: "[mmc0_dat3]" unused input active-high
+	line  27: "[mmc0_dat2]" unused input active-high
+	line  28: "[mmc0_dat1]" unused input active-high
+	line  29: "[mmc0_dat0]" unused input active-high
+	line  30: "[mmc0_clk]"       unused   input  active-high
+	line  31: "[mmc0_cmd]"       unused   input  active-high
+gpiochip2 - 32 lines:
+	line   0:  "[mii col]"       unused   input  active-high
+	line   1:  "[mii crs]"       unused   input  active-high
+	line   2: "[mii rx err]" unused input active-high
+	line   3: "[mii tx en]" unused input active-high
+	line   4: "[mii rx dv]" unused input active-high
+	line   5: "[i2c0 sda]"       unused   input  active-high
+	line   6: "[i2c0 scl]"       unused   input  active-high
+	line   7: "[jtag emu0]" unused input active-high
+	line   8: "[jtag emu1]" unused input active-high
+	line   9: "[mii tx clk]" unused input active-high
+	line  10: "[mii rx clk]" unused input active-high
+	line  11:         "NC"       unused   input  active-high
+	line  12:         "NC"       unused   input  active-high
+	line  13: "[usb vbus en]" unused input active-high
+	line  14: "P9_31 [spi1_sclk]" unused input active-high
+	line  15: "P9_29 [spi1_d0]" unused input active-high
+	line  16: "P9_30 [spi1_d1]" unused input active-high
+	line  17: "P9_28 [spi1_cs0]" unused input active-high
+	line  18: "P9_42B [ecappwm0]" unused input active-high
+	line  19:      "P9_27"       unused   input  active-high
+	line  20:     "P9_41A"       unused   input  active-high
+	line  21:      "P9_25"       unused   input  active-high
+	line  22:         "NC"       unused   input  active-high
+	line  23:         "NC"       unused   input  active-high
+	line  24:         "NC"       unused   input  active-high
+	line  25:         "NC"       unused   input  active-high
+	line  26:         "NC"       unused   input  active-high
+	line  27:         "NC"       unused   input  active-high
+	line  28:         "NC"       unused   input  active-high
+	line  29:         "NC"       unused   input  active-high
+	line  30:         "NC"       unused   input  active-high
+	line  31:         "NC"       unused   input  active-high
+gpiochip3 - 32 lines:
+	line   0: "[mdio_data]" unused input active-high
+	line   1: "[mdio_clk]"       unused   input  active-high
+	line   2: "P9_22 [spi0_sclk]" unused input active-high
+	line   3: "P9_21 [spi0_d0]" unused input active-high
+	line   4: "P9_18 [spi0_d1]" unused input active-high
+	line   5: "P9_17 [spi0_cs0]" unused input active-high
+	line   6:  "[mmc0_cd]"         "cd"   input   active-low [used]
+	line   7: "P9_42A [ecappwm0]" unused input active-high
+	line   8: "P8_35 [lcd d12]" unused input active-high
+	line   9: "P8_33 [lcd d13]" unused input active-high
+	line  10: "P8_31 [lcd d14]" unused input active-high
+	line  11: "P8_32 [lcd d15]" unused input active-high
+	line  12: "P9_20 [i2c2_sda]" unused input active-high
+	line  13: "P9_19 [i2c2_scl]" unused input active-high
+	line  14: "P9_26 [uart1_rxd]" unused input active-high
+	line  15: "P9_24 [uart1_txd]" unused input active-high
+	line  16: "[rmii1_txd3]" unused input active-high
+	line  17: "[rmii1_txd2]" unused input active-high
+	line  18: "[usb0_drvvbus]" unused input active-high
+	line  19: "[hdmi cec]"       unused   input  active-high
+	line  20:     "P9_41B"       unused   input  active-high
+	line  21: "[rmii1_txd1]" unused input active-high
+	line  22: "P8_19 [ehrpwm2a]" unused input active-high
+	line  23: "P8_13 [ehrpwm2b]" unused input active-high
+	line  24:         "NC"       unused   input  active-high
+	line  25:         "NC"       unused   input  active-high
+	line  26:      "P8_14"       unused   input  active-high
+	line  27:      "P8_17"       unused   input  active-high
+	line  28: "[rmii1_txd0]" unused input active-high
+	line  29: "[rmii1_refclk]" unused input active-high
+	line  30: "P9_11 [uart4_rxd]" unused input active-high
+	line  31: "P9_13 [uart4_txd]" unused input active-high
+iex(2)> cmd("/data/enum_gpio")
+  {:cdev, "gpiochip0", 0} -> {"gpio-0-31", "MMC1_DAT0"}
+  {:cdev, "gpiochip0", 1} -> {"gpio-0-31", "MMC1_DAT1"}
+  {:cdev, "gpiochip0", 2} -> {"gpio-0-31", "MMC1_DAT2"}
+  {:cdev, "gpiochip0", 3} -> {"gpio-0-31", "MMC1_DAT3"}
+  {:cdev, "gpiochip0", 4} -> {"gpio-0-31", "MMC1_DAT4"}
+  {:cdev, "gpiochip0", 5} -> {"gpio-0-31", "MMC1_DAT5"}
+  {:cdev, "gpiochip0", 6} -> {"gpio-0-31", "MMC1_DAT6"}
+  {:cdev, "gpiochip0", 7} -> {"gpio-0-31", "MMC1_DAT7"}
+  {:cdev, "gpiochip0", 8} -> {"gpio-0-31", "DCAN1_TX"}
+  {:cdev, "gpiochip0", 9} -> {"gpio-0-31", "DCAN1_RX"}
+  {:cdev, "gpiochip0", 10} -> {"gpio-0-31", "UART0_RX"}
+  {:cdev, "gpiochip0", 11} -> {"gpio-0-31", "UART0_TX"}
+  {:cdev, "gpiochip0", 12} -> {"gpio-0-31", "EQEP_2A"}
+  {:cdev, "gpiochip0", 13} -> {"gpio-0-31", "EQEP_2B"}
+  {:cdev, "gpiochip0", 14} -> {"gpio-0-31", "PRU_E_A"}
+  {:cdev, "gpiochip0", 15} -> {"gpio-0-31", "PRU_E_B"}
+  {:cdev, "gpiochip0", 16} -> {"gpio-0-31", "MDIR_2A"}
+  {:cdev, "gpiochip0", 17} -> {"gpio-0-31", "GPIO1_17"}
+  {:cdev, "gpiochip0", 18} -> {"gpio-0-31", "PWM_1A"}
+  {:cdev, "gpiochip0", 19} -> {"gpio-0-31", "PWM_1B"}
+  {:cdev, "gpiochip0", 20} -> {"gpio-0-31", "EMMC_RST"}
+  {:cdev, "gpiochip0", 21} -> {"gpio-0-31", "USR_LED_0"}
+  {:cdev, "gpiochip0", 22} -> {"gpio-0-31", "USR_LED_1"}
+  {:cdev, "gpiochip0", 23} -> {"gpio-0-31", "USR_LED_2"}
+  {:cdev, "gpiochip0", 24} -> {"gpio-0-31", "USR_LED_3"}
+  {:cdev, "gpiochip0", 25} -> {"gpio-0-31", "GPIO1_25"}
+  {:cdev, "gpiochip0", 26} -> {"gpio-0-31", "MCASP0_AXR0"}
+  {:cdev, "gpiochip0", 27} -> {"gpio-0-31", "MCASP0_AXR1"}
+  {:cdev, "gpiochip0", 28} -> {"gpio-0-31", "MCASP0_ACLKR"}
+  {:cdev, "gpiochip0", 29} -> {"gpio-0-31", "BATT_LED_3"}
+  {:cdev, "gpiochip0", 30} -> {"gpio-0-31", "MMC1_CLK"}
+  {:cdev, "gpiochip0", 31} -> {"gpio-0-31", "MMC1_CMD"}
+  {:cdev, "gpiochip1", 0} -> {"gpio-32-63", "MDIR_1A"}
+  {:cdev, "gpiochip1", 1} -> {"gpio-32-63", "MCASP0_FSR"}
+  {:cdev, "gpiochip1", 2} -> {"gpio-32-63", "LED_RED"}
+  {:cdev, "gpiochip1", 3} -> {"gpio-32-63", "LED_GREEN"}
+  {:cdev, "gpiochip1", 4} -> {"gpio-32-63", "MODE_BTN"}
+  {:cdev, "gpiochip1", 5} -> {"gpio-32-63", "PAUSE_BTN"}
+  {:cdev, "gpiochip1", 6} -> {"gpio-32-63", "MDIR_4A"}
+  {:cdev, "gpiochip1", 7} -> {"gpio-32-63", "MDIR_4B"}
+  {:cdev, "gpiochip1", 8} -> {"gpio-32-63", "MDIR_3B"}
+  {:cdev, "gpiochip1", 9} -> {"gpio-32-63", "MDIR_3A"}
+  {:cdev, "gpiochip1", 10} -> {"gpio-32-63", "SVO7"}
+  {:cdev, "gpiochip1", 11} -> {"gpio-32-63", "SVO8"}
+  {:cdev, "gpiochip1", 12} -> {"gpio-32-63", "SVO5"}
+  {:cdev, "gpiochip1", 13} -> {"gpio-32-63", "SVO6"}
+  {:cdev, "gpiochip1", 14} -> {"gpio-32-63", "UART5_TX"}
+  {:cdev, "gpiochip1", 15} -> {"gpio-32-63", "UART5_RX"}
+  {:cdev, "gpiochip1", 16} -> {"gpio-32-63", "SERVO_EN"}
+  {:cdev, "gpiochip1", 17} -> {"gpio-32-63", "NC"}
+  {:cdev, "gpiochip1", 18} -> {"gpio-32-63", "UART3_RX"}
+  {:cdev, "gpiochip1", 19} -> {"gpio-32-63", "UART3_TX"}
+  {:cdev, "gpiochip1", 20} -> {"gpio-32-63", "MMC2_CLK"}
+  {:cdev, "gpiochip1", 21} -> {"gpio-32-63", "DCAN1_SILENT"}
+  {:cdev, "gpiochip1", 22} -> {"gpio-32-63", "SVO1"}
+  {:cdev, "gpiochip1", 23} -> {"gpio-32-63", "SVO3"}
+  {:cdev, "gpiochip1", 24} -> {"gpio-32-63", "SVO2"}
+  {:cdev, "gpiochip1", 25} -> {"gpio-32-63", "SVO4"}
+  {:cdev, "gpiochip1", 26} -> {"gpio-32-63", "MMC0_DAT3"}
+  {:cdev, "gpiochip1", 27} -> {"gpio-32-63", "MMC0_DAT2"}
+  {:cdev, "gpiochip1", 28} -> {"gpio-32-63", "MMC0_DAT1"}
+  {:cdev, "gpiochip1", 29} -> {"gpio-32-63", "MMC0_DAT0"}
+  {:cdev, "gpiochip1", 30} -> {"gpio-32-63", "MMC0_CLK"}
+  {:cdev, "gpiochip1", 31} -> {"gpio-32-63", "MMC0_CMD"}
+  {:cdev, "gpiochip2", 0} -> {"gpio-64-95", "MMC2_DAT3"}
+  {:cdev, "gpiochip2", 1} -> {"gpio-64-95", "GPIO3_1"}
+  {:cdev, "gpiochip2", 2} -> {"gpio-64-95", "GPIO3_2"}
+  {:cdev, "gpiochip2", 3} -> {"gpio-64-95", "MMC2_CMD"}
+  {:cdev, "gpiochip2", 4} -> {"gpio-64-95", "MMC2_DAT0"}
+  {:cdev, "gpiochip2", 5} -> {"gpio-64-95", "I2C0_SDA"}
+  {:cdev, "gpiochip2", 6} -> {"gpio-64-95", "I2C0_SCL"}
+  {:cdev, "gpiochip2", 7} -> {"gpio-64-95", "EMU1"}
+  {:cdev, "gpiochip2", 8} -> {"gpio-64-95", "EMU0"}
+  {:cdev, "gpiochip2", 9} -> {"gpio-64-95", "WL_EN"}
+  {:cdev, "gpiochip2", 10} -> {"gpio-64-95", "WL_BT_OE"}
+  {:cdev, "gpiochip2", 11} -> {"gpio-64-95", ""}
+  {:cdev, "gpiochip2", 12} -> {"gpio-64-95", ""}
+  {:cdev, "gpiochip2", 13} -> {"gpio-64-95", "NC"}
+  {:cdev, "gpiochip2", 14} -> {"gpio-64-95", "SPI1_SCK"}
+  {:cdev, "gpiochip2", 15} -> {"gpio-64-95", "SPI1_MISO"}
+  {:cdev, "gpiochip2", 16} -> {"gpio-64-95", "SPI1_MOSI"}
+  {:cdev, "gpiochip2", 17} -> {"gpio-64-95", "GPIO3_17"}
+  {:cdev, "gpiochip2", 18} -> {"gpio-64-95", "EQEP_0A"}
+  {:cdev, "gpiochip2", 19} -> {"gpio-64-95", "EQEP_0B"}
+  {:cdev, "gpiochip2", 20} -> {"gpio-64-95", "GPIO3_20"}
+  {:cdev, "gpiochip2", 21} -> {"gpio-64-95", "IMU_INT"}
+  {:cdev, "gpiochip2", 22} -> {"gpio-64-95", ""}
+  {:cdev, "gpiochip2", 23} -> {"gpio-64-95", ""}
+  {:cdev, "gpiochip2", 24} -> {"gpio-64-95", ""}
+  {:cdev, "gpiochip2", 25} -> {"gpio-64-95", ""}
+  {:cdev, "gpiochip2", 26} -> {"gpio-64-95", ""}
+  {:cdev, "gpiochip2", 27} -> {"gpio-64-95", ""}
+  {:cdev, "gpiochip2", 28} -> {"gpio-64-95", ""}
+  {:cdev, "gpiochip2", 29} -> {"gpio-64-95", ""}
+  {:cdev, "gpiochip2", 30} -> {"gpio-64-95", ""}
+  {:cdev, "gpiochip2", 31} -> {"gpio-64-95", ""}
+  {:cdev, "gpiochip3", 0} -> {"gpio-96-127", "UART3_CTS"}
+  {:cdev, "gpiochip3", 1} -> {"gpio-96-127", "UART3_RTS"}
+  {:cdev, "gpiochip3", 2} -> {"gpio-96-127", "UART2_RX"}
+  {:cdev, "gpiochip3", 3} -> {"gpio-96-127", "UART2_TX"}
+  {:cdev, "gpiochip3", 4} -> {"gpio-96-127", "I2C1_SDA"}
+  {:cdev, "gpiochip3", 5} -> {"gpio-96-127", "I2C1_SCL"}
+  {:cdev, "gpiochip3", 6} -> {"gpio-96-127", "MMC0_CD"}
+  {:cdev, "gpiochip3", 7} -> {"gpio-96-127", "SPI1_SS2"}
+  {:cdev, "gpiochip3", 8} -> {"gpio-96-127", "EQEP_1A"}
+  {:cdev, "gpiochip3", 9} -> {"gpio-96-127", "EQEP_1B"}
+  {:cdev, "gpiochip3", 10} -> {"gpio-96-127", "MDIR_2B"}
+  {:cdev, "gpiochip3", 11} -> {"gpio-96-127", "BATT_LED_2"}
+  {:cdev, "gpiochip3", 12} -> {"gpio-96-127", "I2C2_SDA"}
+  {:cdev, "gpiochip3", 13} -> {"gpio-96-127", "I2C2_SCL"}
+  {:cdev, "gpiochip3", 14} -> {"gpio-96-127", "UART1_RX"}
+  {:cdev, "gpiochip3", 15} -> {"gpio-96-127", "UART1_TX"}
+  {:cdev, "gpiochip3", 16} -> {"gpio-96-127", "MMC2_DAT1"}
+  {:cdev, "gpiochip3", 17} -> {"gpio-96-127", "MMC2_DAT2"}
+  {:cdev, "gpiochip3", 18} -> {"gpio-96-127", "NC"}
+  {:cdev, "gpiochip3", 19} -> {"gpio-96-127", "WIFI_LED"}
+  {:cdev, "gpiochip3", 20} -> {"gpio-96-127", "MOT_STBY"}
+  {:cdev, "gpiochip3", 21} -> {"gpio-96-127", "WLAN_IRQ"}
+  {:cdev, "gpiochip3", 22} -> {"gpio-96-127", "PWM_2A"}
+  {:cdev, "gpiochip3", 23} -> {"gpio-96-127", "PWM_2B"}
+  {:cdev, "gpiochip3", 24} -> {"gpio-96-127", ""}
+  {:cdev, "gpiochip3", 25} -> {"gpio-96-127", ""}
+  {:cdev, "gpiochip3", 26} -> {"gpio-96-127", "BATT_LED_4"}
+  {:cdev, "gpiochip3", 27} -> {"gpio-96-127", "BATT_LED_1"}
+  {:cdev, "gpiochip3", 28} -> {"gpio-96-127", "BT_EN"}
+  {:cdev, "gpiochip3", 29} -> {"gpio-96-127", "SPI1_SS1"}
+  {:cdev, "gpiochip3", 30} -> {"gpio-96-127", "UART4_RX"}
+  {:cdev, "gpiochip3", 31} -> {"gpio-96-127", "MDIR_1B"}
+
+RPi4
+
+gpiochip0 - 58 lines:
+	line   0:     "ID_SDA"       unused   input  active-high
+	line   1:     "ID_SCL"       unused   input  active-high
+	line   2:       "SDA1"       unused   input  active-high
+	line   3:       "SCL1"       unused   input  active-high
+	line   4:  "GPIO_GCLK"       unused   input  active-high
+	line   5:      "GPIO5"       unused   input  active-high
+	line   6:      "GPIO6"       unused   input  active-high
+	line   7:  "SPI_CE1_N"   "spi0 CS1"  output   active-low [used]
+	line   8:  "SPI_CE0_N"   "spi0 CS0"  output   active-low [used]
+	line   9:   "SPI_MISO"       unused   input  active-high
+	line  10:   "SPI_MOSI"       unused   input  active-high
+	line  11:   "SPI_SCLK"       unused   input  active-high
+	line  12:     "GPIO12"       unused   input  active-high
+	line  13:     "GPIO13"       unused   input  active-high
+	line  14:       "TXD1"       unused   input  active-high
+	line  15:       "RXD1"       unused   input  active-high
+	line  16:     "GPIO16"       unused   input  active-high
+	line  17:     "GPIO17"       unused   input  active-high
+	line  18:     "GPIO18"       unused   input  active-high
+	line  19:     "GPIO19"       unused   input  active-high
+	line  20:     "GPIO20"       unused   input  active-high
+	line  21:     "GPIO21"       unused   input  active-high
+	line  22:     "GPIO22"       unused   input  active-high
+	line  23:     "GPIO23"       unused   input  active-high
+	line  24:     "GPIO24"       unused   input  active-high
+	line  25:     "GPIO25"       unused   input  active-high
+	line  26:     "GPIO26"       unused   input  active-high
+	line  27:     "GPIO27"       unused   input  active-high
+	line  28: "RGMII_MDIO"       unused   input  active-high
+	line  29:  "RGMIO_MDC"       unused   input  active-high
+	line  30:       "CTS0"       unused   input  active-high
+	line  31:       "RTS0"       unused   input  active-high
+	line  32:       "TXD0"       unused   input  active-high
+	line  33:       "RXD0"       unused   input  active-high
+	line  34:    "SD1_CLK"       unused   input  active-high
+	line  35:    "SD1_CMD"       unused   input  active-high
+	line  36:  "SD1_DATA0"       unused   input  active-high
+	line  37:  "SD1_DATA1"       unused   input  active-high
+	line  38:  "SD1_DATA2"       unused   input  active-high
+	line  39:  "SD1_DATA3"       unused   input  active-high
+	line  40:  "PWM0_MISO"       unused   input  active-high
+	line  41:  "PWM1_MOSI"       unused   input  active-high
+	line  42: "STATUS_LED_G_CLK" "ACT" output active-high [used]
+	line  43: "SPIFLASH_CE_N" unused input active-high
+	line  44:       "SDA0"       unused   input  active-high
+	line  45:       "SCL0"       unused   input  active-high
+	line  46: "RGMII_RXCLK" unused input active-high
+	line  47: "RGMII_RXCTL" unused input active-high
+	line  48: "RGMII_RXD0"       unused   input  active-high
+	line  49: "RGMII_RXD1"       unused   input  active-high
+	line  50: "RGMII_RXD2"       unused   input  active-high
+	line  51: "RGMII_RXD3"       unused   input  active-high
+	line  52: "RGMII_TXCLK" unused input active-high
+	line  53: "RGMII_TXCTL" unused input active-high
+	line  54: "RGMII_TXD0"       unused   input  active-high
+	line  55: "RGMII_TXD1"       unused   input  active-high
+	line  56: "RGMII_TXD2"       unused   input  active-high
+	line  57: "RGMII_TXD3"       unused   input  active-high
+gpiochip1 - 8 lines:
+	line   0:      "BT_ON"       unused  output  active-high
+	line   1:      "WL_ON"       unused  output  active-high
+	line   2: "PWR_LED_OFF" "PWR" output active-low [used]
+	line   3: "GLOBAL_RESET" unused output active-high
+	line   4: "VDD_SD_IO_SEL" "vdd-sd-io" output active-high [used]
+	line   5:   "CAM_GPIO" "cam1_regulator" output active-high [used]
+	line   6:  "SD_PWR_ON" "sd_vcc_reg"  output  active-high [used]
+	line   7:    "SD_OC_N"       unused   input  active-high
+
+iex(8)> cmd("/data/enum_gpio")
+  gpiochip0@0 -> pinctrl-bcm2711@ID_SDA
+  gpiochip0@1 -> pinctrl-bcm2711@ID_SCL
+  gpiochip0@2 -> pinctrl-bcm2711@SDA1
+  gpiochip0@3 -> pinctrl-bcm2711@SCL1
+  gpiochip0@4 -> pinctrl-bcm2711@GPIO_GCLK
+  gpiochip0@5 -> pinctrl-bcm2711@GPIO5
+  gpiochip0@6 -> pinctrl-bcm2711@GPIO6
+  gpiochip0@7 -> pinctrl-bcm2711@SPI_CE1_N
+  gpiochip0@8 -> pinctrl-bcm2711@SPI_CE0_N
+  gpiochip0@9 -> pinctrl-bcm2711@SPI_MISO
+  gpiochip0@10 -> pinctrl-bcm2711@SPI_MOSI
+  gpiochip0@11 -> pinctrl-bcm2711@SPI_SCLK
+  gpiochip0@12 -> pinctrl-bcm2711@GPIO12
+  gpiochip0@13 -> pinctrl-bcm2711@GPIO13
+  gpiochip0@14 -> pinctrl-bcm2711@TXD1
+  gpiochip0@15 -> pinctrl-bcm2711@RXD1
+  gpiochip0@16 -> pinctrl-bcm2711@GPIO16
+  gpiochip0@17 -> pinctrl-bcm2711@GPIO17
+  gpiochip0@18 -> pinctrl-bcm2711@GPIO18
+  gpiochip0@19 -> pinctrl-bcm2711@GPIO19
+  gpiochip0@20 -> pinctrl-bcm2711@GPIO20
+  gpiochip0@21 -> pinctrl-bcm2711@GPIO21
+  gpiochip0@22 -> pinctrl-bcm2711@GPIO22
+  gpiochip0@23 -> pinctrl-bcm2711@GPIO23
+  gpiochip0@24 -> pinctrl-bcm2711@GPIO24
+  gpiochip0@25 -> pinctrl-bcm2711@GPIO25
+  gpiochip0@26 -> pinctrl-bcm2711@GPIO26
+  gpiochip0@27 -> pinctrl-bcm2711@GPIO27
+  gpiochip0@28 -> pinctrl-bcm2711@RGMII_MDIO
+  gpiochip0@29 -> pinctrl-bcm2711@RGMIO_MDC
+  gpiochip0@30 -> pinctrl-bcm2711@CTS0
+  gpiochip0@31 -> pinctrl-bcm2711@RTS0
+  gpiochip0@32 -> pinctrl-bcm2711@TXD0
+  gpiochip0@33 -> pinctrl-bcm2711@RXD0
+  gpiochip0@34 -> pinctrl-bcm2711@SD1_CLK
+  gpiochip0@35 -> pinctrl-bcm2711@SD1_CMD
+  gpiochip0@36 -> pinctrl-bcm2711@SD1_DATA0
+  gpiochip0@37 -> pinctrl-bcm2711@SD1_DATA1
+  gpiochip0@38 -> pinctrl-bcm2711@SD1_DATA2
+  gpiochip0@39 -> pinctrl-bcm2711@SD1_DATA3
+  gpiochip0@40 -> pinctrl-bcm2711@PWM0_MISO
+  gpiochip0@41 -> pinctrl-bcm2711@PWM1_MOSI
+  gpiochip0@42 -> pinctrl-bcm2711@STATUS_LED_G_CLK
+  gpiochip0@43 -> pinctrl-bcm2711@SPIFLASH_CE_N
+  gpiochip0@44 -> pinctrl-bcm2711@SDA0
+  gpiochip0@45 -> pinctrl-bcm2711@SCL0
+  gpiochip0@46 -> pinctrl-bcm2711@RGMII_RXCLK
+  gpiochip0@47 -> pinctrl-bcm2711@RGMII_RXCTL
+  gpiochip0@48 -> pinctrl-bcm2711@RGMII_RXD0
+  gpiochip0@49 -> pinctrl-bcm2711@RGMII_RXD1
+  gpiochip0@50 -> pinctrl-bcm2711@RGMII_RXD2
+  gpiochip0@51 -> pinctrl-bcm2711@RGMII_RXD3
+  gpiochip0@52 -> pinctrl-bcm2711@RGMII_TXCLK
+  gpiochip0@53 -> pinctrl-bcm2711@RGMII_TXCTL
+  gpiochip0@54 -> pinctrl-bcm2711@RGMII_TXD0
+  gpiochip0@55 -> pinctrl-bcm2711@RGMII_TXD1
+  gpiochip0@56 -> pinctrl-bcm2711@RGMII_TXD2
+  gpiochip0@57 -> pinctrl-bcm2711@RGMII_TXD3
+  gpiochip1@0 -> raspberrypi-exp-gpio@BT_ON
+  gpiochip1@1 -> raspberrypi-exp-gpio@WL_ON
+  gpiochip1@2 -> raspberrypi-exp-gpio@PWR_LED_OFF
+  gpiochip1@3 -> raspberrypi-exp-gpio@GLOBAL_RESET
+  gpiochip1@4 -> raspberrypi-exp-gpio@VDD_SD_IO_SEL
+  gpiochip1@5 -> raspberrypi-exp-gpio@CAM_GPIO
+  gpiochip1@6 -> raspberrypi-exp-gpio@SD_PWR_ON
+  gpiochip1@7 -> raspberrypi-exp-gpio@SD_OC_N
+
+
+Parakeet
+
+iex(1)> cmd("/data/enum_gpio")
+  {:cdev, "gpiochip0", 0} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 1} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 2} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 3} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 4} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 5} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 6} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 7} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 8} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 9} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 10} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 11} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 12} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 13} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 14} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 15} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 16} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 17} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 18} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 19} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 20} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 21} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 22} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 23} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 24} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 25} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 26} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 27} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 28} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 29} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 30} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 31} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 32} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 33} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 34} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 35} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 36} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 37} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 38} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 39} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 40} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 41} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 42} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 43} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 44} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 45} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 46} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 47} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 48} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 49} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 50} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 51} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 52} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 53} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 54} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 55} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 56} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 57} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 58} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 59} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 60} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 61} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 62} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 63} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 64} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 65} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 66} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 67} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 68} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 69} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 70} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 71} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 72} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 73} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 74} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 75} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 76} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 77} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 78} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 79} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 80} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 81} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 82} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 83} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 84} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 85} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 86} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 87} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 88} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 89} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 90} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 91} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 92} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 93} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 94} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 95} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 96} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 97} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 98} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 99} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 100} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 101} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 102} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 103} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 104} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 105} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 106} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 107} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 108} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 109} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 110} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 111} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 112} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 113} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 114} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 115} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 116} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 117} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 118} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 119} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 120} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 121} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 122} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 123} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 124} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 125} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 126} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 127} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 128} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 129} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 130} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 131} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 132} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 133} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 134} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 135} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 136} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 137} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 138} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 139} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 140} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 141} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 142} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 143} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 144} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 145} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 146} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 147} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 148} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 149} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 150} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 151} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 152} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 153} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 154} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 155} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 156} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 157} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 158} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 159} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 160} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 161} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 162} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 163} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 164} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 165} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 166} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 167} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 168} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 169} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 170} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 171} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 172} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 173} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 174} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 175} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 176} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 177} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 178} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 179} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 180} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 181} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 182} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 183} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 184} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 185} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 186} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 187} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 188} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 189} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 190} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 191} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 192} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 193} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 194} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 195} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 196} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 197} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 198} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 199} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 200} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 201} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 202} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 203} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 204} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 205} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 206} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 207} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 208} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 209} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 210} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 211} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 212} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 213} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 214} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 215} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 216} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 217} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 218} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 219} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 220} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 221} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 222} -> {"1c20800.pinctrl", ""}
+  {:cdev, "gpiochip0", 223} -> {"1c20800.pinctrl", ""} # ABCDEFG
+  {:cdev, "gpiochip1", 0} -> {"1f02c00.pinctrl", ""} # L
+  {:cdev, "gpiochip1", 1} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 2} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 3} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 4} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 5} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 6} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 7} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 8} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 9} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 10} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 11} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 12} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 13} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 14} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 15} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 16} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 17} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 18} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 19} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 20} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 21} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 22} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 23} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 24} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 25} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 26} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 27} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 28} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 29} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 30} -> {"1f02c00.pinctrl", ""}
+  {:cdev, "gpiochip1", 31} -> {"1f02c00.pinctrl", ""}
+
