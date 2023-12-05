@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "hal_sysfs.h"
+#error "don't compile me"
 
 size_t hal_priv_size()
 {

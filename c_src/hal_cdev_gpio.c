@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2018 Frank Hunleth, Mark Sebald, Matt Ludwigs
 //
 // SPDX-License-Identifier: Apache-2.0
+#define DEBUG
 
 #include "gpio_nif.h"
 
@@ -37,9 +38,13 @@ static int get_value_v2(int fd)
 
     memset(&vals, 0, sizeof(vals));
     vals.mask = 1;
+    debug("ioctl(%d, GPIO_V2_LINE_GET_VALUES_IOCTL)", fd);
     ret = ioctl(fd, GPIO_V2_LINE_GET_VALUES_IOCTL, &vals);
-    if (ret == -1)
+    if (ret == -1) {
+        debug("\tret == -1");
         return -errno;
+    }
+    debug("\tret ok");
     return vals.bits & 0x1;
 }
 
@@ -61,28 +66,15 @@ static int request_line_v2(int fd, unsigned int offset,
         if (val)
             req.config.attrs[0].attr.values = 1;
     }
+    debug("ioctl(%d, GPIO_V2_GET_LINE_IOCTL, &req)", fd);
     ret = ioctl(fd, GPIO_V2_GET_LINE_IOCTL, &req);
-    if (ret == -1)
+    if (ret == -1) {
+        debug("\tret = -1");
         return -errno;
+    }
+    debug("\tret ok");
     return req.fd;
 }
-
-#if 0
-static const char *edge_mode_string(enum trigger_mode mode)
-{
-    switch (mode) {
-    default:
-    case TRIGGER_NONE:
-        return "none";
-    case TRIGGER_FALLING:
-        return "falling";
-    case TRIGGER_RISING:
-        return "rising";
-    case TRIGGER_BOTH:
-        return "both";
-    }
-}
-#endif
 
 ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info)
 {
@@ -135,13 +127,14 @@ int hal_open_gpio(struct gpio_pin *pin,
     char gpiochip_path[64];
     sprintf(gpiochip_path, "/dev/gpiochip%d", pin->gpiochip_number);
     pin->fd = open(gpiochip_path, O_RDWR|O_CLOEXEC);
+    debug("pin->fd = %d", pin->fd);
 
     if (pin->fd < 0) {
         strcpy(error_str, "open_failed");
         goto error;
     }
     int value = 0;
-    uint64_t flags;
+    uint64_t flags = 0;
     if (pin->config.is_output) {
         flags &= ~GPIO_V2_LINE_FLAG_INPUT;
         flags |= GPIO_V2_LINE_FLAG_OUTPUT;
@@ -186,6 +179,7 @@ error:
 
 void hal_close_gpio(struct gpio_pin *pin)
 {
+    debug("hal_close_gpio");
     if (pin->fd >= 0) {
         // Turn off interrupts if they're on.
         if (pin->config.trigger != TRIGGER_NONE) {
@@ -193,21 +187,27 @@ void hal_close_gpio(struct gpio_pin *pin)
             //update_polling_thread(pin);
         }
         close(pin->fd);
-        close(pin->fd);
     }
 }
 
 int hal_read_gpio(struct gpio_pin *pin)
 {
-    return 0;
+    debug("hal_read_gpio");
+    uint64_t flags = GPIO_V2_LINE_FLAG_INPUT;
+    debug("request_line_v2 %d %d", pin->fd, pin->pin_number);
+    int lfd = request_line_v2(pin->fd, pin->pin_number, flags, 0);
+
+    if(lfd < 0) return lfd;
+    debug("get_value_v2(%d)", lfd);
+    int value = get_value_v2(lfd);
+    close(lfd);
+    return value;
 }
 
 int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
 {
     (void) env;
-    uint64_t flags = 0;
-    flags &= ~GPIO_V2_LINE_FLAG_INPUT;
-    flags |= GPIO_V2_LINE_FLAG_OUTPUT;
+    uint64_t flags = GPIO_V2_LINE_FLAG_OUTPUT;
     int lfd = request_line_v2(pin->fd, pin->pin_number, flags, value);
     close(lfd);
 
@@ -229,7 +229,7 @@ int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 int hal_apply_direction(struct gpio_pin *pin)
 {
     int value = 0;
-    uint64_t flags;
+    uint64_t flags = 0;
     if (pin->config.is_output) {
         flags &= ~GPIO_V2_LINE_FLAG_INPUT;
         flags |= GPIO_V2_LINE_FLAG_OUTPUT;
@@ -260,7 +260,7 @@ int hal_apply_pull_mode(struct gpio_pin *pin)
         return 0;
 
     int value = 0;
-    uint64_t flags;
+    uint64_t flags = 0;
     if (pin->config.is_output) {
         flags &= ~GPIO_V2_LINE_FLAG_INPUT;
         flags |= GPIO_V2_LINE_FLAG_OUTPUT;

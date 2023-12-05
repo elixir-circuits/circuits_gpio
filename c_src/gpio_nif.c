@@ -129,11 +129,14 @@ static void unload(ErlNifEnv *env, void *priv_data)
 
 static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
+    debug("read");
     struct gpio_priv *priv = enif_priv_data(env);
     struct gpio_pin *pin;
+    debug("enif_get_resource");
+
     if (argc != 1 || !enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin))
         return enif_make_badarg(env);
-
+    debug("read_gpio::hal_read_gpio");
     int value = hal_read_gpio(pin);
     if (value < 0)
         return enif_raise_exception(env, enif_make_atom(env, strerror(errno)));
@@ -302,7 +305,7 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     struct gpio_priv *priv = enif_priv_data(env);
     int pin_spec_tuple_arity;
     bool is_output;
-    int pin_number;
+    int pin_number, gpiochip_number;
     int initial_value;
     enum pull_mode pull;
     const ERL_NIF_TERM* pin_spec_tuple;
@@ -316,15 +319,14 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
         return enif_make_badarg(env);
 
     if(pin_spec_tuple_arity != 2) return enif_make_badarg(env);
+    if(!enif_get_int(env, pin_spec_tuple[0], &gpiochip_number)) return enif_make_badarg(env);
     if(!enif_get_int(env, pin_spec_tuple[1], &pin_number)) return enif_make_badarg(env);
 
-    ErlNifBinary gpiochip_binary;
-    debug("inspect_binary");
-    if(!enif_inspect_binary(env, pin_spec_tuple[0], &gpiochip_binary))
-        debug("line_spec = .{.gpiochip = %s, .pin_number = %d}", gpiochip_binary.data, pin_number);
+    debug("line_spec = .{.gpiochip = %d, .pin_number = %d}", gpiochip_number, pin_number);
 
     struct gpio_pin *pin = enif_alloc_resource(priv->gpio_pin_rt, sizeof(struct gpio_pin));
     pin->fd = -1;
+    pin->gpiochip_number = gpiochip_number;
     pin->pin_number = pin_number;
     pin->hal_priv = priv->hal_priv;
     pin->config.is_output = is_output;
