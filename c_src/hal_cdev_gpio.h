@@ -15,8 +15,9 @@ struct hal_cdev_gpio_priv {
 
 struct gpio_pin;
 
-int hal_gpio_read_gpio(int fd);
 void *gpio_poller_thread(void *arg);
 int update_polling_thread(struct gpio_pin *pin);
+int get_value_v2(int fd);
+int request_line_v2(int fd, unsigned int offset, uint64_t flags, unsigned int val);
 
 #endif // HAL_CDEV_GPIO_H

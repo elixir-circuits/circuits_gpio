@@ -27,11 +27,11 @@ size_t hal_priv_size()
     return sizeof(struct hal_cdev_gpio_priv);
 }
 
-static int gpio_get_chipinfo_ioctl(int fd, gpiochip_info_t* info) {
+int gpio_get_chipinfo_ioctl(int fd, gpiochip_info_t* info) {
     return ioctl(fd, GPIO_GET_CHIPINFO_IOCTL, info);
 }
 
-static int get_value_v2(int fd)
+int get_value_v2(int fd)
 {
     struct gpio_v2_line_values vals;
     int ret;
@@ -48,7 +48,7 @@ static int get_value_v2(int fd)
     return vals.bits & 0x1;
 }
 
-static int request_line_v2(int fd, unsigned int offset,
+int request_line_v2(int fd, unsigned int offset,
                            uint64_t flags, unsigned int val)
 {
     struct gpio_v2_line_request req;
@@ -93,12 +93,10 @@ int hal_load(void *hal_priv)
         return 1;
     }
 
-    /*
     if (enif_thread_create("gpio_poller", &priv->poller_tid, gpio_poller_thread, &priv->pipe_fds[0], NULL) != 0) {
         error("enif_thread_create failed");
         return 1;
     }
-    */
     return 0;
 }
 
@@ -109,10 +107,8 @@ void hal_unload(void *hal_priv)
     // Close everything related to the listening thread so that it exits
     close(priv->pipe_fds[0]);
     close(priv->pipe_fds[1]);
-    /*
-        // If the listener thread hasn't exited already, it should do so soon.
-        enif_thread_join(priv->poller_tid, NULL);
-        */
+    // If the listener thread hasn't exited already, it should do so soon.
+    enif_thread_join(priv->poller_tid, NULL);
 }
 
 int hal_open_gpio(struct gpio_pin *pin,
@@ -165,10 +161,10 @@ int hal_open_gpio(struct gpio_pin *pin,
     close(lfd);
 
     // Only call hal_apply_interrupts if there's a trigger
-    // if (pin->config.trigger != TRIGGER_NONE && hal_apply_interrupts(pin, env) < 0) {
-    //     strcpy(error_str, "error_setting_interrupts");
-    //     goto error;
-    // }
+    if (pin->config.trigger != TRIGGER_NONE && hal_apply_interrupts(pin, env) < 0) {
+        strcpy(error_str, "error_setting_interrupts");
+        goto error;
+    }
 
     return 0;
 
@@ -184,7 +180,7 @@ void hal_close_gpio(struct gpio_pin *pin)
         // Turn off interrupts if they're on.
         if (pin->config.trigger != TRIGGER_NONE) {
             pin->config.trigger = TRIGGER_NONE;
-            //update_polling_thread(pin);
+            update_polling_thread(pin);
         }
         close(pin->fd);
     }
@@ -218,11 +214,9 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
 int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 {
     (void) env;
-    /*
-        // Tell polling thread to wait for notifications
-        if (update_polling_thread(pin) < 0)
-            return -1;
-    */
+    // Tell polling thread to wait for notifications
+    if (update_polling_thread(pin) < 0) return -1;
+
     return 0;
 }
 
