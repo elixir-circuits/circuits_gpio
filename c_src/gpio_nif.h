@@ -83,6 +83,12 @@ extern ERL_NIF_TERM atom_error;
 ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info);
 
 /**
+ * Enumerate all GPIO pins
+ * Return a map of all GPIO chips and pins
+ */
+ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data);
+
+/**
  * Return the additional number of bytes of private data to allocate
  * for the HAL.
  */

@@ -278,3 +278,60 @@ int hal_apply_pull_mode(struct gpio_pin *pin)
     if(lfd < 0) return lfd;
     return 0;
 }
+
+// %{"/dev/gpiochip0" => %{"line_label" => %{}}}
+ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
+{
+    struct gpiochip_info info;
+    int i;
+    char path[32];
+
+    for (i = 0; i < 16; i++) {
+        ERL_NIF_TERM chip_map = enif_make_new_map(env);
+        ERL_NIF_TERM chip_path;
+        ERL_NIF_TERM chip_label;
+        sprintf(path, "/dev/gpiochip%d", i);
+        unsigned char* chip_path_binary = enif_make_new_binary(env, strlen(path), &chip_path);
+        memset(chip_path_binary, 0, strlen(path));
+        strcpy((char*)chip_path_binary, path);
+
+        int fd = open((char*)chip_path_binary, O_RDONLY|O_CLOEXEC);
+        if (fd < 0) {
+            debug("could not open gpiochip %d %s", errno, strerror(errno));
+            break;
+        }
+
+        memset(&info, 0, sizeof(struct gpiochip_info));
+        if (ioctl(fd, GPIO_GET_CHIPINFO_IOCTL, &info) < 0)
+            break;
+
+        unsigned char* chip_label_binary = enif_make_new_binary(env, strlen(info.name), &chip_label);
+        memset(chip_label_binary, 0, strlen(info.name));
+        strcpy((char*)chip_label_binary, info.name);
+
+        unsigned int j;
+        for (j = 0; j < info.lines; j++) {
+            struct gpio_v2_line_info line;
+            memset(&line, 0, sizeof(struct gpio_v2_line_info));
+            line.offset = j;
+            if (ioctl(fd, GPIO_V2_GET_LINEINFO_IOCTL, &line) >= 0) {
+                debug("  {:cdev, \"%s\", %d} -> {\"%s\", \"%s\"}", info.name, j, info.label, line.name);
+                ERL_NIF_TERM line_map = enif_make_new_map(env);
+                ERL_NIF_TERM line_label;
+                ERL_NIF_TERM line_offset = enif_make_int(env, j);
+
+                unsigned char* line_label_binary = enif_make_new_binary(env, strlen(line.name), &line_label);
+                memset(&chip_path_binary, 0, strlen(line.name));
+                strcpy((char*)line_label_binary, line.name);
+
+                enif_make_map_put(env, line_map, enif_make_atom(env, "line"), line_offset, &line_map);
+                enif_make_map_put(env, line_map, enif_make_atom(env, "label"), line_label, &line_map);
+
+                enif_make_map_put(env, chip_map, line_offset, line_map, &chip_map);
+            }
+        }
+        close(fd);
+        enif_make_map_put(env, enum_data, enif_make_tuple2(env, chip_path, chip_label), chip_map, &enum_data);
+    }
+    return enum_data;
+}

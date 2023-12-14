@@ -16,7 +16,13 @@ defmodule Circuits.GPIO2.Sysfs do
 
   @impl Backend
   def enumerate() do
-    []
+    Nif.enum()
+    |> Enum.reduce([], fn {{chip_path, chip_label}, lines}, acc ->
+      Enum.reduce(lines, acc, fn {_line_number, %{label: line_label, line: line_number}}, acc ->
+        line = %GPIO2.Line{line_spec: {chip_path, line_number}, controller: chip_path, label: {chip_label, line_label}}
+        [line | acc]
+      end)
+    end)
   end
 
   @impl Backend

@@ -31,4 +31,9 @@ defmodule Circuits.GPIO2.Nif do
     :ok = load_nif()
     apply(__MODULE__, :info, [])
   end
+
+  def enum do
+    :ok = load_nif()
+    apply(__MODULE__, :enum, [])
+  end
 end

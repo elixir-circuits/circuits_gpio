@@ -375,6 +375,17 @@ static ERL_NIF_TERM gpio_info(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     return hal_info(env, priv->hal_priv, info);
 }
 
+static ERL_NIF_TERM gpio_enum(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    (void) argc;
+    (void) argv;
+
+    struct gpio_priv *priv = enif_priv_data(env);
+    ERL_NIF_TERM enum_data = enif_make_new_map(env);
+
+    return hal_enum(env, priv->hal_priv, enum_data);
+}
+
 static ErlNifFunc nif_funcs[] = {
     {"open", 4, open_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
     {"close", 1, close_gpio, 0},
@@ -384,7 +395,8 @@ static ErlNifFunc nif_funcs[] = {
     {"set_direction", 2, set_direction, 0},
     {"set_pull_mode", 2, set_pull_mode, 0},
     {"pin", 1, pin_gpio, 0},
-    {"info", 0, gpio_info, 0}
+    {"info", 0, gpio_info, 0},
+    {"enum", 0, gpio_enum, 0},
 };
 
 ERL_NIF_INIT(Elixir.Circuits.GPIO2.Nif, nif_funcs, load, NULL, NULL, unload)

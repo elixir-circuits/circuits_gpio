@@ -231,6 +231,11 @@ defmodule Circuits.GPIO2 do
   def info(nil), do: info(default_backend())
   def info({backend, _options}), do: backend.info()
 
+  @spec enumerate(backend() | nil) :: map()
+  def enumerate(backend \\ nil)
+  def enumerate(nil), do: enumerate(default_backend())
+  def enumerate({backend, _options}), do: backend.enumerate()
+
   defp default_backend() do
     case Application.get_env(:circuits_gpio2, :default_backend) do
       nil -> {Circuits.GPIO2.NilBackend, []}
