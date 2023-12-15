@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.2.0 - 2023-12-14
+
+* Changes
+  * Add workaround to GPIO pin numbering change on TI AM335x platforms (like the
+    BBB) that happened between Linux 5.10 and 5.15. Circuits.GPIO will remap the
+    pins automatically so the number is consistent with the way it's been for
+    years and the way that most online docs talk about it. E.g., GPIO number is
+    the pin bank times 32 plus the pin offset in the bank.
+  * Defer NIF loading until opening the first GPIO. This is a minor optimization
+    to delay shared library load time and issue to a little later in boot.
+
 ## v1.1.0 - 2022-12-31
 
 * Changes
