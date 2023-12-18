@@ -81,17 +81,17 @@ defmodule Circuits.GPIO2.MixProject do
   end
 
   defp default_backend(), do: default_backend(Mix.env(), Mix.target())
-  defp default_backend(:test, _target), do: {Circuits.GPIO2.Sysfs, test: true}
+  defp default_backend(:test, _target), do: {Circuits.GPIO2.CDev, test: true}
 
   defp default_backend(_env, :host) do
     case :os.type() do
-      {:unix, :linux} -> Circuits.GPIO2.Sysfs
-      _ -> {Circuits.GPIO2.Sysfs, test: true}
+      {:unix, :linux} -> Circuits.GPIO2.CDev
+      _ -> {Circuits.GPIO2.CDev, test: true}
     end
   end
 
   # Assume Nerves for a default
-  defp default_backend(_env, _not_host), do: Circuits.GPIO2.Sysfs
+  defp default_backend(_env, _not_host), do: Circuits.GPIO2.CDev
 
   defp set_make_env(_args) do
     # Since user configuration hasn't been loaded into the application
@@ -99,10 +99,10 @@ defmodule Circuits.GPIO2.MixProject do
     # the NIF.
     backend = Application.get_env(:circuits_gpio2, :default_backend, default_backend())
 
-    System.put_env("CIRCUITS_GPIO_SYSFS", sysfs_compile_mode(backend))
+    System.put_env("CIRCUITS_GPIO_BACKEND", cdev_compile_mode(backend))
   end
 
-  defp sysfs_compile_mode({Circuits.GPIO2.Sysfs, options}) do
+  defp cdev_compile_mode({Circuits.GPIO2.CDev, options}) do
     if Keyword.get(options, :test) do
       "test"
     else
@@ -110,11 +110,11 @@ defmodule Circuits.GPIO2.MixProject do
     end
   end
 
-  defp sysfs_compile_mode(Circuits.GPIO2.Sysfs) do
+  defp cdev_compile_mode(Circuits.GPIO2.CDev) do
     "normal"
   end
 
-  defp sysfs_compile_mode(_other) do
+  defp cdev_compile_mode(_other) do
     "disabled"
   end
 

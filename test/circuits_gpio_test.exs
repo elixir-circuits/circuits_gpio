@@ -15,6 +15,9 @@ defmodule Circuits.GPIO2Test do
     :ok
   end
 
+  # not a real gpiochip, just used for testing
+  @gpiochip 0
+
   # Many of these tests take advantage of the "stub" HAL. The "stub"
   # HAL connects GPIO 0 to 1, 2 to 3, etc. It is useful for testing
   # the interface and much of the NIF source code without needing
@@ -24,13 +27,13 @@ defmodule Circuits.GPIO2Test do
     info = GPIO2.info()
 
     assert is_map(info)
-    assert info.name == Circuits.GPIO2.Sysfs
+    assert info.name == Circuits.GPIO2.CDev
     assert info.pins_open == 0
   end
 
   test "opening and closing a pin gets counted" do
-    {:ok, gpio} = GPIO2.open(1, :input)
-    assert is_struct(gpio, Circuits.GPIO2.Sysfs)
+    {:ok, gpio} = GPIO2.open({@gpiochip, 1}, :input)
+    assert is_struct(gpio, Circuits.GPIO2.CDev)
 
     assert GPIO2.info().pins_open == 1
 
@@ -39,14 +42,14 @@ defmodule Circuits.GPIO2Test do
   end
 
   test "can get the pin number" do
-    {:ok, gpio} = GPIO2.open(10, :output)
+    {:ok, gpio} = GPIO2.open({@gpiochip, 10}, :output)
     assert GPIO2.pin(gpio) == 10
     GPIO2.close(gpio)
   end
 
   test "open returns errors on invalid pins" do
     # The stub returns error on any pin numbers >= 64
-    assert GPIO2.open(100, :input) == {:error, :no_gpio}
+    assert GPIO2.open({@gpiochip, 100}, :input) == {:error, :no_gpio}
   end
 
   test "gpio refs get garbage collected" do
@@ -56,7 +59,7 @@ defmodule Circuits.GPIO2Test do
     me = self()
 
     spawn_link(fn ->
-      {:ok, _ref} = GPIO2.open(1, :input)
+      {:ok, _ref} = GPIO2.open({@gpiochip, 1}, :input)
       send(me, :done)
     end)
 
@@ -76,15 +79,17 @@ defmodule Circuits.GPIO2Test do
     me = self()
     count = 10_000
 
-    spawn_link(fn ->
-      x = Enum.map(1..count, fn _ -> {:ok, _ref} = GPIO2.open(1, :input) end)
-      ^count = GPIO2.info().pins_open
-      send(me, {:done, length(x)})
-    end)
+    {pid, ref} =
+      spawn_monitor(fn ->
+        x = Enum.map(1..count, fn _ -> {:ok, _ref} = GPIO2.open({@gpiochip, 1}, :input) end)
+        ^count = GPIO2.info().pins_open
+        send(me, {:done, length(x)})
+      end)
 
-    # Wait a tenth of a second to allow spawned task to complete
-    Process.sleep(100)
+    # Wait to allow spawned task to complete
+    assert_receive {:DOWN, ^ref, :process, ^pid, :normal}, 1000
 
+    refute Process.alive?(pid)
     assert_receive {:done, ^count}
 
     # Wait a fraction of a second to allow GC to run since there's
@@ -95,8 +100,8 @@ defmodule Circuits.GPIO2Test do
   end
 
   test "can read and write gpio" do
-    {:ok, gpio0} = GPIO2.open(0, :output)
-    {:ok, gpio1} = GPIO2.open(1, :input)
+    {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output)
+    {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.write(gpio0, 1)
     assert GPIO2.read(gpio1) == 1
@@ -108,14 +113,14 @@ defmodule Circuits.GPIO2Test do
   end
 
   test "can set direction" do
-    {:ok, gpio} = GPIO2.open(0, :output)
+    {:ok, gpio} = GPIO2.open({@gpiochip, 0}, :output)
     assert GPIO2.set_direction(gpio, :input) == :ok
     assert GPIO2.set_direction(gpio, :output) == :ok
     GPIO2.close(gpio)
   end
 
   test "can set pull mode" do
-    {:ok, gpio} = GPIO2.open(1, :input)
+    {:ok, gpio} = GPIO2.open({@gpiochip, 1}, :input)
     assert GPIO2.set_pull_mode(gpio, :not_set) == :ok
     assert GPIO2.set_pull_mode(gpio, :none) == :ok
     assert GPIO2.set_pull_mode(gpio, :pullup) == :ok
@@ -124,18 +129,18 @@ defmodule Circuits.GPIO2Test do
   end
 
   test "can set pull mode in open" do
-    {:ok, gpio} = GPIO2.open(1, :input, pull_mode: :pullup)
+    {:ok, gpio} = GPIO2.open({@gpiochip, 1}, :input, pull_mode: :pullup)
     GPIO2.close(gpio)
   end
 
   test "ignores unknown open options" do
-    {:ok, gpio} = GPIO2.open(1, :input, bogus: true)
+    {:ok, gpio} = GPIO2.open({@gpiochip, 1}, :input, bogus: true)
     GPIO2.close(gpio)
   end
 
   test "initial interrupt on set_interrupts" do
-    {:ok, gpio0} = GPIO2.open(0, :output)
-    {:ok, gpio1} = GPIO2.open(1, :input)
+    {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output)
+    {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :both)
     assert_receive {:circuits_gpio2, 1, _timestamp, 0}
@@ -145,8 +150,8 @@ defmodule Circuits.GPIO2Test do
   end
 
   test "interrupts on both edges" do
-    {:ok, gpio0} = GPIO2.open(0, :output)
-    {:ok, gpio1} = GPIO2.open(1, :input)
+    {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output)
+    {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :both)
     assert_receive {:circuits_gpio2, 1, _timestamp, 0}
@@ -162,8 +167,8 @@ defmodule Circuits.GPIO2Test do
   end
 
   test "interrupts on falling edges" do
-    {:ok, gpio0} = GPIO2.open(0, :output)
-    {:ok, gpio1} = GPIO2.open(1, :input)
+    {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output)
+    {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :falling)
     assert_receive {:circuits_gpio2, 1, _timestamp, 0}
@@ -179,8 +184,8 @@ defmodule Circuits.GPIO2Test do
   end
 
   test "interrupts on rising edges" do
-    {:ok, gpio0} = GPIO2.open(0, :output)
-    {:ok, gpio1} = GPIO2.open(1, :input)
+    {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output)
+    {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :rising)
     refute_receive {:circuits_gpio2, 1, _timestamp, 0}
@@ -196,8 +201,8 @@ defmodule Circuits.GPIO2Test do
   end
 
   test "can disable interrupts" do
-    {:ok, gpio0} = GPIO2.open(0, :output)
-    {:ok, gpio1} = GPIO2.open(1, :input)
+    {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output)
+    {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :both)
     assert_receive {:circuits_gpio2, 1, _timestamp, 0}
@@ -214,8 +219,8 @@ defmodule Circuits.GPIO2Test do
   end
 
   test "no interrupts after closing" do
-    {:ok, gpio0} = GPIO2.open(0, :output)
-    {:ok, gpio1} = GPIO2.open(1, :input)
+    {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output)
+    {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :both)
     assert_receive {:circuits_gpio2, 1, _timestamp, 0}
@@ -233,26 +238,26 @@ defmodule Circuits.GPIO2Test do
   end
 
   test "opening as an output doesn't change the output by default" do
-    {:ok, gpio0} = GPIO2.open(0, :output)
+    {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output)
     :ok = GPIO2.write(gpio0, 1)
     GPIO2.close(gpio0)
 
-    {:ok, gpio0} = GPIO2.open(0, :output)
+    {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output)
     assert GPIO2.read(gpio0) == 1
     :ok = GPIO2.write(gpio0, 0)
     GPIO2.close(gpio0)
 
-    {:ok, gpio0} = GPIO2.open(0, :output)
+    {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output)
     assert GPIO2.read(gpio0) == 0
     GPIO2.close(gpio0)
   end
 
   test "can set the output on open" do
-    {:ok, gpio0} = GPIO2.open(0, :output, initial_value: 1)
+    {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output, initial_value: 1)
     assert GPIO2.read(gpio0) == 1
     GPIO2.close(gpio0)
 
-    {:ok, gpio0} = GPIO2.open(0, :output, initial_value: 0)
+    {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output, initial_value: 0)
     assert GPIO2.read(gpio0) == 0
     GPIO2.close(gpio0)
   end
@@ -265,8 +270,8 @@ defmodule Circuits.GPIO2Test do
       assert {:module, Circuits.GPIO2.Nif} == :code.ensure_loaded(Circuits.GPIO2.Nif)
 
       # Try running something to verify that it works.
-      {:ok, gpio} = GPIO2.open(1, :input)
-      assert is_struct(gpio, Circuits.GPIO2.Sysfs)
+      {:ok, gpio} = GPIO2.open({@gpiochip, 1}, :input)
+      assert is_struct(gpio, Circuits.GPIO2.CDev)
 
       assert GPIO2.info().pins_open == 1
 

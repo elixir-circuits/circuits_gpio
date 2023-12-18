@@ -12,7 +12,7 @@
 # Variables to override:
 #
 # MIX_APP_PATH  path to the build directory
-# CIRCUITS_GPIO_SYSFS Backend to build - `"normal"`, `"test"`, or `"disabled"` will build a NIF
+# CIRCUITS_GPIO_BACKEND Backend to build - `"normal"`, `"test"`, or `"disabled"` will build a NIF
 #
 # CC            C compiler
 # CROSSCOMPILE	crosscompiler prefix, if any
@@ -30,7 +30,7 @@ NIF = $(PREFIX)/gpio_nif.so
 
 CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter -pedantic
 
-$(info "**** CIRCUITS_GPIO_SYSFS set to [$(CIRCUITS_GPIO_SYSFS)] ****")
+$(info "**** CIRCUITS_GPIO_BACKEND set to [$(CIRCUITS_GPIO_BACKEND)] ****")
 
 # Check that we're on a supported build platform
 ifeq ($(CROSSCOMPILE),)
@@ -40,8 +40,8 @@ CFLAGS += -fPIC
 LDFLAGS += -fPIC -shared
 else
 LDFLAGS += -undefined dynamic_lookup -dynamiclib
-ifeq ($(CIRCUITS_GPIO_SYSFS),normal)
-$(error Circuits.GPIO2 Linux sysfs backend is not supported on non-Linux platforms. Review circuits_gpio2 backend configuration or report an issue if improperly detected.)
+ifeq ($(CIRCUITS_GPIO_BACKEND),normal)
+$(error Circuits.GPIO2 Linux Cdev backend is not supported on non-Linux platforms. Review circuits_gpio2 backend configuration or report an issue if improperly detected.)
 endif
 endif
 else
@@ -50,10 +50,10 @@ LDFLAGS += -fPIC -shared
 CFLAGS += -fPIC
 endif
 
-ifeq ($(CIRCUITS_GPIO_SYSFS),normal)
+ifeq ($(CIRCUITS_GPIO_BACKEND),normal)
 # Enable real GPIO calls. This is the default and works with Nerves
 else
-ifeq ($(CIRCUITS_GPIO_SYSFS),test)
+ifeq ($(CIRCUITS_GPIO_BACKEND),test)
 # Stub out ioctls and send back test data
 HAL_SRC = c_src/hal_stub.c
 else
