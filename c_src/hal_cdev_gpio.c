@@ -121,9 +121,7 @@ int hal_open_gpio(struct gpio_pin *pin,
     gpiochip_info_t info;
     memset(&info, 0, sizeof(gpiochip_info_t));
 
-    char gpiochip_path[64];
-    sprintf(gpiochip_path, "/dev/gpiochip%d", pin->gpiochip_number);
-    pin->fd = open(gpiochip_path, O_RDWR|O_CLOEXEC);
+    pin->fd = open(pin->gpiochip, O_RDWR|O_CLOEXEC);
     debug("pin->fd = %d", pin->fd);
 
     if (pin->fd < 0) {
@@ -291,6 +289,7 @@ ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
         ERL_NIF_TERM chip_map = enif_make_new_map(env);
         ERL_NIF_TERM chip_path;
         ERL_NIF_TERM chip_label;
+        ERL_NIF_TERM chip_name;
         sprintf(path, "/dev/gpiochip%d", i);
         unsigned char* chip_path_binary = enif_make_new_binary(env, strlen(path), &chip_path);
         memcpy(chip_path_binary, path, strlen(path));
@@ -308,6 +307,10 @@ ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
         memset(chip_label_binary, 0, strlen(info.label));
         strcpy((char*)chip_label_binary, info.label);
 
+        unsigned char* chip_name_binary = enif_make_new_binary(env, strlen(info.name), &chip_name);
+        memset(chip_name_binary, 0, strlen(info.name));
+        strcpy((char*)chip_name_binary, info.name);
+
         unsigned int j;
         for (j = 0; j < info.lines; j++) {
             struct gpio_v2_line_info line;
@@ -321,13 +324,14 @@ ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
 
                 unsigned char* line_label_binary = enif_make_new_binary(env, strlen(line.name), &line_label);
                 memcpy(line_label_binary, line.name, strlen(line.name));
+
                 enif_make_map_put(env, line_map, enif_make_atom(env, "label"), line_label, &line_map);
                 enif_make_map_put(env, line_map, enif_make_atom(env, "line"), line_offset, &line_map);
                 enif_make_map_put(env, chip_map, line_offset, line_map, &chip_map);
             }
         }
         close(fd);
-        enif_make_map_put(env, enum_data, enif_make_tuple2(env, enif_make_int(env, i), chip_label), chip_map, &enum_data);
+        enif_make_map_put(env, enum_data, enif_make_tuple3(env, enif_make_int(env, i), chip_label, chip_name), chip_map, &enum_data);
     }
     return enum_data;
 }

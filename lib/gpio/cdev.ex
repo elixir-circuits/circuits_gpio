@@ -17,11 +17,11 @@ defmodule Circuits.GPIO2.CDev do
   @impl Backend
   def enumerate() do
     nif_enum_and_sort()
-    |> Enum.reduce([], fn {{chip_nr, chip_label}, lines}, acc ->
+    |> Enum.reduce([], fn {{_chip_nr, chip_label, chip_name}, lines}, acc ->
       Enum.reduce(lines, acc, fn {_line_number, %{label: line_label, line: line_number}}, acc ->
         line = %GPIO2.Line{
-          line_spec: {chip_nr, line_number},
-          controller: chip_nr,
+          line_spec: {chip_name, line_number},
+          controller: chip_name,
           label: {chip_label, line_label}
         }
 
@@ -34,9 +34,9 @@ defmodule Circuits.GPIO2.CDev do
   def open(line_nr, direction, options) when is_integer(line_nr) do
     {_index, sysfs_index_lookup} =
       nif_enum_and_sort()
-      |> Enum.reduce({0, []}, fn {{chip_path, _chip_label}, lines}, acc ->
+      |> Enum.reduce({0, []}, fn {{_chip_nr, _chip_label, chip_name}, lines}, acc ->
         Enum.reduce(lines, acc, fn {line_number, _}, {index, list} ->
-          spec = {chip_path, line_number}
+          spec = {chip_name, line_number}
           {index + 1, [{index, spec} | list]}
         end)
       end)
@@ -67,12 +67,22 @@ defmodule Circuits.GPIO2.CDev do
     if spec, do: open(spec, direction, options), else: {:error, :not_found}
   end
 
-  def open(line_spec, direction, options) do
+  def open({controller, line}, direction, options) when is_binary(controller) and is_integer(line) do
     value = Keyword.fetch!(options, :initial_value)
     pull_mode = Keyword.fetch!(options, :pull_mode)
+    line_spec = get_line_spec(controller, line)
 
     with {:ok, ref} <- Nif.open(line_spec, direction, value, pull_mode) do
       {:ok, %__MODULE__{ref: ref}}
+    end
+  end
+
+  @spec get_line_spec(Circuits.GPIO2.controller(), Circuits.GPIO2.line_offset()) :: Circuits.GPIO2.line_spec()
+  defp get_line_spec(controller, line) do
+    in_slash_dev = Path.expand(controller, "/dev")
+    cond do
+      File.exists?(in_slash_dev) -> {in_slash_dev, line}
+      true -> {controller, line}
     end
   end
 
