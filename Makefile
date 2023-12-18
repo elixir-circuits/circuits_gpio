@@ -28,9 +28,7 @@ BUILD  = $(MIX_APP_PATH)/obj
 
 NIF = $(PREFIX)/gpio_nif.so
 
-TARGET_CFLAGS = $(shell c_src/detect_target.sh)
 CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter -pedantic
-CFLAGS += $(TARGET_CFLAGS)
 
 $(info "**** CIRCUITS_GPIO_SYSFS set to [$(CIRCUITS_GPIO_SYSFS)] ****")
 
@@ -79,7 +77,7 @@ calling_from_make:
 
 all: install
 
-install: $(PREFIX) $(BUILD) $(NIF) $(PREFIX)/enum_gpio
+install: $(PREFIX) $(BUILD) $(NIF)
 
 $(OBJ): $(HEADERS) Makefile
 
@@ -90,10 +88,6 @@ $(BUILD)/%.o: c_src/%.c
 $(NIF): $(OBJ)
 	@echo " LD $(notdir $@)"
 	$(CC) -o $@ $(ERL_LDFLAGS) $(LDFLAGS) $^
-
-$(PREFIX)/enum_gpio: c_src/enum_gpio.c
-	$(CC) -o $@ $(ERL_LDFLAGS) $(LDFLAGS) $(ERL_CFLAGS) $(CFLAGS) $^
-
 
 $(PREFIX) $(BUILD):
 	mkdir -p $@
