@@ -22,7 +22,7 @@ ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info)
 {
     (void) hal_priv;
 
-    enif_make_map_put(env, info, enif_make_atom(env, "name"), enif_make_atom(env, "stub"), &info);
+    enif_make_map_put(env, info, atom_name, enif_make_atom(env, "stub"), &info);
     return info;
 }
 

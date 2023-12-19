@@ -16,6 +16,9 @@
 
 ERL_NIF_TERM atom_ok;
 ERL_NIF_TERM atom_error;
+ERL_NIF_TERM atom_name;
+ERL_NIF_TERM atom_label;
+ERL_NIF_TERM atom_line;
 
 static void release_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
 {
@@ -100,6 +103,9 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
 
     atom_ok = enif_make_atom(env, "ok");
     atom_error = enif_make_atom(env, "error");
+    atom_name = enif_make_atom(env, "name");
+    atom_label = enif_make_atom(env, "label");
+    atom_line = enif_make_atom(env, "line");
 
     size_t extra_size = hal_priv_size();
     struct gpio_priv *priv = enif_alloc(sizeof(struct gpio_priv) + extra_size);

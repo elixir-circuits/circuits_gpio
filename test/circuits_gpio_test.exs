@@ -16,7 +16,7 @@ defmodule Circuits.GPIO2Test do
   end
 
   # not a real gpiochip, just used for testing
-  @gpiochip 0
+  @gpiochip "gpiochip0"
 
   # Many of these tests take advantage of the "stub" HAL. The "stub"
   # HAL connects GPIO 0 to 1, 2 to 3, etc. It is useful for testing

@@ -71,6 +71,9 @@ struct gpio_pin {
 // Atoms
 extern ERL_NIF_TERM atom_ok;
 extern ERL_NIF_TERM atom_error;
+extern ERL_NIF_TERM atom_name;
+extern ERL_NIF_TERM atom_label;
+extern ERL_NIF_TERM atom_line;
 
 // HAL
 

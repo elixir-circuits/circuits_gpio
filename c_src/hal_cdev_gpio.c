@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2018 Frank Hunleth, Mark Sebald, Matt Ludwigs
+// SPDX-FileCopyrightText: 2023 Connor Rigby, Frank Hunleth
 //
 // SPDX-License-Identifier: Apache-2.0
 #define DEBUG
@@ -18,7 +18,7 @@
 
 #include "hal_cdev_gpio.h"
 
-#define CONSUMER	"circuits-gpio"
+#define CONSUMER	"circuits_gpio"
 
 typedef struct gpiochip_info gpiochip_info_t;
 
@@ -34,17 +34,14 @@ int gpio_get_chipinfo_ioctl(int fd, gpiochip_info_t* info) {
 int get_value_v2(int fd)
 {
     struct gpio_v2_line_values vals;
-    int ret;
-
     memset(&vals, 0, sizeof(vals));
     vals.mask = 1;
-    debug("ioctl(%d, GPIO_V2_LINE_GET_VALUES_IOCTL)", fd);
-    ret = ioctl(fd, GPIO_V2_LINE_GET_VALUES_IOCTL, &vals);
-    if (ret == -1) {
-        debug("\tret == -1");
+
+    if (ioctl(fd, GPIO_V2_LINE_GET_VALUES_IOCTL, &vals) < 0) {
+        debug("GPIO_V2_LINE_GET_VALUES_IOCTL failed");
         return -errno;
     }
-    debug("\tret ok");
+
     return vals.bits & 0x1;
 }
 
@@ -52,9 +49,8 @@ int request_line_v2(int fd, unsigned int offset,
                     uint64_t flags, unsigned int val)
 {
     struct gpio_v2_line_request req;
-    int ret;
-
     memset(&req, 0, sizeof(req));
+
     req.num_lines = 1;
     req.offsets[0] = offset;
     req.config.flags = flags;
@@ -66,19 +62,17 @@ int request_line_v2(int fd, unsigned int offset,
         if (val)
             req.config.attrs[0].attr.values = 1;
     }
-    debug("ioctl(%d, GPIO_V2_GET_LINE_IOCTL, &req)", fd);
-    ret = ioctl(fd, GPIO_V2_GET_LINE_IOCTL, &req);
-    if (ret == -1) {
-        debug("\tret = -1");
+
+    if (ioctl(fd, GPIO_V2_GET_LINE_IOCTL, &req) < 0) {
+        debug("GPIO_V2_GET_LINE_IOCTL failed");
         return -errno;
     }
-    debug("\tret ok");
     return req.fd;
 }
 
 ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info)
 {
-    enif_make_map_put(env, info, enif_make_atom(env, "name"), enif_make_atom(env, "cdev_gpio"), &info);
+    enif_make_map_put(env, info, atom_name, enif_make_atom(env, "cdev"), &info);
     (void) hal_priv;
     return info;
 }
@@ -191,8 +185,9 @@ int hal_read_gpio(struct gpio_pin *pin)
     uint64_t flags = GPIO_V2_LINE_FLAG_INPUT;
     debug("request_line_v2 %d %d", pin->fd, pin->pin_number);
     int lfd = request_line_v2(pin->fd, pin->pin_number, flags, 0);
+    if (lfd < 0)
+        return lfd;
 
-    if(lfd < 0) return lfd;
     debug("get_value_v2(%d)", lfd);
     int value = get_value_v2(lfd);
     close(lfd);
@@ -278,38 +273,39 @@ int hal_apply_pull_mode(struct gpio_pin *pin)
     return 0;
 }
 
-// %{"/dev/gpiochip0" => %{"line_label" => %{}}}
+static ERL_NIF_TERM new_string_binary(ErlNifEnv *env, const char *str)
+{
+    ERL_NIF_TERM term;
+    size_t len = strlen(str);
+    unsigned char *data = enif_make_new_binary(env, len, &term);
+    memcpy(data, str, len);
+    return term;
+}
+
 ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
 {
-    struct gpiochip_info info;
     int i;
-    char path[32];
 
     for (i = 0; i < 16; i++) {
-        ERL_NIF_TERM chip_map = enif_make_new_map(env);
-        ERL_NIF_TERM chip_path;
-        ERL_NIF_TERM chip_label;
-        ERL_NIF_TERM chip_name;
+        char path[32];
         sprintf(path, "/dev/gpiochip%d", i);
-        unsigned char* chip_path_binary = enif_make_new_binary(env, strlen(path), &chip_path);
-        memcpy(chip_path_binary, path, strlen(path));
 
-        int fd = open((char*)chip_path_binary, O_RDONLY|O_CLOEXEC);
+        ERL_NIF_TERM chip_map = enif_make_new_map(env);
+        ERL_NIF_TERM chip_path = new_string_binary(env, path);
+
+        int fd = open(path, O_RDONLY|O_CLOEXEC);
         if (fd < 0) {
             debug("could not open gpiochip %d %s", errno, strerror(errno));
             break;
         }
+
+        struct gpiochip_info info;
         memset(&info, 0, sizeof(struct gpiochip_info));
         if (ioctl(fd, GPIO_GET_CHIPINFO_IOCTL, &info) < 0)
             break;
 
-        unsigned char* chip_label_binary = enif_make_new_binary(env, strlen(info.label), &chip_label);
-        memset(chip_label_binary, 0, strlen(info.label));
-        strcpy((char*)chip_label_binary, info.label);
-
-        unsigned char* chip_name_binary = enif_make_new_binary(env, strlen(info.name), &chip_name);
-        memset(chip_name_binary, 0, strlen(info.name));
-        strcpy((char*)chip_name_binary, info.name);
+        ERL_NIF_TERM chip_label = new_string_binary(env, info.label);
+        ERL_NIF_TERM chip_name = new_string_binary(env, info.name);
 
         unsigned int j;
         for (j = 0; j < info.lines; j++) {
@@ -319,14 +315,11 @@ ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
             if (ioctl(fd, GPIO_V2_GET_LINEINFO_IOCTL, &line) >= 0) {
                 debug("  {:cdev, \"%s\", %d} -> {\"%s\", \"%s\"}", info.name, j, info.label, line.name);
                 ERL_NIF_TERM line_map = enif_make_new_map(env);
-                ERL_NIF_TERM line_label;
+                ERL_NIF_TERM line_label = new_string_binary(env, line.name);
                 ERL_NIF_TERM line_offset = enif_make_int(env, j);
 
-                unsigned char* line_label_binary = enif_make_new_binary(env, strlen(line.name), &line_label);
-                memcpy(line_label_binary, line.name, strlen(line.name));
-
-                enif_make_map_put(env, line_map, enif_make_atom(env, "label"), line_label, &line_map);
-                enif_make_map_put(env, line_map, enif_make_atom(env, "line"), line_offset, &line_map);
+                enif_make_map_put(env, line_map, atom_label, line_label, &line_map);
+                enif_make_map_put(env, line_map, atom_line, line_offset, &line_map);
                 enif_make_map_put(env, chip_map, line_offset, line_map, &chip_map);
             }
         }
