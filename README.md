@@ -152,6 +152,51 @@ iex> Circuits.GPIO2.pin(gpio)
 17
 ```
 
+## Enumeration
+
+`Circuits.GPIO2` v2.0 supports a new function, `enumerate/0`. which will list out every pin that Linux knows about via the gpio-cdev subsystem. See
+the [Official DeviceTree documentation for GPIOs](https://elixir.bootlin.com/linux/v6.6.6/source/Documentation/devicetree/bindings/gpio/gpio.txt) for more
+information on how to configure the fields of this struct for your own system.
+
+```elixir
+iex> Circuits.GPIO2.enumerate()
+[
+  %Circuits.GPIO2.Line{line_spec: {"gpiochip0", 0}, label: "special-name-for-pin-0", controller: "gpiochip0"},
+  %Circuits.GPIO2.Line{line_spec: {"gpiochip0", 1}, label: "special-name-for-pin-1", controller: "gpiochip0"},
+  %Circuits.GPIO2.Line{line_spec: {"gpiochip1", 0}, label: "", controller: "gpiochip1"},
+  ...
+]
+```
+
+## Pin Specs
+
+`Circuits.GPIO2` V2.0 supports a new form of specifying how to open a pin called a `Spec`. These specs are based on the *newer* gpio-cdev subsystem
+in Linux. Notably, they include the concept of `gpiochips` and `lines``, both of which are used internally to provide pin numbers for the *older* pin numbering scheme.
+Specs are a tuple of a `gpiochip` and a `line`. The gpiochip may be provided as either a label for a chip if configured by your platform, or as it's name as listed
+in `/dev`. 
+
+```elixir
+iex> {:ok, ref} = Circuits.GPIO2.open({"gpiochip0", 1}, :input)
+{:ok, #Reference<...>}
+```
+
+The spec `line` may also be provided as a label if configured for your platform:
+
+```elixir
+iex> {:ok, ref} = Circuits.GPIO2.open({"gpiochip0", "special-name-for-pin-0"})
+{:ok, #Reference<...>}
+```
+
+Additionally, if the label for a pin is unique, that label may be provided without a gpiochip in the spec.
+If the label is *not* unique, the first line matching that name will be opened.
+
+```elixir
+iex> {:ok, ref} = Circuits.GPIO2.open("special-name-for-pin-0")
+{:ok, #Reference<...>}
+```
+
+See [Enumeration](#enumeration) for listing out all available pin specs for your device.
+
 ## Testing
 
 `Circuits.GPIO2` supports a "stub" hardware abstraction layer on platforms
@@ -194,7 +239,7 @@ manually enable it, set `CIRCUITS_MIX_ENV` to `test` and rebuild
 ### Where can I get help?
 
 Most issues people have are on how to communicate with hardware for the first
-time. Since `Circuits.GPIO2` is a thin wrapper on the Linux sys class interface,
+time. Since `Circuits.GPIO2` is a thin wrapper on the Linux CDev GPIO interface,
 you may find help by searching for similar issues when using Python or C.
 
 For help specifically with `Circuits.GPIO2`, you may also find help on the nerves
