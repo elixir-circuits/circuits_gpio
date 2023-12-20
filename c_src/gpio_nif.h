@@ -73,7 +73,10 @@ extern ERL_NIF_TERM atom_ok;
 extern ERL_NIF_TERM atom_error;
 extern ERL_NIF_TERM atom_name;
 extern ERL_NIF_TERM atom_label;
-extern ERL_NIF_TERM atom_line;
+extern ERL_NIF_TERM atom_line_spec;
+extern ERL_NIF_TERM atom_struct;
+extern ERL_NIF_TERM atom_circuits_gpio_line;
+extern ERL_NIF_TERM atom_controller;
 
 // HAL
 
@@ -87,9 +90,10 @@ ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info);
 
 /**
  * Enumerate all GPIO pins
- * Return a map of all GPIO chips and pins
+ *
+ * Returns a list of Circuits.GPIO.Line structs
  */
-ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data);
+ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv);
 
 /**
  * Return the additional number of bytes of private data to allocate

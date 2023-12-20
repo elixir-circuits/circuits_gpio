@@ -147,15 +147,15 @@ int hal_apply_pull_mode(struct gpio_pin *pin)
     return 0;
 }
 
-ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
+ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv)
 {
-    ERL_NIF_TERM chip_map = enif_make_new_map(env);
+    ERL_NIF_TERM gpio_list = enif_make_list(env, 0);
 
     ERL_NIF_TERM chip_label = make_string_binary(env, "stub");
     ERL_NIF_TERM chip_name = make_string_binary(env, "gpiochip0");
 
-    unsigned int j;
-    for (j = 0; j < NUM_GPIOS; j++) {
+    int j;
+    for (j = NUM_GPIOS - 1; j >= 0; j--) {
         char line_name[32];
         sprintf(line_name, "pair_%d_%d", j / 2, j % 2);
 
@@ -163,11 +163,12 @@ ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
         ERL_NIF_TERM line_label = make_string_binary(env, line_name);
         ERL_NIF_TERM line_offset = enif_make_int(env, j);
 
-        enif_make_map_put(env, line_map, atom_label, line_label, &line_map);
-        enif_make_map_put(env, line_map, atom_line, line_offset, &line_map);
-        enif_make_map_put(env, chip_map, line_offset, line_map, &chip_map);
+        enif_make_map_put(env, line_map, atom_struct, atom_circuits_gpio_line, &line_map);
+        enif_make_map_put(env, line_map, atom_controller, chip_name, &line_map);
+        enif_make_map_put(env, line_map, atom_label, enif_make_tuple2(env, chip_label, line_label), &line_map);
+        enif_make_map_put(env, line_map, atom_line_spec, enif_make_tuple2(env, chip_name, line_offset), &line_map);
+        gpio_list = enif_make_list_cell(env, line_map, gpio_list);
     }
-    enif_make_map_put(env, enum_data, enif_make_tuple3(env, enif_make_int(env, 0), chip_label, chip_name), chip_map, &enum_data);
 
-    return enum_data;
+    return gpio_list;
 }

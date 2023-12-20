@@ -272,11 +272,12 @@ int hal_apply_pull_mode(struct gpio_pin *pin)
     return 0;
 }
 
-ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
+ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv)
 {
     int i;
 
-    for (i = 0; i < 16; i++) {
+    ERL_NIF_TERM gpio_list = enif_make_list(env, 0);
+    for (i = 15; i >= 0; i--) {
         char path[32];
         sprintf(path, "/dev/gpiochip%d", i);
 
@@ -291,12 +292,11 @@ ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
         if (ioctl(fd, GPIO_GET_CHIPINFO_IOCTL, &info) < 0)
             break;
 
-        ERL_NIF_TERM chip_map = enif_make_new_map(env);
         ERL_NIF_TERM chip_label = make_string_binary(env, info.label);
         ERL_NIF_TERM chip_name = make_string_binary(env, info.name);
 
-        unsigned int j;
-        for (j = 0; j < info.lines; j++) {
+        int j;
+        for (j = info.lines - 1; j >= 0; j--) {
             struct gpio_v2_line_info line;
             memset(&line, 0, sizeof(struct gpio_v2_line_info));
             line.offset = j;
@@ -306,13 +306,14 @@ ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
                 ERL_NIF_TERM line_label = make_string_binary(env, line.name);
                 ERL_NIF_TERM line_offset = enif_make_int(env, j);
 
-                enif_make_map_put(env, line_map, atom_label, line_label, &line_map);
-                enif_make_map_put(env, line_map, atom_line, line_offset, &line_map);
-                enif_make_map_put(env, chip_map, line_offset, line_map, &chip_map);
+                enif_make_map_put(env, line_map, atom_struct, atom_circuits_gpio_line, &line_map);
+                enif_make_map_put(env, line_map, atom_struct, atom_circuits_gpio_line, &line_map);
+                enif_make_map_put(env, line_map, atom_label, enif_make_tuple2(env, chip_label, line_label), &line_map);
+                enif_make_map_put(env, line_map, atom_line_spec, enif_make_tuple2(env, chip_name, line_offset), &line_map);
+                gpio_list = enif_make_list_cell(env, line_map, gpio_list);
             }
         }
         close(fd);
-        enif_make_map_put(env, enum_data, enif_make_tuple3(env, enif_make_int(env, i), chip_label, chip_name), chip_map, &enum_data);
     }
-    return enum_data;
+    return gpio_list;
 }

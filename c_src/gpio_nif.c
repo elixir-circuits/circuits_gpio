@@ -18,7 +18,10 @@ ERL_NIF_TERM atom_ok;
 ERL_NIF_TERM atom_error;
 ERL_NIF_TERM atom_name;
 ERL_NIF_TERM atom_label;
-ERL_NIF_TERM atom_line;
+ERL_NIF_TERM atom_line_spec;
+ERL_NIF_TERM atom_struct;
+ERL_NIF_TERM atom_circuits_gpio_line;
+ERL_NIF_TERM atom_controller;
 
 static void release_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
 {
@@ -103,7 +106,10 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
     atom_error = enif_make_atom(env, "error");
     atom_name = enif_make_atom(env, "name");
     atom_label = enif_make_atom(env, "label");
-    atom_line = enif_make_atom(env, "line");
+    atom_line_spec = enif_make_atom(env, "line_spec");
+    atom_controller = enif_make_atom(env, "controller");
+    atom_struct = enif_make_atom(env, "__struct__");
+    atom_circuits_gpio_line = enif_make_atom(env, "Elixir.Circuits.GPIO2.Line");
 
     size_t extra_size = hal_priv_size();
     struct gpio_priv *priv = enif_alloc(sizeof(struct gpio_priv) + extra_size);
@@ -393,9 +399,8 @@ static ERL_NIF_TERM gpio_enum(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     (void) argv;
 
     struct gpio_priv *priv = enif_priv_data(env);
-    ERL_NIF_TERM enum_data = enif_make_new_map(env);
 
-    return hal_enum(env, priv->hal_priv, enum_data);
+    return hal_enum(env, priv->hal_priv);
 }
 
 static ErlNifFunc nif_funcs[] = {
