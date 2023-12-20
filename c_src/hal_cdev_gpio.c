@@ -110,8 +110,6 @@ int hal_open_gpio(struct gpio_pin *pin,
                   char *error_str,
                   ErlNifEnv *env)
 {
-    *error_str = '\0';
-
     gpiochip_info_t info;
     memset(&info, 0, sizeof(gpiochip_info_t));
 
@@ -148,7 +146,7 @@ int hal_open_gpio(struct gpio_pin *pin,
     }
     int lfd = request_line_v2(pin->fd, pin->pin_number, flags, value);
     if(lfd < 0) {
-        strcpy(error_str, "request_line_v2_failed");
+        strcpy(error_str, "invalid_pin");
         goto error;
     }
     close(lfd);
@@ -159,6 +157,7 @@ int hal_open_gpio(struct gpio_pin *pin,
         goto error;
     }
 
+    *error_str = '\0';
     return 0;
 
 error:
@@ -273,15 +272,6 @@ int hal_apply_pull_mode(struct gpio_pin *pin)
     return 0;
 }
 
-static ERL_NIF_TERM new_string_binary(ErlNifEnv *env, const char *str)
-{
-    ERL_NIF_TERM term;
-    size_t len = strlen(str);
-    unsigned char *data = enif_make_new_binary(env, len, &term);
-    memcpy(data, str, len);
-    return term;
-}
-
 ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
 {
     int i;
@@ -289,9 +279,6 @@ ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
     for (i = 0; i < 16; i++) {
         char path[32];
         sprintf(path, "/dev/gpiochip%d", i);
-
-        ERL_NIF_TERM chip_map = enif_make_new_map(env);
-        ERL_NIF_TERM chip_path = new_string_binary(env, path);
 
         int fd = open(path, O_RDONLY|O_CLOEXEC);
         if (fd < 0) {
@@ -304,8 +291,9 @@ ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
         if (ioctl(fd, GPIO_GET_CHIPINFO_IOCTL, &info) < 0)
             break;
 
-        ERL_NIF_TERM chip_label = new_string_binary(env, info.label);
-        ERL_NIF_TERM chip_name = new_string_binary(env, info.name);
+        ERL_NIF_TERM chip_map = enif_make_new_map(env);
+        ERL_NIF_TERM chip_label = make_string_binary(env, info.label);
+        ERL_NIF_TERM chip_name = make_string_binary(env, info.name);
 
         unsigned int j;
         for (j = 0; j < info.lines; j++) {
@@ -315,7 +303,7 @@ ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM enum_data)
             if (ioctl(fd, GPIO_V2_GET_LINEINFO_IOCTL, &line) >= 0) {
                 debug("  {:cdev, \"%s\", %d} -> {\"%s\", \"%s\"}", info.name, j, info.label, line.name);
                 ERL_NIF_TERM line_map = enif_make_new_map(env);
-                ERL_NIF_TERM line_label = new_string_binary(env, line.name);
+                ERL_NIF_TERM line_label = make_string_binary(env, line.name);
                 ERL_NIF_TERM line_offset = enif_make_int(env, j);
 
                 enif_make_map_put(env, line_map, atom_label, line_label, &line_map);

@@ -99,8 +99,6 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
     log_location = fopen(LOG_PATH, "w");
 #endif
 #endif
-    debug("load");
-
     atom_ok = enif_make_atom(env, "ok");
     atom_error = enif_make_atom(env, "error");
     atom_name = enif_make_atom(env, "name");

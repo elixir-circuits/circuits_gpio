@@ -41,7 +41,7 @@ LDFLAGS += -fPIC -shared
 else
 LDFLAGS += -undefined dynamic_lookup -dynamiclib
 ifeq ($(CIRCUITS_GPIO_BACKEND),normal)
-$(error Circuits.GPIO2 Linux Cdev backend is not supported on non-Linux platforms. Review circuits_gpio2 backend configuration or report an issue if improperly detected.)
+$(error Circuits.GPIO2 Linux cdev backend is not supported on non-Linux platforms. Review circuits_gpio2 backend configuration or report an issue if improperly detected.)
 endif
 endif
 else

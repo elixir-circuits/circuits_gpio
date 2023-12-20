@@ -40,7 +40,6 @@ defmodule Circuits.GPIO2.MixProject do
       files: [
         "lib",
         "c_src/*.[ch]",
-        "c_src/*.sh",
         "mix.exs",
         "README.md",
         "PORTING.md",

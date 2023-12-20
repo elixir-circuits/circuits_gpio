@@ -18,6 +18,15 @@ ERL_NIF_TERM make_error_tuple(ErlNifEnv *env, const char *reason)
     return enif_make_tuple2(env, atom_error, reason_atom);
 }
 
+ERL_NIF_TERM make_string_binary(ErlNifEnv *env, const char *str)
+{
+    ERL_NIF_TERM term;
+    size_t len = strlen(str);
+    unsigned char *data = enif_make_new_binary(env, len, &term);
+    memcpy(data, str, len);
+    return term;
+}
+
 int enif_get_boolean(ErlNifEnv *env, ERL_NIF_TERM term, bool *v)
 {
     char buffer[16];

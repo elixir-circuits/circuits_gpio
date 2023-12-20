@@ -8,10 +8,11 @@ defmodule Circuits.GPIO2.Backend do
   """
   alias Circuits.GPIO2
   alias Circuits.GPIO2.Handle
+  alias Circuits.GPIO2.Line
 
   @doc """
   """
-  @callback enumerate() :: [GPIO2.Line.t()]
+  @callback enumerate() :: [Line.t()]
 
   @doc """
   Open one or more GPIOs

@@ -10,6 +10,7 @@ defmodule Circuits.GPIO2.CDev do
 
   alias Circuits.GPIO2.Backend
   alias Circuits.GPIO2.Handle
+  alias Circuits.GPIO2.Line
   alias Circuits.GPIO2.Nif
 
   defstruct [:ref]
@@ -19,7 +20,7 @@ defmodule Circuits.GPIO2.CDev do
     nif_enum_and_sort()
     |> Enum.reduce([], fn {{_chip_nr, chip_label, chip_name}, lines}, acc ->
       Enum.reduce(lines, acc, fn {_line_number, %{label: line_label, line: line_number}}, acc ->
-        line = %GPIO2.Line{
+        line = %Line{
           line_spec: {chip_name, line_number},
           controller: chip_name,
           label: {chip_label, line_label}
@@ -40,34 +41,39 @@ defmodule Circuits.GPIO2.CDev do
           {index + 1, [{index, spec} | list]}
         end)
       end)
-    spec = Enum.find_value(sysfs_index_lookup, fn
-      {^line_nr, spec} -> spec
-      _ -> false
-    end)
 
+    spec =
+      Enum.find_value(sysfs_index_lookup, fn
+        {^line_nr, spec} -> spec
+        _ -> false
+      end)
 
     if spec, do: open(spec, direction, options), else: {:error, :not_found}
   end
 
   def open(line_label, direction, options) when is_binary(line_label) do
-    spec = Enum.find_value(enumerate(), fn
-      %GPIO2.Line{line_spec: spec, label: {_chip_label, ^line_label}} -> spec
-      _ -> false
-    end)
+    spec =
+      Enum.find_value(enumerate(), fn
+        %Line{line_spec: spec, label: {_chip_label, ^line_label}} -> spec
+        _ -> false
+      end)
 
     if spec, do: open(spec, direction, options), else: {:error, :not_found}
   end
 
-  def open({chip_label, line_label}, direction, options) when is_binary(chip_label) and is_binary(line_label) do
-    spec = Enum.find_value(enumerate(), fn
-      %GPIO2.Line{line_spec: spec, label: {^chip_label, ^line_label}} -> spec
-      _ -> false
-    end)
+  def open({chip_label, line_label}, direction, options)
+      when is_binary(chip_label) and is_binary(line_label) do
+    spec =
+      Enum.find_value(enumerate(), fn
+        %Line{line_spec: spec, label: {^chip_label, ^line_label}} -> spec
+        _ -> false
+      end)
 
     if spec, do: open(spec, direction, options), else: {:error, :not_found}
   end
 
-  def open({controller, line}, direction, options) when is_binary(controller) and is_integer(line) do
+  def open({controller, line}, direction, options)
+      when is_binary(controller) and is_integer(line) do
     value = Keyword.fetch!(options, :initial_value)
     pull_mode = Keyword.fetch!(options, :pull_mode)
     line_spec = get_line_spec(controller, line)
@@ -77,13 +83,12 @@ defmodule Circuits.GPIO2.CDev do
     end
   end
 
-  @spec get_line_spec(Circuits.GPIO2.controller(), Circuits.GPIO2.line_offset()) :: Circuits.GPIO2.line_spec()
+  @spec get_line_spec(Circuits.GPIO2.controller(), Circuits.GPIO2.line_offset()) ::
+          Circuits.GPIO2.line_spec()
   defp get_line_spec(controller, line) do
     in_slash_dev = Path.expand(controller, "/dev")
-    cond do
-      File.exists?(in_slash_dev) -> {in_slash_dev, line}
-      true -> {controller, line}
-    end
+
+    if File.exists?(in_slash_dev), do: {in_slash_dev, line}, else: {controller, line}
   end
 
   @impl Backend
@@ -94,9 +99,11 @@ defmodule Circuits.GPIO2.CDev do
   defp nif_enum_and_sort() do
     Nif.enum()
     |> Enum.map(fn {chip, lines} ->
-      lines = Enum.sort(lines, fn {line_a, _}, {line_b, _} ->
-        line_a < line_b
-      end)
+      lines =
+        Enum.sort(lines, fn {line_a, _}, {line_b, _} ->
+          line_a < line_b
+        end)
+
       {chip, lines}
     end)
     |> Enum.sort(fn {{chip_a, _label_a}, _lines_a}, {{chip_b, _label_b}, _lines_b} ->

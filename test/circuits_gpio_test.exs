@@ -5,6 +5,7 @@
 defmodule Circuits.GPIO2Test do
   use ExUnit.Case
   alias Circuits.GPIO2
+  alias Circuits.GPIO2.Line
 
   setup do
     # Verify the test is being run with a clean environment
@@ -260,6 +261,17 @@ defmodule Circuits.GPIO2Test do
     {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output, initial_value: 0)
     assert GPIO2.read(gpio0) == 0
     GPIO2.close(gpio0)
+  end
+
+  test "can enumerate GPIOs" do
+    result = GPIO2.enumerate()
+    assert length(result) == 32
+
+    assert hd(result) == %Line{
+             line_spec: {"gpiochip0", 0},
+             controller: "gpiochip0",
+             label: {"stub", "pair_0_0"}
+           }
   end
 
   test "unloading NIF" do

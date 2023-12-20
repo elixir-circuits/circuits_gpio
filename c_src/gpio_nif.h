@@ -182,6 +182,7 @@ int hal_apply_pull_mode(struct gpio_pin *pin);
 // nif_utils.c
 ERL_NIF_TERM make_ok_tuple(ErlNifEnv *env, ERL_NIF_TERM value);
 ERL_NIF_TERM make_error_tuple(ErlNifEnv *env, const char *reason);
+ERL_NIF_TERM make_string_binary(ErlNifEnv *env, const char *str);
 int enif_get_boolean(ErlNifEnv *env, ERL_NIF_TERM term, bool *v);
 
 int send_gpio_message(ErlNifEnv *env,
