@@ -32,6 +32,7 @@ static void release_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
     }
     if (pin->gpiochip) {
         free(pin->gpiochip);
+        pin->gpiochip = NULL;
     }
 }
 
