@@ -50,7 +50,7 @@ defmodule Circuits.GPIO2Test do
 
   test "open returns errors on invalid pins" do
     # The stub returns error on any pin numbers >= 64
-    assert GPIO2.open({@gpiochip, 100}, :input) == {:error, :no_gpio}
+    assert GPIO2.open({@gpiochip, 100}, :input) == {:error, :invalid_pin}
   end
 
   test "gpio refs get garbage collected" do
