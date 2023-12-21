@@ -21,24 +21,10 @@ defmodule Circuits.GPIO2.CDev do
   end
 
   @impl Backend
-  def open(line_nr, _direction, _options) when is_integer(line_nr) do
-    # {_index, sysfs_index_lookup} =
-    #   nif_enum_and_sort()
-    #   |> Enum.reduce({0, []}, fn {{_chip_nr, _chip_label, chip_name}, lines}, acc ->
-    #     Enum.reduce(lines, acc, fn {line_number, _}, {index, list} ->
-    #       spec = {chip_name, line_number}
-    #       {index + 1, [{index, spec} | list]}
-    #     end)
-    #   end)
+  def open(line_nr, direction, options) when is_integer(line_nr) do
+    info = enumerate() |> Enum.at(line_nr)
 
-    # spec =
-    #   Enum.find_value(sysfs_index_lookup, fn
-    #     {^line_nr, spec} -> spec
-    #     _ -> false
-    #   end)
-
-    # if spec, do: open(spec, direction, options), else: {:error, :not_found}
-    {:error, :not_found}
+    if info, do: open(info.line_spec, direction, options), else: {:error, :not_found}
   end
 
   def open(line_label, direction, options) when is_binary(line_label) do

@@ -61,8 +61,9 @@ struct gpio_config {
 };
 
 struct gpio_pin {
-    int pin_number;
-    char* gpiochip;
+    char *gpiochip;
+    int offset;
+    int pin_number; /* legacy pin number for backwards compatibility */
     int fd;
     void *hal_priv;
     struct gpio_config config;

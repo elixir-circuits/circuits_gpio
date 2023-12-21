@@ -48,6 +48,12 @@ defmodule Circuits.GPIO2Test do
     GPIO2.close(gpio)
   end
 
+  test "open by pin number returns expected pin number" do
+    {:ok, gpio} = GPIO2.open(12, :output)
+    assert GPIO2.pin(gpio) == 12
+    GPIO2.close(gpio)
+  end
+
   test "open returns errors on invalid pins" do
     # The stub returns error on any pin numbers >= 64
     assert GPIO2.open({@gpiochip, 100}, :input) == {:error, :invalid_pin}
@@ -265,12 +271,18 @@ defmodule Circuits.GPIO2Test do
 
   test "can enumerate GPIOs" do
     result = GPIO2.enumerate()
-    assert length(result) == 32
+    assert length(result) == 64
 
     assert hd(result) == %Line{
              line_spec: {"gpiochip0", 0},
              controller: "gpiochip0",
              label: {"stub", "pair_0_0"}
+           }
+
+    assert List.last(result) == %Line{
+             line_spec: {"gpiochip1", 31},
+             controller: "gpiochip1",
+             label: {"stub", "pair_31_1"}
            }
   end
 

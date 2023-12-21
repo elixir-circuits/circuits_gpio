@@ -143,7 +143,7 @@ int hal_open_gpio(struct gpio_pin *pin,
         close(pin->fd);
         return -1;
     }
-    int lfd = request_line_v2(pin->fd, pin->pin_number, flags, value);
+    int lfd = request_line_v2(pin->fd, pin->offset, flags, value);
     if(lfd < 0) {
         strcpy(error_str, "invalid_pin");
         goto error;
@@ -181,8 +181,8 @@ int hal_read_gpio(struct gpio_pin *pin)
 {
     debug("hal_read_gpio");
     uint64_t flags = GPIO_V2_LINE_FLAG_INPUT;
-    debug("request_line_v2 %d %d", pin->fd, pin->pin_number);
-    int lfd = request_line_v2(pin->fd, pin->pin_number, flags, 0);
+    debug("request_line_v2 %d %d", pin->fd, pin->offset);
+    int lfd = request_line_v2(pin->fd, pin->offset, flags, 0);
     if (lfd < 0)
         return lfd;
 
@@ -196,7 +196,7 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
 {
     (void) env;
     uint64_t flags = GPIO_V2_LINE_FLAG_OUTPUT;
-    int lfd = request_line_v2(pin->fd, pin->pin_number, flags, value);
+    int lfd = request_line_v2(pin->fd, pin->offset, flags, value);
     close(lfd);
 
     if(lfd < 0) return lfd;
@@ -233,7 +233,7 @@ int hal_apply_direction(struct gpio_pin *pin)
         flags |= GPIO_V2_LINE_FLAG_BIAS_DISABLED;
     }
 
-    int lfd = request_line_v2(pin->fd, pin->pin_number, flags, value);
+    int lfd = request_line_v2(pin->fd, pin->offset, flags, value);
     close(lfd);
 
     if(lfd < 0) return lfd;
@@ -264,7 +264,7 @@ int hal_apply_pull_mode(struct gpio_pin *pin)
         flags |= GPIO_V2_LINE_FLAG_BIAS_DISABLED;
     }
 
-    int lfd = request_line_v2(pin->fd, pin->pin_number, flags, value);
+    int lfd = request_line_v2(pin->fd, pin->offset, flags, value);
     close(lfd);
 
     if(lfd < 0) return lfd;

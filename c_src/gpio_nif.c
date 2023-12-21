@@ -40,7 +40,7 @@ static void gpio_pin_dtor(ErlNifEnv *env, void *obj)
     struct gpio_priv *priv = enif_priv_data(env);
     struct gpio_pin *pin = (struct gpio_pin*) obj;
 
-    debug("gpio_pin_dtor called on pin=%d", pin->pin_number);
+    debug("gpio_pin_dtor called on pin={%s,%d}", pin->gpiochip, pin->offset);
 
     release_gpio_pin(priv, pin);
 }
@@ -54,7 +54,7 @@ static void gpio_pin_stop(ErlNifEnv *env, void *obj, int fd, int is_direct_call)
     //struct gpio_priv *priv = enif_priv_data(env);
 #ifdef DEBUG
     struct gpio_pin *pin = (struct gpio_pin*) obj;
-    debug("gpio_pin_stop called %s, pin=%d", (is_direct_call ? "DIRECT" : "LATER"), pin->pin_number);
+    debug("gpio_pin_stop called %s, pin={%s,%d}", (is_direct_call ? "DIRECT" : "LATER"), pin->gpiochip, pin->offset);
 #endif
 }
 
@@ -66,7 +66,7 @@ static void gpio_pin_down(ErlNifEnv *env, void *obj, ErlNifPid *pid, ErlNifMonit
     (void) monitor;
 #ifdef DEBUG
     struct gpio_pin *pin = (struct gpio_pin*) obj;
-    debug("gpio_pin_down called on pin=%d", pin->pin_number);
+    debug("gpio_pin_down called on pin={%s,%d}", pin->gpiochip, pin->offset);
 #endif
 }
 
@@ -336,16 +336,17 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     if(pin_spec_tuple_arity != 2) return enif_make_badarg(env);
     if(!enif_inspect_binary(env, pin_spec_tuple[0], &gpiochip_binary)) return enif_make_badarg(env);
     if(!enif_get_int(env, pin_spec_tuple[1], &pin_number)) return enif_make_badarg(env);
-    gpiochip_path = malloc(gpiochip_binary.size);
-    memset(gpiochip_path, 0, gpiochip_binary.size);
+    gpiochip_path = malloc(gpiochip_binary.size + 1);
     memcpy(gpiochip_path, gpiochip_binary.data, gpiochip_binary.size);
+    gpiochip_path[gpiochip_binary.size] = '\0';
 
     debug("line_spec = .{.gpiochip = %s, .pin_number = %d}", gpiochip_path, pin_number);
 
     struct gpio_pin *pin = enif_alloc_resource(priv->gpio_pin_rt, sizeof(struct gpio_pin));
     pin->fd = -1;
     pin->gpiochip = gpiochip_path;
-    pin->pin_number = pin_number;
+    pin->offset = pin_number;
+    pin->pin_number = -1; // Filled in by lower level
     pin->hal_priv = priv->hal_priv;
     pin->config.is_output = is_output;
     pin->config.trigger = TRIGGER_NONE;

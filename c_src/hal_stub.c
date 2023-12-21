@@ -5,11 +5,13 @@
 #include "gpio_nif.h"
 #include <string.h>
 
-#define NUM_GPIOS 32
+#define NUM_GPIOS 64
 
 /**
  * The stub hardware abstraction layer is suitable for some unit testing.
- * It has 1 bank of 32 GPIOs. GPIO 0 is connected to GPIO 1, 2 to 3, and so on.
+ *
+ * gpiochip0 -> 32 GPIOs. GPIO 0 is connected to GPIO 1, 2 to 3, and so on.
+ * gpiochip1 -> 32 GPIOs. GPIO 0 is connected to GPIO 1, 2 to 3, and so on.
  */
 
 struct stub_priv {
@@ -46,17 +48,22 @@ int hal_open_gpio(struct gpio_pin *pin,
                   char *error_str,
                   ErlNifEnv *env)
 {
-    // For test purposes, pins 0-31 work and everything else fails
-    if (strcmp(pin->gpiochip, "gpiochip0") != 0) {
+    int pin_base;
+
+    if (strcmp(pin->gpiochip, "gpiochip0") == 0) {
+        pin_base = 0;
+    } else if (strcmp(pin->gpiochip, "gpiochip1") == 0) {
+        pin_base = 32;
+    } else {
         strcpy(error_str, "open_failed");
         return -1;
     }
 
-    if (pin->pin_number < 0 || pin->pin_number >= NUM_GPIOS) {
+    if (pin->offset < 0 || pin->offset >= 32) {
         strcpy(error_str, "invalid_pin");
         return -1;
     }
-
+    pin->pin_number = pin_base + pin->offset;
     pin->fd = pin->pin_number;
 
     if (pin->config.is_output && pin->config.initial_value != -1)
@@ -152,16 +159,19 @@ ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv)
     ERL_NIF_TERM gpio_list = enif_make_list(env, 0);
 
     ERL_NIF_TERM chip_label = make_string_binary(env, "stub");
-    ERL_NIF_TERM chip_name = make_string_binary(env, "gpiochip0");
+    ERL_NIF_TERM chip_name0 = make_string_binary(env, "gpiochip0");
+    ERL_NIF_TERM chip_name1 = make_string_binary(env, "gpiochip1");
+
 
     int j;
     for (j = NUM_GPIOS - 1; j >= 0; j--) {
         char line_name[32];
         sprintf(line_name, "pair_%d_%d", j / 2, j % 2);
 
+        ERL_NIF_TERM chip_name = (j >= 32) ? chip_name1 : chip_name0;
         ERL_NIF_TERM line_map = enif_make_new_map(env);
         ERL_NIF_TERM line_label = make_string_binary(env, line_name);
-        ERL_NIF_TERM line_offset = enif_make_int(env, j);
+        ERL_NIF_TERM line_offset = enif_make_int(env, j % 32);
 
         enif_make_map_put(env, line_map, atom_struct, atom_circuits_gpio_line, &line_map);
         enif_make_map_put(env, line_map, atom_controller, chip_name, &line_map);
