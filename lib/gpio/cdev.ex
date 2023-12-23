@@ -20,56 +20,51 @@ defmodule Circuits.GPIO2.CDev do
     Nif.enumerate()
   end
 
+  defp normalize_gpio_spec(number) when is_integer(number) do
+    info = enumerate() |> Enum.at(number)
+
+    if info, do: {:ok, info.gpio_spec}, else: {:error, :not_found}
+  end
+
+  defp normalize_gpio_spec(line_label) when is_binary(line_label) do
+    spec =
+      Enum.find_value(enumerate(), fn
+        %Line{gpio_spec: spec, label: {_chip_label, ^line_label}} -> spec
+        _ -> false
+      end)
+
+    if spec, do: {:ok, spec}, else: {:error, :not_found}
+  end
+
+  defp normalize_gpio_spec({chip_label, line_label})
+       when is_binary(chip_label) and is_binary(line_label) do
+    spec =
+      Enum.find_value(enumerate(), fn
+        %Line{gpio_spec: spec, label: {^chip_label, ^line_label}} -> spec
+        _ -> false
+      end)
+
+    if spec, do: {:ok, spec}, else: {:error, :not_found}
+  end
+
+  defp normalize_gpio_spec({controller, line}) when is_binary(controller) and is_integer(line) do
+    in_slash_dev = Path.expand(controller, "/dev")
+
+    if File.exists?(in_slash_dev),
+      do: {:ok, {in_slash_dev, line}},
+      else: {:ok, {controller, line}}
+  end
+
   @impl Backend
-  def open(line_nr, direction, options) when is_integer(line_nr) do
-    info = enumerate() |> Enum.at(line_nr)
-
-    if info, do: do_open(line_nr, info.line_spec, direction, options), else: {:error, :not_found}
-  end
-
-  def open(line_label, direction, options) when is_binary(line_label) do
-    spec =
-      Enum.find_value(enumerate(), fn
-        %Line{line_spec: spec, label: {_chip_label, ^line_label}} -> spec
-        _ -> false
-      end)
-
-    if spec, do: do_open(line_label, spec, direction, options), else: {:error, :not_found}
-  end
-
-  def open({chip_label, line_label} = line_spec, direction, options)
-      when is_binary(chip_label) and is_binary(line_label) do
-    spec =
-      Enum.find_value(enumerate(), fn
-        %Line{line_spec: spec, label: {^chip_label, ^line_label}} -> spec
-        _ -> false
-      end)
-
-    if spec, do: do_open(line_spec, spec, direction, options), else: {:error, :not_found}
-  end
-
-  def open({controller, line} = line_spec, direction, options)
-      when is_binary(controller) and is_integer(line) do
-    resolved_line_spec = get_line_spec(controller, line)
-    do_open(line_spec, resolved_line_spec, direction, options)
-  end
-
-  defp do_open(original_line_spec, resolved_line_spec, direction, options) do
+  def open(gpio_spec, direction, options) do
     value = Keyword.fetch!(options, :initial_value)
     pull_mode = Keyword.fetch!(options, :pull_mode)
 
-    with {:ok, ref} <-
-           Nif.open(original_line_spec, resolved_line_spec, direction, value, pull_mode) do
+    with {:ok, normalized_spec} <- normalize_gpio_spec(gpio_spec),
+         {:ok, ref} <-
+           Nif.open(gpio_spec, normalized_spec, direction, value, pull_mode) do
       {:ok, %__MODULE__{ref: ref}}
     end
-  end
-
-  @spec get_line_spec(Circuits.GPIO2.controller(), Circuits.GPIO2.line_offset()) ::
-          Circuits.GPIO2.line_spec()
-  defp get_line_spec(controller, line) do
-    in_slash_dev = Path.expand(controller, "/dev")
-
-    if File.exists?(in_slash_dev), do: {in_slash_dev, line}, else: {controller, line}
   end
 
   @impl Backend
@@ -89,8 +84,8 @@ defmodule Circuits.GPIO2.CDev do
     end
 
     @impl Handle
-    def set_direction(%Circuits.GPIO2.CDev{ref: ref}, line_direction) do
-      Nif.set_direction(ref, line_direction)
+    def set_direction(%Circuits.GPIO2.CDev{ref: ref}, direction) do
+      Nif.set_direction(ref, direction)
     end
 
     @impl Handle
@@ -119,7 +114,7 @@ defmodule Circuits.GPIO2.CDev do
 
     @impl Handle
     def info(%Circuits.GPIO2.CDev{ref: ref}) do
-      %{line_spec: Nif.pin(ref)}
+      %{gpio_spec: Nif.gpio_spec(ref), pin_number: Nif.pin_number(ref)}
     end
   end
 end

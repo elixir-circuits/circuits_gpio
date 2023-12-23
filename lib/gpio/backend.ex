@@ -17,7 +17,7 @@ defmodule Circuits.GPIO2.Backend do
   @doc """
   Open one or more GPIOs
 
-  `line_spec` should be a valid GPIO pin specification on the system and `direction`
+  `gpio_spec` should be a valid GPIO pin specification on the system and `direction`
   should be `:input` or `:output`. If opening as an output, then be sure to set
   the `:initial_value` option if you need the set to be glitch free.
 
@@ -29,8 +29,8 @@ defmodule Circuits.GPIO2.Backend do
      input pin. `:not_set` is the default.
   """
   @callback open(
-              line_spec :: GPIO2.line_spec(),
-              direction :: GPIO2.line_direction(),
+              gpio_spec :: GPIO2.gpio_spec(),
+              direction :: GPIO2.direction(),
               options :: GPIO2.open_options()
             ) ::
               {:ok, Handle.t()} | {:error, atom()}

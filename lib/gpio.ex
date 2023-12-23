@@ -37,7 +37,8 @@ defmodule Circuits.GPIO2 do
   GPIO line offset on a controller
 
   GPIOs are numbered based on how they're connected to a controller. The
-  details are controller specific, but usually the first one is `0`, then `1`, etc.
+  details are controller specific, but usually the first one is `0`, then `1`,
+  etc.
   """
   @type line_offset() :: non_neg_integer()
 
@@ -50,26 +51,31 @@ defmodule Circuits.GPIO2 do
   @type label() :: String.t()
 
   @typedoc """
-  An identifier for a GPIO line
+  An identifier for a GPIO
 
   Call `Circuits.GPIO.enumerate/0` to see what GPIOs are available on your device. Several
   ways exist to refer to GPIOs due to variations in devices and programmer preference.
 
   Options:
 
-  1. `index` - Many examples exist where GPIOs are referred to by a GPIO number. There are issues
-     with this strategy since GPIO indices can change. It is so common that it's still supported. Prefer other ways when
-     you're able to change code.
-  2. `{controller, line_offset}` - Specify a line on a specific GPIO controller. E.g., `{"gpiochip0", 10}`
-  3. `label` - Specify a GPIO line label. The first controller that has a matching line is used. This lets
-     you move the mapping of GPIOs to peripheral connections to a device tree file or other central place. E.g., `"LED_ENABLE"`
-  4. `{label, label}` - Specify both GPIO controller and line labels. E.g., `{"primary-gpios", "PIO4"}`
+  1. `index` - Many examples exist where GPIOs are referred to by a GPIO
+     number. There are issues with this strategy since GPIO indices can change.
+     It is so common that it's still supported. Prefer other ways when you're
+     able to change code.
+  2. `{controller, line_offset}` - Specify a line on a specific GPIO
+     controller. E.g., `{"gpiochip0", 10}`
+  3. `label` - Specify a GPIO line label. The first controller that has a
+     matching line is used. This lets you move the mapping of GPIOs to
+     peripheral connections to a device tree file or other central place. E.g.,
+     `"LED_ENABLE"`
+  4. `{label, label}` - Specify both GPIO controller and line labels. E.g.,
+     `{"primary-gpios", "PIO4"}`
   """
-  @type line_spec() ::
+  @type gpio_spec() ::
           non_neg_integer() | {controller(), line_offset()} | label() | {label(), label()}
 
   @typedoc "The GPIO direction (input or output)"
-  @type line_direction() :: :input | :output
+  @type direction() :: :input | :output
 
   @typedoc "GPIO logic value (low = 0 or high = 1)"
   @type value() :: 0 | 1
@@ -93,9 +99,9 @@ defmodule Circuits.GPIO2 do
   # Public API
 
   @doc """
-  Open a GPIO for use.
+  Open a GPIO
 
-  `pin` should be a valid GPIO pin number on the system and `line_direction`
+  `gpio_spec` should be a valid GPIO pin number on the system and `direction`
   should be `:input` or `:output`. If opening as an output, then be sure to set
   the `:initial_value` option if you need the set to be glitch free.
 
@@ -106,9 +112,8 @@ defmodule Circuits.GPIO2 do
   * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
      input pin. `:not_set` is the default.
   """
-  @spec open(line_spec(), line_direction(), open_options()) ::
-          {:ok, Handle.t()} | {:error, atom()}
-  def open(pin_number, line_direction, options \\ []) do
+  @spec open(gpio_spec(), direction(), open_options()) :: {:ok, Handle.t()} | {:error, atom()}
+  def open(gpio_spec, direction, options \\ []) do
     check_options!(options)
 
     {backend, backend_defaults} = default_backend()
@@ -119,7 +124,7 @@ defmodule Circuits.GPIO2 do
       |> Keyword.put_new(:initial_value, :not_set)
       |> Keyword.put_new(:pull_mode, :not_set)
 
-    backend.open(pin_number, line_direction, all_options)
+    backend.open(gpio_spec, direction, all_options)
   end
 
   defp check_options!([]), do: :ok
@@ -166,8 +171,9 @@ defmodule Circuits.GPIO2 do
   defdelegate write(handle, value), to: Handle
 
   @doc """
-  Enable or disable pin value change notifications. The notifications
-  are sent based on the trigger parameter:
+  Enable or disable GPIO value change notifications
+
+  Notifications are sent based on the trigger:
 
   * :none - No notifications are sent
   * :rising - Send a notification when the pin changes from 0 to 1
@@ -181,13 +187,13 @@ defmodule Circuits.GPIO2 do
   * `receiver` - Process which should receive the notifications.
   Defaults to the calling process (`self()`)
 
-  Notifications look like:
+  Notification messages look like:
 
   ```
-  {:circuits_gpio2, pin_number, timestamp, value}
+  {:circuits_gpio2, gpio_spec, timestamp, value}
   ```
 
-  Where `pin_number` is the pin that changed values, `timestamp` is roughly when
+  Where `gpio_spec` is the gpio_spec passed to `open/3`, `timestamp` is roughly when
   the transition occurred in nanoseconds since host system boot time,
   and `value` is the new value.
 
@@ -200,24 +206,27 @@ defmodule Circuits.GPIO2 do
   defdelegate set_interrupts(handle, trigger, options \\ []), to: Handle
 
   @doc """
-  Change the direction of the pin.
+  Change the direction of the pin
   """
-  @spec set_direction(Handle.t(), line_direction()) :: :ok | {:error, atom()}
-  defdelegate set_direction(handle, line_direction), to: Handle
+  @spec set_direction(Handle.t(), direction()) :: :ok | {:error, atom()}
+  defdelegate set_direction(handle, direction), to: Handle
 
   @doc """
-  Enable or disable internal pull-up or pull-down resistor to GPIO pin
+  Enable or disable an internal pull-up or pull-down resistor
   """
   @spec set_pull_mode(Handle.t(), pull_mode()) :: :ok | {:error, atom()}
   defdelegate set_pull_mode(gpio, pull_mode), to: Handle
 
   @doc """
   Get the GPIO pin number
+
+  This function is for Circuits.GPIO v1.0 compatibility. It is recommended
+  to use other ways of identifying GPIOs going forward. See `gpio_spec/0`.
   """
-  @spec pin(Handle.t()) :: line_spec()
+  @spec pin(Handle.t()) :: non_neg_integer()
   def pin(handle) do
     info = Handle.info(handle)
-    info.line_spec
+    info.pin_number
   end
 
   @doc """

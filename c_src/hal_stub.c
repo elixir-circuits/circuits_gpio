@@ -122,7 +122,7 @@ static void maybe_send_notification(ErlNifEnv *env, struct gpio_pin *pin, int va
 
     if (send_it) {
         ErlNifTime now = enif_monotonic_time(ERL_NIF_NSEC);
-        send_gpio_message(env, pin->pin_spec, &hal_priv->pid[pin->pin_number], now, value);
+        send_gpio_message(env, pin->gpio_spec, &hal_priv->pid[pin->pin_number], now, value);
     }
 }
 
@@ -171,7 +171,6 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
     ERL_NIF_TERM chip_name0 = make_string_binary(env, "gpiochip0");
     ERL_NIF_TERM chip_name1 = make_string_binary(env, "gpiochip1");
 
-
     int j;
     for (j = NUM_GPIOS - 1; j >= 0; j--) {
         char line_name[32];
@@ -185,7 +184,7 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
         enif_make_map_put(env, line_map, atom_struct, atom_circuits_gpio_line, &line_map);
         enif_make_map_put(env, line_map, atom_controller, chip_name, &line_map);
         enif_make_map_put(env, line_map, atom_label, enif_make_tuple2(env, chip_label, line_label), &line_map);
-        enif_make_map_put(env, line_map, atom_line_spec, enif_make_tuple2(env, chip_name, line_offset), &line_map);
+        enif_make_map_put(env, line_map, atom_gpio_spec, enif_make_tuple2(env, chip_name, line_offset), &line_map);
         gpio_list = enif_make_list_cell(env, line_map, gpio_list);
     }
 

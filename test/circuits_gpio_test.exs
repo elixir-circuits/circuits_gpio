@@ -294,13 +294,13 @@ defmodule Circuits.GPIO2Test do
     assert length(result) == 64
 
     assert hd(result) == %Line{
-             line_spec: {"gpiochip0", 0},
+             gpio_spec: {"gpiochip0", 0},
              controller: "gpiochip0",
              label: {"stub", "pair_0_0"}
            }
 
     assert List.last(result) == %Line{
-             line_spec: {"gpiochip1", 31},
+             gpio_spec: {"gpiochip1", 31},
              controller: "gpiochip1",
              label: {"stub", "pair_31_1"}
            }

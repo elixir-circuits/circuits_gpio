@@ -69,9 +69,9 @@ struct gpio_pin {
     void *hal_priv;
     struct gpio_config config;
 
-    // NIF environment for holding on to the pin_spec term
+    // NIF environment for holding on to the gpio_spec term
     ErlNifEnv *env;
-    ERL_NIF_TERM pin_spec;
+    ERL_NIF_TERM gpio_spec;
 };
 
 // Atoms
@@ -79,7 +79,7 @@ extern ERL_NIF_TERM atom_ok;
 extern ERL_NIF_TERM atom_error;
 extern ERL_NIF_TERM atom_name;
 extern ERL_NIF_TERM atom_label;
-extern ERL_NIF_TERM atom_line_spec;
+extern ERL_NIF_TERM atom_gpio_spec;
 extern ERL_NIF_TERM atom_struct;
 extern ERL_NIF_TERM atom_circuits_gpio_line;
 extern ERL_NIF_TERM atom_controller;
@@ -197,7 +197,7 @@ ERL_NIF_TERM make_string_binary(ErlNifEnv *env, const char *str);
 int enif_get_boolean(ErlNifEnv *env, ERL_NIF_TERM term, bool *v);
 
 int send_gpio_message(ErlNifEnv *env,
-                      ERL_NIF_TERM pin_spec,
+                      ERL_NIF_TERM gpio_spec,
                       ErlNifPid *pid,
                       int64_t timestamp,
                       int value);

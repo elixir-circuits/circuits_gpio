@@ -28,7 +28,7 @@ struct gpio_monitor_info {
     int fd;
     int offset;
     ErlNifPid pid;
-    ERL_NIF_TERM pin_spec;
+    ERL_NIF_TERM gpio_spec;
     int last_value;
     enum trigger_mode trigger;
     bool suppress_glitches;
@@ -104,22 +104,22 @@ static int handle_gpio_update(ErlNifEnv *env,
 
     case TRIGGER_RISING:
         if (value || !info->suppress_glitches)
-            rc = send_gpio_message(env, info->pin_spec, &info->pid, timestamp, 1);
+            rc = send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, 1);
         break;
 
     case TRIGGER_FALLING:
         if (!value || !info->suppress_glitches)
-            rc = send_gpio_message(env, info->pin_spec, &info->pid, timestamp, 0);
+            rc = send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, 0);
         break;
 
     case TRIGGER_BOTH:
         if (value != info->last_value) {
-            rc = send_gpio_message(env, info->pin_spec, &info->pid, timestamp, value);
+            rc = send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, value);
             info->last_value = value;
         } else if (!info->suppress_glitches) {
             // Send two messages so that the user sees an instantaneous transition
-            send_gpio_message(env, info->pin_spec, &info->pid, timestamp, value ? 0 : 1);
-            rc = send_gpio_message(env, info->pin_spec, &info->pid, timestamp, value);
+            send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, value ? 0 : 1);
+            rc = send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, value);
         }
         break;
     }
@@ -236,7 +236,7 @@ int update_polling_thread(struct gpio_pin *pin)
     message.enabled = (pin->config.trigger == TRIGGER_NONE);
     message.fd = pin->fd;
     message.offset = pin->offset;
-    message.pin_spec = pin->pin_spec;
+    message.gpio_spec = pin->gpio_spec;
     message.pid = pin->config.pid;
     message.last_value = -1;
     message.trigger = pin->config.trigger;

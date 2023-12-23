@@ -161,9 +161,9 @@ information on how to configure the fields of this struct for your own system.
 ```elixir
 iex> Circuits.GPIO2.enumerate()
 [
-  %Circuits.GPIO2.Line{line_spec: {"gpiochip0", 0}, label: "special-name-for-pin-0", controller: "gpiochip0"},
-  %Circuits.GPIO2.Line{line_spec: {"gpiochip0", 1}, label: "special-name-for-pin-1", controller: "gpiochip0"},
-  %Circuits.GPIO2.Line{line_spec: {"gpiochip1", 0}, label: "", controller: "gpiochip1"},
+  %Circuits.GPIO2.Line{gpio_spec: {"gpiochip0", 0}, label: "special-name-for-pin-0", controller: "gpiochip0"},
+  %Circuits.GPIO2.Line{gpio_spec: {"gpiochip0", 1}, label: "special-name-for-pin-1", controller: "gpiochip0"},
+  %Circuits.GPIO2.Line{gpio_spec: {"gpiochip1", 0}, label: "", controller: "gpiochip1"},
   ...
 ]
 ```
@@ -173,7 +173,7 @@ iex> Circuits.GPIO2.enumerate()
 `Circuits.GPIO2` V2.0 supports a new form of specifying how to open a pin called a `Spec`. These specs are based on the *newer* gpio-cdev subsystem
 in Linux. Notably, they include the concept of `gpiochips` and `lines``, both of which are used internally to provide pin numbers for the *older* pin numbering scheme.
 Specs are a tuple of a `gpiochip` and a `line`. The gpiochip may be provided as either a label for a chip if configured by your platform, or as it's name as listed
-in `/dev`. 
+in `/dev`.
 
 ```elixir
 iex> {:ok, ref} = Circuits.GPIO2.open({"gpiochip0", 1}, :input)

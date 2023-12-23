@@ -308,7 +308,7 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
                 enif_make_map_put(env, line_map, atom_struct, atom_circuits_gpio_line, &line_map);
                 enif_make_map_put(env, line_map, atom_struct, atom_circuits_gpio_line, &line_map);
                 enif_make_map_put(env, line_map, atom_label, enif_make_tuple2(env, chip_label, line_label), &line_map);
-                enif_make_map_put(env, line_map, atom_line_spec, enif_make_tuple2(env, chip_name, line_offset), &line_map);
+                enif_make_map_put(env, line_map, atom_gpio_spec, enif_make_tuple2(env, chip_name, line_offset), &line_map);
                 gpio_list = enif_make_list_cell(env, line_map, gpio_list);
             }
         }

@@ -4,12 +4,21 @@
 
 defprotocol Circuits.GPIO2.Handle do
   @moduledoc """
-  A handle is the connection to a real or virtual GPIO controller, bank, or pin
+  A handle is the connection to a real or virtual GPIO
+
+  The implementation of this protocol handles communications to GPIO controller.
   """
 
   alias Circuits.GPIO2
 
-  @type info() :: %{line_spec: GPIO2.line_spec()}
+  @typedoc """
+  Information about the GPIO
+
+  * `:gpio_spec` - the spec that was used to open the GPIO
+  * `:pin_number` - the legacy pin number for the GPIO. This is for backwards compatibility and could be
+                  set to `0` if there's no easy way to assign a unique number to it.
+  """
+  @type info() :: %{gpio_spec: GPIO2.gpio_spec(), pin_number: non_neg_integer()}
 
   @doc """
   Return the current GPIO state
@@ -26,8 +35,8 @@ defprotocol Circuits.GPIO2.Handle do
   @doc """
   Change the direction of the GPIO
   """
-  @spec set_direction(t(), GPIO2.line_direction()) :: :ok | {:error, atom()}
-  def set_direction(handle, line_direction)
+  @spec set_direction(t(), GPIO2.direction()) :: :ok | {:error, atom()}
+  def set_direction(handle, direction)
 
   @doc """
   Change the pull mode of an input GPIO

@@ -17,7 +17,7 @@ ERL_NIF_TERM atom_ok;
 ERL_NIF_TERM atom_error;
 ERL_NIF_TERM atom_name;
 ERL_NIF_TERM atom_label;
-ERL_NIF_TERM atom_line_spec;
+ERL_NIF_TERM atom_gpio_spec;
 ERL_NIF_TERM atom_struct;
 ERL_NIF_TERM atom_circuits_gpio_line;
 ERL_NIF_TERM atom_controller;
@@ -26,8 +26,8 @@ ERL_NIF_TERM atom_circuits_gpio;
 static void release_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
 {
     if (pin->env) {
-         enif_free_env(pin->env);
-         pin->env = 0;
+        enif_free_env(pin->env);
+        pin->env = 0;
     }
     if (pin->fd >= 0) {
         hal_close_gpio(pin);
@@ -80,14 +80,14 @@ static ErlNifResourceTypeInit gpio_pin_init = {gpio_pin_dtor, gpio_pin_stop, gpi
 #endif
 
 int send_gpio_message(ErlNifEnv *env,
-                      ERL_NIF_TERM pin_spec,
+                      ERL_NIF_TERM gpio_spec,
                       ErlNifPid *pid,
                       int64_t timestamp,
                       int value)
 {
     ERL_NIF_TERM msg = enif_make_tuple4(env,
                                         atom_circuits_gpio,
-                                        pin_spec,
+                                        gpio_spec,
                                         enif_make_int64(env, timestamp),
                                         enif_make_int(env, value));
 
@@ -106,7 +106,7 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
     atom_error = enif_make_atom(env, "error");
     atom_name = enif_make_atom(env, "name");
     atom_label = enif_make_atom(env, "label");
-    atom_line_spec = enif_make_atom(env, "line_spec");
+    atom_gpio_spec = enif_make_atom(env, "gpio_spec");
     atom_controller = enif_make_atom(env, "controller");
     atom_struct = enif_make_atom(env, "__struct__");
     atom_circuits_gpio_line = enif_make_atom(env, "Elixir.Circuits.GPIO2.Line");
@@ -215,10 +215,10 @@ static int get_resolved_pin_spec(ErlNifEnv *env, ERL_NIF_TERM term, char *gpioch
     ErlNifBinary gpiochip_binary;
 
     if (!enif_get_tuple(env, term, &arity, &tuple) ||
-        arity != 2 ||
-        !enif_inspect_binary(env, tuple[0], &gpiochip_binary) ||
-        gpiochip_binary.size + 1 > MAX_GPIOCHIP_PATH_LEN ||
-        !enif_get_int(env, tuple[1], offset))
+            arity != 2 ||
+            !enif_inspect_binary(env, tuple[0], &gpiochip_binary) ||
+            gpiochip_binary.size + 1 > MAX_GPIOCHIP_PATH_LEN ||
+            !enif_get_int(env, tuple[1], offset))
         return false;
 
     memcpy(gpiochip_path, gpiochip_binary.data, gpiochip_binary.size);
@@ -321,7 +321,18 @@ static ERL_NIF_TERM set_pull_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
     return atom_ok;
 }
 
-static ERL_NIF_TERM pin_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM get_gpio_spec(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    struct gpio_priv *priv = enif_priv_data(env);
+    struct gpio_pin *pin;
+    if (argc != 1 ||
+            !enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin))
+        return enif_make_badarg(env);
+
+    return pin->gpio_spec;
+}
+
+static ERL_NIF_TERM get_pin_number(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
     struct gpio_pin *pin;
@@ -331,7 +342,6 @@ static ERL_NIF_TERM pin_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
 
     return enif_make_int(env, pin->pin_number);
 }
-
 
 static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
@@ -349,14 +359,14 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
             !get_pull_mode(env, argv[4], &pull))
         return enif_make_badarg(env);
 
-    debug("line_spec = .{.gpiochip = %s, .pin_number = %d}", gpiochip_path, offset);
+    debug("gpio_spec = .{.gpiochip = %s, .offset = %d}", gpiochip_path, offset);
 
     struct gpio_pin *pin = enif_alloc_resource(priv->gpio_pin_rt, sizeof(struct gpio_pin));
     pin->fd = -1;
     memcpy(pin->gpiochip, gpiochip_path, MAX_GPIOCHIP_PATH_LEN);
     pin->offset = offset;
     pin->env = enif_alloc_env();
-    pin->pin_spec = enif_make_copy(pin->env, argv[0]);
+    pin->gpio_spec = enif_make_copy(pin->env, argv[0]);
     pin->pin_number = -1; // Filled in by lower level
     pin->hal_priv = priv->hal_priv;
     pin->config.is_output = is_output;
@@ -423,7 +433,8 @@ static ErlNifFunc nif_funcs[] = {
     {"set_interrupts", 4, set_interrupts, 0},
     {"set_direction", 2, set_direction, 0},
     {"set_pull_mode", 2, set_pull_mode, 0},
-    {"pin", 1, pin_gpio, 0},
+    {"gpio_spec", 1, get_gpio_spec, 0},
+    {"pin_number", 1, get_pin_number, 0},
     {"info", 0, gpio_info, 0},
     {"enumerate", 0, gpio_enumerate, 0},
 };
