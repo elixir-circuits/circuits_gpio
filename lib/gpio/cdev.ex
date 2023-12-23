@@ -45,7 +45,7 @@ defmodule Circuits.GPIO2.CDev do
         _ -> false
       end)
 
-    if spec, do: do_open(spec, line_spec, direction, options), else: {:error, :not_found}
+    if spec, do: do_open(line_spec, spec, direction, options), else: {:error, :not_found}
   end
 
   def open({controller, line} = line_spec, direction, options)

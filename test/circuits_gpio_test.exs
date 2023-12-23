@@ -173,6 +173,26 @@ defmodule Circuits.GPIO2Test do
     GPIO2.close(gpio1)
   end
 
+  test "interrupt with various specs" do
+    # Test that interrupts sent the original spec that they were opened with
+    for spec1 <- [33, "pair_16_1", {"stub", "pair_16_1"}] do
+      {:ok, gpio0} = GPIO2.open({"gpiochip1", 0}, :output)
+      {:ok, gpio1} = GPIO2.open(spec1, :input)
+
+      :ok = GPIO2.set_interrupts(gpio1, :both)
+      assert_receive {:circuits_gpio2, ^spec1, _timestamp, 0}
+
+      :ok = GPIO2.write(gpio0, 1)
+      assert_receive {:circuits_gpio2, ^spec1, _timestamp, 1}
+
+      :ok = GPIO2.write(gpio0, 0)
+      assert_receive {:circuits_gpio2, ^spec1, _timestamp, 0}
+
+      GPIO2.close(gpio0)
+      GPIO2.close(gpio1)
+    end
+  end
+
   test "interrupts on falling edges" do
     {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output)
     {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)

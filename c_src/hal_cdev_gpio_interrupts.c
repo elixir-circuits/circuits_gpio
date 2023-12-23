@@ -24,9 +24,11 @@
 #endif
 
 struct gpio_monitor_info {
-    int pin_number;
+    bool enabled;
     int fd;
+    int offset;
     ErlNifPid pid;
+    ERL_NIF_TERM pin_spec;
     int last_value;
     enum trigger_mode trigger;
     bool suppress_glitches;
@@ -34,18 +36,17 @@ struct gpio_monitor_info {
 
 static void init_listeners(struct gpio_monitor_info *infos)
 {
-    for (int i = 0; i < MAX_GPIO_LISTENERS; i++)
-        infos[i].fd = -1;
+    memset(infos, 0, MAX_GPIO_LISTENERS * sizeof(struct gpio_monitor_info));
 }
 
 static void compact_listeners(struct gpio_monitor_info *infos, int count)
 {
     int j = -1;
     for (int i = 0; i < count - 1; i++) {
-        if (infos[i].fd >= 0) {
+        if (infos[i].enabled) {
             if (j >= 0) {
                 memcpy(&infos[j], &infos[i], sizeof(struct gpio_monitor_info));
-                infos[i].fd = -1;
+                memset(&infos[i], 0, sizeof(struct gpio_monitor_info));
                 j++;
             }
         } else {
@@ -58,7 +59,7 @@ static void compact_listeners(struct gpio_monitor_info *infos, int count)
 static void add_listener(struct gpio_monitor_info *infos, const struct gpio_monitor_info *to_add)
 {
     for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
-        if (infos[i].fd < 0 || infos[i].pin_number == to_add->pin_number) {
+        if (!infos[i].enabled || infos[i].fd == to_add->fd) {
             memcpy(&infos[i], to_add, sizeof(struct gpio_monitor_info));
             return;
         }
@@ -66,14 +67,14 @@ static void add_listener(struct gpio_monitor_info *infos, const struct gpio_moni
     error("Too many gpio listeners. Max is %d", MAX_GPIO_LISTENERS);
 }
 
-static void remove_listener(struct gpio_monitor_info *infos, int pin_number)
+static void remove_listener(struct gpio_monitor_info *infos, int fd)
 {
     for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
-        if (infos[i].fd < 0)
+        if (!infos[i].enabled)
             return;
 
-        if (infos[i].pin_number == pin_number) {
-            infos[i].fd = -1;
+        if (infos[i].fd == fd) {
+            infos[i].enabled = false;
             compact_listeners(infos, MAX_GPIO_LISTENERS);
             return;
         }
@@ -103,22 +104,22 @@ static int handle_gpio_update(ErlNifEnv *env,
 
     case TRIGGER_RISING:
         if (value || !info->suppress_glitches)
-            rc = send_gpio_message(env, atom_circuits_gpio, info->pin_spec, &info->pid, timestamp, 1);
+            rc = send_gpio_message(env, info->pin_spec, &info->pid, timestamp, 1);
         break;
 
     case TRIGGER_FALLING:
         if (!value || !info->suppress_glitches)
-            rc = send_gpio_message(env, atom_circuits_gpio, info->pin_spec, &info->pid, timestamp, 0);
+            rc = send_gpio_message(env, info->pin_spec, &info->pid, timestamp, 0);
         break;
 
     case TRIGGER_BOTH:
         if (value != info->last_value) {
-            rc = send_gpio_message(env, atom_circuits_gpio, info->pin_spec, &info->pid, timestamp, value);
+            rc = send_gpio_message(env, info->pin_spec, &info->pid, timestamp, value);
             info->last_value = value;
         } else if (!info->suppress_glitches) {
             // Send two messages so that the user sees an instantaneous transition
-            send_gpio_message(env, atom_circuits_gpio, info->pin_spec, &info->pid, timestamp, value ? 0 : 1);
-            rc = send_gpio_message(env, atom_circuits_gpio, info->pin_spec, &info->pid, timestamp, value);
+            send_gpio_message(env, info->pin_spec, &info->pid, timestamp, value ? 0 : 1);
+            rc = send_gpio_message(env, info->pin_spec, &info->pid, timestamp, value);
         }
         break;
     }
@@ -140,7 +141,7 @@ void *gpio_poller_thread(void *arg)
         nfds_t count = 0;
 
         struct gpio_monitor_info *info = monitor_info;
-        while (info->fd >= 0) {
+        while (info->enabled) {
             fds->fd = info->fd;
             fds->events = POLLPRI;
             fds->revents = 0;
@@ -181,36 +182,36 @@ void *gpio_poller_thread(void *arg)
                 break;
             }
 
-            if (message.fd >= 0)
+            if (message.enabled)
                 add_listener(monitor_info, &message);
             else
-                remove_listener(monitor_info, message.pin_number);
+                remove_listener(monitor_info, message.fd);
         }
 
         bool cleanup = false;
         for (nfds_t i = 0; i < count - 1; i++) {
             if (fdset[i].revents) {
                 if (fdset[i].revents & POLLPRI) {
-                    int lfd = request_line_v2(fdset[i].fd, monitor_info[i].pin_number, GPIO_V2_LINE_FLAG_INPUT, 0);
+                    int lfd = request_line_v2(fdset[i].fd, monitor_info[i].offset, GPIO_V2_LINE_FLAG_INPUT, 0);
                     int value = get_value_v2(lfd);
                     close(lfd);
                     if (value < 0) {
-                        error("error reading gpio %d", monitor_info[i].pin_number);
-                        monitor_info[i].fd = -1;
+                        error("error reading gpio %d", monitor_info[i].offset);
+                        monitor_info[i].enabled = false;
                         cleanup = true;
                     } else {
                         if (!handle_gpio_update(env,
                                                 &monitor_info[i],
                                                 timestamp,
                                                 value)) {
-                            error("send for gpio %d failed, so not listening to it any more", monitor_info[i].pin_number);
-                            monitor_info[i].fd = -1;
+                            error("send for gpio %d failed, so not listening to it any more", monitor_info[i].offset);
+                            monitor_info[i].enabled = false;
                             cleanup = true;
                         }
                     }
                 } else {
-                    error("error listening on gpio %d", monitor_info[i].pin_number);
-                    monitor_info[i].fd = -1;
+                    error("error listening on gpio %d", monitor_info[i].offset);
+                    monitor_info[i].enabled = false;
                     cleanup = true;
                 }
             }
@@ -232,8 +233,10 @@ int update_polling_thread(struct gpio_pin *pin)
     struct hal_cdev_gpio_priv *priv = (struct hal_cdev_gpio_priv *) pin->hal_priv;
 
     struct gpio_monitor_info message;
-    message.pin_number = pin->pin_number;
-    message.fd = (pin->config.trigger == TRIGGER_NONE) ? -1 : pin->fd;
+    message.enabled = (pin->config.trigger == TRIGGER_NONE);
+    message.fd = pin->fd;
+    message.offset = pin->offset;
+    message.pin_spec = pin->pin_spec;
     message.pid = pin->config.pid;
     message.last_value = -1;
     message.trigger = pin->config.trigger;
