@@ -150,7 +150,7 @@ defmodule Circuits.GPIO2Test do
     {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :both)
-    assert_receive {:circuits_gpio2, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
 
     GPIO2.close(gpio0)
     GPIO2.close(gpio1)
@@ -161,13 +161,13 @@ defmodule Circuits.GPIO2Test do
     {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :both)
-    assert_receive {:circuits_gpio2, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
 
     :ok = GPIO2.write(gpio0, 1)
-    assert_receive {:circuits_gpio2, 1, _timestamp, 1}
+    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 1}
 
     :ok = GPIO2.write(gpio0, 0)
-    assert_receive {:circuits_gpio2, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
 
     GPIO2.close(gpio0)
     GPIO2.close(gpio1)
@@ -178,13 +178,13 @@ defmodule Circuits.GPIO2Test do
     {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :falling)
-    assert_receive {:circuits_gpio2, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
 
     :ok = GPIO2.write(gpio0, 1)
-    refute_receive {:circuits_gpio2, 1, _timestamp, 1}
+    refute_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 1}
 
     :ok = GPIO2.write(gpio0, 0)
-    assert_receive {:circuits_gpio2, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
 
     GPIO2.close(gpio0)
     GPIO2.close(gpio1)
@@ -195,13 +195,13 @@ defmodule Circuits.GPIO2Test do
     {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :rising)
-    refute_receive {:circuits_gpio2, 1, _timestamp, 0}
+    refute_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
 
     :ok = GPIO2.write(gpio0, 1)
-    assert_receive {:circuits_gpio2, 1, _timestamp, 1}
+    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 1}
 
     :ok = GPIO2.write(gpio0, 0)
-    refute_receive {:circuits_gpio2, 1, _timestamp, 0}
+    refute_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
 
     GPIO2.close(gpio0)
     GPIO2.close(gpio1)
@@ -212,14 +212,14 @@ defmodule Circuits.GPIO2Test do
     {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :both)
-    assert_receive {:circuits_gpio2, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
 
     :ok = GPIO2.write(gpio0, 1)
-    assert_receive {:circuits_gpio2, 1, _timestamp, 1}
+    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 1}
 
     :ok = GPIO2.set_interrupts(gpio1, :none)
     :ok = GPIO2.write(gpio0, 0)
-    refute_receive {:circuits_gpio2, 1, _timestamp, 0}
+    refute_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
 
     GPIO2.close(gpio0)
     GPIO2.close(gpio1)
@@ -230,16 +230,16 @@ defmodule Circuits.GPIO2Test do
     {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :both)
-    assert_receive {:circuits_gpio2, 1, _timestamp, 0}
+    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
 
     :ok = GPIO2.write(gpio0, 1)
-    assert_receive {:circuits_gpio2, 1, _timestamp, 1}
+    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 1}
 
     GPIO2.close(gpio1)
     Process.sleep(10)
 
     :ok = GPIO2.write(gpio0, 0)
-    refute_receive {:circuits_gpio2, 1, _timestamp, 0}
+    refute_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
 
     GPIO2.close(gpio0)
   end

@@ -16,6 +16,7 @@
 
 struct stub_priv {
     int value[NUM_GPIOS / 2];
+    struct gpio_pin *gpio_pins[NUM_GPIOS];
     ErlNifPid pid[NUM_GPIOS];
     enum trigger_mode mode[NUM_GPIOS];
 };
@@ -48,6 +49,7 @@ int hal_open_gpio(struct gpio_pin *pin,
                   char *error_str,
                   ErlNifEnv *env)
 {
+    struct stub_priv *hal_priv = pin->hal_priv;
     int pin_base;
 
     if (strcmp(pin->gpiochip, "gpiochip0") == 0) {
@@ -65,6 +67,7 @@ int hal_open_gpio(struct gpio_pin *pin,
     }
     pin->pin_number = pin_base + pin->offset;
     pin->fd = pin->pin_number;
+    hal_priv->gpio_pins[pin->pin_number] = pin;
 
     if (pin->config.is_output && pin->config.initial_value != -1)
         hal_write_gpio(pin, pin->config.initial_value, env);
@@ -78,6 +81,7 @@ void hal_close_gpio(struct gpio_pin *pin)
     if (pin->fd >= 0 && pin->fd < NUM_GPIOS) {
         struct stub_priv *hal_priv = pin->hal_priv;
         hal_priv->mode[pin->pin_number] = TRIGGER_NONE;
+        hal_priv->gpio_pins[pin->pin_number] = NULL;
         pin->fd = -1;
     }
 }
@@ -93,28 +97,32 @@ int hal_read_gpio(struct gpio_pin *pin)
     return gpio_value(pin);
 }
 
-static void maybe_send_notification(ErlNifEnv *env, struct stub_priv *hal_priv, int pin_number)
+static void maybe_send_notification(ErlNifEnv *env, struct gpio_pin *pin, int value)
 {
-    int value = hal_priv->value[pin_number / 2];
-    int sendit = 0;
-    switch (hal_priv->mode[pin_number]) {
+    if (!pin)
+        return;
+
+    struct stub_priv *hal_priv = pin->hal_priv;
+
+    int send_it = 0;
+    switch (hal_priv->mode[pin->pin_number]) {
     case TRIGGER_BOTH:
-        sendit = 1;
+        send_it = 1;
         break;
     case TRIGGER_FALLING:
-        sendit = (value == 0);
+        send_it = (value == 0);
         break;
     case TRIGGER_RISING:
-        sendit = (value != 0);
+        send_it = (value != 0);
         break;
     case TRIGGER_NONE:
-        sendit = 0;
+        send_it = 0;
         break;
     }
 
-    if (sendit) {
+    if (send_it) {
         ErlNifTime now = enif_monotonic_time(ERL_NIF_NSEC);
-        send_gpio_message(env, enif_make_atom(env, "circuits_gpio2"), pin_number, &hal_priv->pid[pin_number], now, value);
+        send_gpio_message(env, pin->pin_spec, &hal_priv->pid[pin->pin_number], now, value);
     }
 }
 
@@ -124,8 +132,8 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
     int half_pin = pin->pin_number / 2;
     if (hal_priv->value[half_pin] != value) {
         hal_priv->value[half_pin] = value;
-        maybe_send_notification(env, hal_priv, half_pin * 2);
-        maybe_send_notification(env, hal_priv, half_pin * 2 + 1);
+        maybe_send_notification(env, hal_priv->gpio_pins[half_pin * 2], value);
+        maybe_send_notification(env, hal_priv->gpio_pins[half_pin * 2 + 1], value);
     }
     return 0;
 }
@@ -136,8 +144,9 @@ int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 
     hal_priv->mode[pin->pin_number] = pin->config.trigger;
     hal_priv->pid[pin->pin_number] = pin->config.pid;
+    hal_priv->gpio_pins[pin->pin_number] = pin;
 
-    maybe_send_notification(env, hal_priv, pin->pin_number);
+    maybe_send_notification(env, pin, hal_priv->value[pin->pin_number / 2]);
 
     return 0;
 }
@@ -154,7 +163,7 @@ int hal_apply_pull_mode(struct gpio_pin *pin)
     return 0;
 }
 
-ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv)
+ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
 {
     ERL_NIF_TERM gpio_list = enif_make_list(env, 0);
 

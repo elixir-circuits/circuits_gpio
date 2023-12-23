@@ -17,14 +17,14 @@ defmodule Circuits.GPIO2.CDev do
 
   @impl Backend
   def enumerate() do
-    Nif.enum()
+    Nif.enumerate()
   end
 
   @impl Backend
   def open(line_nr, direction, options) when is_integer(line_nr) do
     info = enumerate() |> Enum.at(line_nr)
 
-    if info, do: open(info.line_spec, direction, options), else: {:error, :not_found}
+    if info, do: do_open(line_nr, info.line_spec, direction, options), else: {:error, :not_found}
   end
 
   def open(line_label, direction, options) when is_binary(line_label) do
@@ -34,10 +34,10 @@ defmodule Circuits.GPIO2.CDev do
         _ -> false
       end)
 
-    if spec, do: open(spec, direction, options), else: {:error, :not_found}
+    if spec, do: do_open(line_label, spec, direction, options), else: {:error, :not_found}
   end
 
-  def open({chip_label, line_label}, direction, options)
+  def open({chip_label, line_label} = line_spec, direction, options)
       when is_binary(chip_label) and is_binary(line_label) do
     spec =
       Enum.find_value(enumerate(), fn
@@ -45,16 +45,21 @@ defmodule Circuits.GPIO2.CDev do
         _ -> false
       end)
 
-    if spec, do: open(spec, direction, options), else: {:error, :not_found}
+    if spec, do: do_open(spec, line_spec, direction, options), else: {:error, :not_found}
   end
 
-  def open({controller, line}, direction, options)
+  def open({controller, line} = line_spec, direction, options)
       when is_binary(controller) and is_integer(line) do
+    resolved_line_spec = get_line_spec(controller, line)
+    do_open(line_spec, resolved_line_spec, direction, options)
+  end
+
+  defp do_open(original_line_spec, resolved_line_spec, direction, options) do
     value = Keyword.fetch!(options, :initial_value)
     pull_mode = Keyword.fetch!(options, :pull_mode)
-    line_spec = get_line_spec(controller, line)
 
-    with {:ok, ref} <- Nif.open(line_spec, direction, value, pull_mode) do
+    with {:ok, ref} <-
+           Nif.open(original_line_spec, resolved_line_spec, direction, value, pull_mode) do
       {:ok, %__MODULE__{ref: ref}}
     end
   end

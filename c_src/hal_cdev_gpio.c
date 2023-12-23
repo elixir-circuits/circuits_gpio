@@ -271,7 +271,7 @@ int hal_apply_pull_mode(struct gpio_pin *pin)
     return 0;
 }
 
-ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv)
+ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
 {
     int i;
 

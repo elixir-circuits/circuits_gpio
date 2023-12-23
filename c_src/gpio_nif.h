@@ -27,6 +27,7 @@
 #define elapsed_microseconds() 0
 #endif
 
+#define MAX_GPIOCHIP_PATH_LEN 32
 #define MAX_GPIO_LISTENERS 32
 
 enum trigger_mode {
@@ -61,12 +62,16 @@ struct gpio_config {
 };
 
 struct gpio_pin {
-    char *gpiochip;
+    char gpiochip[MAX_GPIOCHIP_PATH_LEN];
     int offset;
     int pin_number; /* legacy pin number for backwards compatibility */
     int fd;
     void *hal_priv;
     struct gpio_config config;
+
+    // NIF environment for holding on to the pin_spec term
+    ErlNifEnv *env;
+    ERL_NIF_TERM pin_spec;
 };
 
 // Atoms
@@ -78,6 +83,7 @@ extern ERL_NIF_TERM atom_line_spec;
 extern ERL_NIF_TERM atom_struct;
 extern ERL_NIF_TERM atom_circuits_gpio_line;
 extern ERL_NIF_TERM atom_controller;
+extern ERL_NIF_TERM atom_circuits_gpio;
 
 // HAL
 
@@ -94,7 +100,7 @@ ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info);
  *
  * Returns a list of Circuits.GPIO.Line structs
  */
-ERL_NIF_TERM hal_enum(ErlNifEnv *env, void *hal_priv);
+ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv);
 
 /**
  * Return the additional number of bytes of private data to allocate
@@ -191,8 +197,7 @@ ERL_NIF_TERM make_string_binary(ErlNifEnv *env, const char *str);
 int enif_get_boolean(ErlNifEnv *env, ERL_NIF_TERM term, bool *v);
 
 int send_gpio_message(ErlNifEnv *env,
-                      ERL_NIF_TERM atom_gpio,
-                      int pin_number,
+                      ERL_NIF_TERM pin_spec,
                       ErlNifPid *pid,
                       int64_t timestamp,
                       int value);
