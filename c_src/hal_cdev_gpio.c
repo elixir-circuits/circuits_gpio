@@ -282,14 +282,14 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
 
         int fd = open(path, O_RDONLY|O_CLOEXEC);
         if (fd < 0) {
-            debug("could not open gpiochip %d %s", errno, strerror(errno));
-            break;
+            debug("could not open gpiochip %d %s", i, strerror(errno));
+            continue;
         }
 
         struct gpiochip_info info;
         memset(&info, 0, sizeof(struct gpiochip_info));
         if (ioctl(fd, GPIO_GET_CHIPINFO_IOCTL, &info) < 0)
-            break;
+            continue;
 
         ERL_NIF_TERM chip_label = make_string_binary(env, info.label);
         ERL_NIF_TERM chip_name = make_string_binary(env, info.name);
@@ -302,13 +302,14 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
             if (ioctl(fd, GPIO_V2_GET_LINEINFO_IOCTL, &line) >= 0) {
                 debug("  {:cdev, \"%s\", %d} -> {\"%s\", \"%s\"}", info.name, j, info.label, line.name);
                 ERL_NIF_TERM line_map = enif_make_new_map(env);
-                ERL_NIF_TERM line_label = make_string_binary(env, line.name);
                 ERL_NIF_TERM line_offset = enif_make_int(env, j);
+                ERL_NIF_TERM line_label = line.name[0] == '\0' ? line_offset : make_string_binary(env, line.name);
 
                 enif_make_map_put(env, line_map, atom_struct, atom_circuits_gpio_line, &line_map);
-                enif_make_map_put(env, line_map, atom_struct, atom_circuits_gpio_line, &line_map);
+                enif_make_map_put(env, line_map, atom_controller, chip_name, &line_map);
                 enif_make_map_put(env, line_map, atom_label, enif_make_tuple2(env, chip_label, line_label), &line_map);
                 enif_make_map_put(env, line_map, atom_gpio_spec, enif_make_tuple2(env, chip_name, line_offset), &line_map);
+
                 gpio_list = enif_make_list_cell(env, line_map, gpio_list);
             }
         }
