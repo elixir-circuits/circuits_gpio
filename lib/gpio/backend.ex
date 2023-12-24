@@ -11,6 +11,9 @@ defmodule Circuits.GPIO2.Backend do
   alias Circuits.GPIO2.Line
 
   @doc """
+  Return a list of GPIOs
+
+  See the `Line` struct for the information that is returned.
   """
   @callback enumerate() :: [Line.t()]
 
