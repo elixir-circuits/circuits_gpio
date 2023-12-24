@@ -23,6 +23,10 @@ ERL_NIF_TERM atom_circuits_gpio_line;
 ERL_NIF_TERM atom_controller;
 ERL_NIF_TERM atom_circuits_gpio;
 
+#ifdef DEBUG
+FILE *log_location = NULL;
+#endif
+
 static void release_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
 {
     if (pin->env) {
@@ -100,6 +104,8 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
 #ifdef DEBUG
 #ifdef LOG_PATH
     log_location = fopen(LOG_PATH, "w");
+#else
+    log_location = stderr;
 #endif
 #endif
     atom_ok = enif_make_atom(env, "ok");
