@@ -107,9 +107,7 @@ static int send_gpio_update(ErlNifEnv *env,
                             int64_t timestamp)
 {
     debug("send_gpio_update %d", info->offset);
-    int lfd = request_line_v2(info->fd, info->offset, GPIO_V2_LINE_FLAG_INPUT, 0);
-    int value = get_value_v2(lfd);
-    close(lfd);
+    int value = get_value_v2(info->fd);
     if (value < 0) {
         error("error reading gpio %d", info->offset);
         info->enabled = false;
