@@ -15,7 +15,7 @@
  */
 
 struct stub_priv {
-    int value[NUM_GPIOS / 2];
+    int value[NUM_GPIOS]; // -1, 0, 1 -> -1=hiZ
     struct gpio_pin *gpio_pins[NUM_GPIOS];
     ErlNifPid pid[NUM_GPIOS];
     enum trigger_mode mode[NUM_GPIOS];
@@ -69,8 +69,17 @@ int hal_open_gpio(struct gpio_pin *pin,
     pin->fd = pin->pin_number;
     hal_priv->gpio_pins[pin->pin_number] = pin;
 
-    if (pin->config.is_output && pin->config.initial_value != -1)
-        hal_write_gpio(pin, pin->config.initial_value, env);
+    if (pin->config.is_output) {
+        if (pin->config.initial_value != -1) {
+            hal_write_gpio(pin, pin->config.initial_value, env);
+        } else if (hal_priv->value[pin->pin_number] == -1) {
+            // Default the pin to zero when hi impedance even
+            // when no initial value.
+            hal_write_gpio(pin, 0, env);
+        }
+    } else {
+        hal_priv->value[pin->pin_number] = -1;
+    }
 
     *error_str = '\0';
     return 0;
@@ -86,15 +95,27 @@ void hal_close_gpio(struct gpio_pin *pin)
     }
 }
 
-static int gpio_value(struct gpio_pin * pin)
-{
-    struct stub_priv *hal_priv = pin->hal_priv;
-    return hal_priv->value[pin->pin_number / 2];
-}
-
 int hal_read_gpio(struct gpio_pin *pin)
 {
-    return gpio_value(pin);
+    struct stub_priv *hal_priv = pin->hal_priv;
+    int our_pin = pin->pin_number;
+    int other_pin = our_pin ^ 1;
+
+    if (hal_priv->value[our_pin] != -1)
+        return hal_priv->value[our_pin];
+
+    if (hal_priv->value[other_pin] != -1)
+        return hal_priv->value[other_pin];
+
+    if (pin->config.pull == PULL_UP)
+        return 1;
+
+    if (pin->config.pull == PULL_DOWN)
+        return 0;
+
+    // Both the pin and the pin it's connected to are high impedance and pull mode
+    // isn't set. This should be random, but that might be more confusing so return 0.
+    return 0;
 }
 
 static void maybe_send_notification(ErlNifEnv *env, struct gpio_pin *pin, int value)
@@ -129,11 +150,15 @@ static void maybe_send_notification(ErlNifEnv *env, struct gpio_pin *pin, int va
 int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
 {
     struct stub_priv *hal_priv = pin->hal_priv;
-    int half_pin = pin->pin_number / 2;
-    if (hal_priv->value[half_pin] != value) {
-        hal_priv->value[half_pin] = value;
-        maybe_send_notification(env, hal_priv->gpio_pins[half_pin * 2], value);
-        maybe_send_notification(env, hal_priv->gpio_pins[half_pin * 2 + 1], value);
+    int our_pin = pin->pin_number;
+    int other_pin = our_pin ^ 1;
+    if (hal_priv->value[our_pin] != value) {
+        hal_priv->value[our_pin] = value;
+        maybe_send_notification(env, hal_priv->gpio_pins[our_pin], value);
+
+        // Only notify other pin if it's not outputting a value.
+        if (hal_priv->value[other_pin] == -1)
+            maybe_send_notification(env, hal_priv->gpio_pins[other_pin], value);
     }
     return 0;
 }
@@ -141,19 +166,29 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
 int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 {
     struct stub_priv *hal_priv = pin->hal_priv;
+    int value = hal_read_gpio(pin);
 
     hal_priv->mode[pin->pin_number] = pin->config.trigger;
     hal_priv->pid[pin->pin_number] = pin->config.pid;
     hal_priv->gpio_pins[pin->pin_number] = pin;
 
-    maybe_send_notification(env, pin, hal_priv->value[pin->pin_number / 2]);
+    maybe_send_notification(env, pin, value);
 
     return 0;
 }
 
 int hal_apply_direction(struct gpio_pin *pin)
 {
-    (void) pin;
+    struct stub_priv *hal_priv = pin->hal_priv;
+
+    if (pin->config.is_output) {
+        if (hal_priv->value[pin->pin_number] == -1) {
+            hal_priv->value[pin->pin_number] = 0;
+        }
+    } else {
+        hal_priv->value[pin->pin_number] = -1;
+    }
+
     return 0;
 }
 
