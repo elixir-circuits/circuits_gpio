@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Frank Hunleth
+#
+# SPDX-License-Identifier: Apache-2.0
+
 defmodule Circuits.GPIO2.Diagnostics do
   @moduledoc """
   Runtime diagnostics
@@ -175,7 +179,7 @@ defmodule Circuits.GPIO2.Diagnostics do
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output, initial_value: 0)
     {:ok, gpio2} = GPIO2.open(gpio_spec2, :input)
 
-    GPIO2.set_interrupts(gpio2, :both)
+    :ok = GPIO2.set_interrupts(gpio2, :both)
     assert_receive {:circuits_gpio2, ^gpio_spec2, _timestamp, 0}
 
     GPIO2.write(gpio1, 1)
