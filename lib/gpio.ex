@@ -111,6 +111,8 @@ defmodule Circuits.GPIO2 do
     `:not_set` is the default.
   * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
      input pin. `:not_set` is the default.
+
+  Returns `{:ok, handle}` on success.
   """
   @spec open(gpio_spec(), direction(), open_options()) :: {:ok, Handle.t()} | {:error, atom()}
   def open(gpio_spec, direction, options \\ []) do
