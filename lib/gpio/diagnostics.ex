@@ -35,7 +35,7 @@ defmodule Circuits.GPIO2.Diagnostics do
 
       """,
       Enum.map(results, &pass_text/1),
-      "\n",
+      "\n\nSpeed test: #{speed_test(gpio_spec1)} toggles/second\n\n",
       if(passed, do: "All tests passed", else: "Failed")
     ]
     |> IO.ANSI.format()
@@ -68,6 +68,31 @@ defmodule Circuits.GPIO2.Diagnostics do
 
     tests
     |> Enum.map(&check(&1, gpio_spec1, gpio_spec2))
+  end
+
+  @doc """
+  Return the number of times a GPIO can be toggled per second
+
+  Disclaimer: There should be a better way than relying on the Circuits.GPIO write performance
+  on nearly every device. Write performance shouldn't be terrible, though.
+  """
+  @spec speed_test(Circuits.GPIO2.gpio_spec()) :: float()
+  def speed_test(gpio_spec) do
+    times = 10000
+
+    {:ok, gpio} = GPIO2.open(gpio_spec, :output)
+    toggle(gpio, 1000)
+    {micros, :ok} = :timer.tc(fn -> toggle(gpio, times) end)
+    GPIO2.close(gpio)
+
+    times / micros * 1_000_000
+  end
+
+  defp toggle(gpio, times) do
+    Enum.each(1..times, fn _ ->
+      GPIO2.write(gpio, 0)
+      GPIO2.write(gpio, 1)
+    end)
   end
 
   defmacrop assert(expr) do

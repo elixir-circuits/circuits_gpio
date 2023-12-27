@@ -18,4 +18,12 @@ defmodule Circuits.GPIO2.DiagnosticsTest do
 
     assert Enum.all?(results, fn {_name, result} -> result == :ok end)
   end
+
+  test "speed_test/1" do
+    tps = Diagnostics.speed_test(10)
+
+    # Just check that the result is not completely bogus
+    assert is_float(tps)
+    assert tps > 1000
+  end
 end
