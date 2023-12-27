@@ -113,7 +113,7 @@ int hal_open_gpio(struct gpio_pin *pin,
     memset(&info, 0, sizeof(gpiochip_info_t));
 
     pin->fd = open(pin->gpiochip, O_RDWR|O_CLOEXEC);
-    debug("pin->fd = %d", pin->fd);
+    debug("open(%s) -> %d, errno=%d", pin->gpiochip, pin->fd, errno);
 
     if (pin->fd < 0) {
         strcpy(error_str, "open_failed");

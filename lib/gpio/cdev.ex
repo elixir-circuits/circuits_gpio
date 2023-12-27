@@ -48,11 +48,15 @@ defmodule Circuits.GPIO2.CDev do
   end
 
   defp normalize_gpio_spec({controller, line}) when is_binary(controller) and is_integer(line) do
+    {:ok, {controller, line}}
+  end
+
+  defp resolve_gpiochip({controller, line}) do
     in_slash_dev = Path.expand(controller, "/dev")
 
     if File.exists?(in_slash_dev),
-      do: {:ok, {in_slash_dev, line}},
-      else: {:ok, {controller, line}}
+      do: {in_slash_dev, line},
+      else: {controller, line}
   end
 
   @impl Backend
@@ -61,8 +65,8 @@ defmodule Circuits.GPIO2.CDev do
     pull_mode = Keyword.fetch!(options, :pull_mode)
 
     with {:ok, normalized_spec} <- normalize_gpio_spec(gpio_spec),
-         {:ok, ref} <-
-           Nif.open(gpio_spec, normalized_spec, direction, value, pull_mode) do
+         resolved_spec = resolve_gpiochip(normalized_spec),
+         {:ok, ref} <- Nif.open(gpio_spec, resolved_spec, direction, value, pull_mode) do
       {:ok, %__MODULE__{ref: ref}}
     end
   end
