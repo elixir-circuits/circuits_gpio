@@ -82,10 +82,10 @@ defmodule Circuits.GPIO2.Diagnostics do
   """
   @spec speed_test(Circuits.GPIO2.gpio_spec()) :: float()
   def speed_test(gpio_spec) do
-    times = 10000
+    times = 1000
 
     {:ok, gpio} = GPIO2.open(gpio_spec, :output)
-    toggle(gpio, 1000)
+    toggle(gpio, 10)
     {micros, :ok} = :timer.tc(fn -> toggle(gpio, times) end)
     GPIO2.close(gpio)
 
