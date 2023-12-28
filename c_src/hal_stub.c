@@ -70,7 +70,7 @@ int hal_open_gpio(struct gpio_pin *pin,
     hal_priv->gpio_pins[pin->pin_number] = pin;
 
     if (pin->config.is_output) {
-        if (pin->config.initial_value != -1) {
+        if (pin->config.initial_value >= 0) {
             hal_write_gpio(pin, pin->config.initial_value, env);
         } else if (hal_priv->value[pin->pin_number] == -1) {
             // Default the pin to zero when hi impedance even

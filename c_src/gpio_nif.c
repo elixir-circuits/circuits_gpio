@@ -149,14 +149,12 @@ static void unload(ErlNifEnv *env, void *priv_data)
 
 static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-    debug("read");
     struct gpio_priv *priv = enif_priv_data(env);
     struct gpio_pin *pin;
-    debug("enif_get_resource");
 
     if (argc != 1 || !enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin))
         return enif_make_badarg(env);
-    debug("read_gpio::hal_read_gpio");
+
     int value = hal_read_gpio(pin);
     if (value < 0)
         return enif_raise_exception(env, enif_make_atom(env, strerror(errno)));

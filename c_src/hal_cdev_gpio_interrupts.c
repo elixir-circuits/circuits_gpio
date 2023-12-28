@@ -189,6 +189,7 @@ void *gpio_poller_thread(void *arg)
             error("poll failed. errno=%d", errno);
             break;
         }
+        debug("poll returned rc=%d", rc);
 
         int64_t timestamp = timestamp_nanoseconds();
         // enif_monotonic_time only works in scheduler threads
@@ -217,6 +218,7 @@ void *gpio_poller_thread(void *arg)
         for (nfds_t i = 0; i < count - 1; i++) {
             if (fdset[i].revents) {
                 if (fdset[i].revents & POLLPRI) {
+                    debug("interrupt on %d", monitor_info[i].offset);
                     if (send_gpio_update(env, &monitor_info[i], timestamp) < 0)
                         cleanup = true;
                 } else {

@@ -17,18 +17,7 @@
 
 #include "hal_cdev_gpio.h"
 
-#define CONSUMER	"circuits_gpio"
-
-typedef struct gpiochip_info gpiochip_info_t;
-
-size_t hal_priv_size()
-{
-    return sizeof(struct hal_cdev_gpio_priv);
-}
-
-int gpio_get_chipinfo_ioctl(int fd, gpiochip_info_t* info) {
-    return ioctl(fd, GPIO_GET_CHIPINFO_IOCTL, info);
-}
+#define CONSUMER "circuits_gpio"
 
 int get_value_v2(int fd)
 {
@@ -81,12 +70,16 @@ static int request_line_v2(int fd, unsigned int offset, uint64_t flags, int val)
     req.offsets[0] = offset;
     req.config.flags = flags;
     strcpy(req.consumer, CONSUMER);
-    if ((flags & GPIO_V2_LINE_FLAG_OUTPUT) && val >= 0) {
-        debug("Initializing output to %d", val);
-        req.config.num_attrs = 1;
-        req.config.attrs[0].mask = 1;
-        req.config.attrs[0].attr.id = GPIO_V2_LINE_ATTR_ID_OUTPUT_VALUES;
-        req.config.attrs[0].attr.values = (unsigned int) val;
+    if (flags & GPIO_V2_LINE_FLAG_OUTPUT) {
+        if (val >= 0) {
+            debug("Initializing %d's value to %d on open", offset, val);
+            req.config.num_attrs = 1;
+            req.config.attrs[0].mask = 1;
+            req.config.attrs[0].attr.id = GPIO_V2_LINE_ATTR_ID_OUTPUT_VALUES;
+            req.config.attrs[0].attr.values = (unsigned int) val;
+        } else {
+            debug("Not initializing %d's value on open", offset);
+        }
     }
 
     if (ioctl(fd, GPIO_V2_GET_LINE_IOCTL, &req) < 0) {
@@ -94,6 +87,11 @@ static int request_line_v2(int fd, unsigned int offset, uint64_t flags, int val)
         return -errno;
     }
     return req.fd;
+}
+
+size_t hal_priv_size()
+{
+    return sizeof(struct hal_cdev_gpio_priv);
 }
 
 ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info)
@@ -136,14 +134,10 @@ int hal_open_gpio(struct gpio_pin *pin,
                   char *error_str,
                   ErlNifEnv *env)
 {
-    gpiochip_info_t info;
-    memset(&info, 0, sizeof(gpiochip_info_t));
-
     int gpiochip_fd = open(pin->gpiochip, O_RDWR|O_CLOEXEC);
-    debug("open(%s) -> %d, errno=%d", pin->gpiochip, gpiochip_fd, errno);
     if (gpiochip_fd < 0) {
         strcpy(error_str, "open_failed");
-        goto error;
+        return -1;
     }
     int value = 0;
     uint64_t flags = 0;
@@ -164,37 +158,28 @@ int hal_open_gpio(struct gpio_pin *pin,
         flags |= GPIO_V2_LINE_FLAG_BIAS_DISABLED;
     }
 
-    if(gpio_get_chipinfo_ioctl(gpiochip_fd, &info)) {
-        strcpy(error_str, "get_chipinfo_failed");
-        return -1;
-    }
     pin->fd = request_line_v2(gpiochip_fd, pin->offset, flags, value);
+    close(gpiochip_fd);
+    debug("requesting pin %s:%d -> %d, errno=%d", pin->gpiochip, pin->offset, pin->fd, errno);
     if(pin->fd < 0) {
         strcpy(error_str, "invalid_pin");
-        goto error;
+        return -1;
     }
 
     // Only call hal_apply_interrupts if there's a trigger
     if (pin->config.trigger != TRIGGER_NONE && hal_apply_interrupts(pin, env) < 0) {
         strcpy(error_str, "error_setting_interrupts");
-        goto error;
+        close(pin->fd);
+        return -1;
     }
 
-    close(gpiochip_fd);
     *error_str = '\0';
     return 0;
-
-error:
-    if (gpiochip_fd >= 0)
-        close(gpiochip_fd);
-    if (pin->fd >= 0)
-        close(pin->fd);
-    return -1;
 }
 
 void hal_close_gpio(struct gpio_pin *pin)
 {
-    debug("hal_close_gpio");
+    debug("hal_close_gpio %s:%d", pin->gpiochip, pin->offset);
     if (pin->fd >= 0) {
         // Turn off interrupts if they're on.
         if (pin->config.trigger != TRIGGER_NONE) {
@@ -207,28 +192,31 @@ void hal_close_gpio(struct gpio_pin *pin)
 
 int hal_read_gpio(struct gpio_pin *pin)
 {
-    debug("hal_read_gpio %d", pin->offset);
+    debug("hal_read_gpio %s:%d", pin->gpiochip, pin->offset);
     return get_value_v2(pin->fd);
 }
 
 int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
 {
     (void) env;
-    debug("hal_write_gpio %d", pin->offset);
+    debug("hal_write_gpio %s:%d -> %d", pin->gpiochip, pin->offset, value);
     return set_value_v2(pin->fd, value);
 }
 
 int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 {
     (void) env;
+    debug("hal_apply_interrupts %s:%d", pin->gpiochip, pin->offset);
     // Tell polling thread to wait for notifications
-    if (update_polling_thread(pin) < 0) return -1;
+    if (update_polling_thread(pin) < 0)
+        return -1;
 
     return 0;
 }
 
 int hal_apply_direction(struct gpio_pin *pin)
 {
+    debug("hal_apply_direction %s:%d", pin->gpiochip, pin->offset);
     uint64_t flags = 0;
     if (pin->config.is_output) {
         flags = GPIO_V2_LINE_FLAG_OUTPUT;
@@ -249,6 +237,7 @@ int hal_apply_direction(struct gpio_pin *pin)
 
 int hal_apply_pull_mode(struct gpio_pin *pin)
 {
+    debug("hal_apply_pull_mode %s:%d", pin->gpiochip, pin->offset);
     if (pin->config.pull == PULL_NOT_SET)
         return 0;
 

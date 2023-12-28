@@ -25,7 +25,7 @@ defmodule Circuits.GPIO2.Diagnostics do
 
   This function is intended for IEx prompt usage. See `run/2` for programmatic use.
   """
-  @spec report(Circuits.GPIO2.gpio_spec(), Circuits.GPIO2.gpio_spec()) :: boolean
+  @spec report(GPIO2.gpio_spec(), GPIO2.gpio_spec()) :: boolean
   def report(gpio_spec1, gpio_spec2) do
     results = run(gpio_spec1, gpio_spec2)
     passed = Enum.all?(results, fn {_, result} -> result == :ok end)
@@ -56,7 +56,7 @@ defmodule Circuits.GPIO2.Diagnostics do
   @doc """
   Run GPIO tests and return a list of the results
   """
-  @spec run(Circuits.GPIO2.gpio_spec(), Circuits.GPIO2.gpio_spec()) :: list()
+  @spec run(GPIO2.gpio_spec(), GPIO2.gpio_spec()) :: list()
   def run(gpio_spec1, gpio_spec2) do
     tests = [
       {"Writes can be read 1->2", &check_reading_and_writing/3, swap: false},
@@ -80,7 +80,7 @@ defmodule Circuits.GPIO2.Diagnostics do
   Disclaimer: There should be a better way than relying on the Circuits.GPIO write performance
   on nearly every device. Write performance shouldn't be terrible, though.
   """
-  @spec speed_test(Circuits.GPIO2.gpio_spec()) :: float()
+  @spec speed_test(GPIO2.gpio_spec()) :: float()
   def speed_test(gpio_spec) do
     times = 1000
 
@@ -131,11 +131,7 @@ defmodule Circuits.GPIO2.Diagnostics do
   end
 
   @doc false
-  @spec check_reading_and_writing(
-          Circuits.GPIO2.gpio_spec(),
-          Circuits.GPIO2.gpio_spec(),
-          keyword()
-        ) :: :ok
+  @spec check_reading_and_writing(GPIO2.gpio_spec(), GPIO2.gpio_spec(), keyword()) :: :ok
   def check_reading_and_writing(gpio_spec1, gpio_spec2, _options) do
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output)
     {:ok, gpio2} = GPIO2.open(gpio_spec2, :input)
@@ -154,11 +150,7 @@ defmodule Circuits.GPIO2.Diagnostics do
   end
 
   @doc false
-  @spec check_setting_initial_value(
-          Circuits.GPIO2.gpio_spec(),
-          Circuits.GPIO2.gpio_spec(),
-          keyword()
-        ) :: :ok
+  @spec check_setting_initial_value(GPIO2.gpio_spec(), GPIO2.gpio_spec(), keyword()) :: :ok
   def check_setting_initial_value(gpio_spec1, gpio_spec2, options) do
     value = options[:value]
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output, initial_value: value)
@@ -172,8 +164,7 @@ defmodule Circuits.GPIO2.Diagnostics do
   end
 
   @doc false
-  @spec check_preserves_value(Circuits.GPIO2.gpio_spec(), Circuits.GPIO2.gpio_spec(), keyword()) ::
-          :ok
+  @spec check_preserves_value(GPIO2.gpio_spec(), GPIO2.gpio_spec(), keyword()) :: :ok
   def check_preserves_value(gpio_spec1, gpio_spec2, options) do
     value = options[:value]
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output)
@@ -191,7 +182,7 @@ defmodule Circuits.GPIO2.Diagnostics do
   end
 
   @doc false
-  @spec check_interrupts(Circuits.GPIO2.gpio_spec(), Circuits.GPIO2.gpio_spec(), keyword()) :: :ok
+  @spec check_interrupts(GPIO2.gpio_spec(), GPIO2.gpio_spec(), keyword()) :: :ok
   def check_interrupts(gpio_spec1, gpio_spec2, _options) do
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output, initial_value: 0)
     {:ok, gpio2} = GPIO2.open(gpio_spec2, :input)
@@ -210,7 +201,7 @@ defmodule Circuits.GPIO2.Diagnostics do
   end
 
   @doc false
-  @spec check_pullup(Circuits.GPIO2.gpio_spec(), Circuits.GPIO2.gpio_spec(), keyword()) :: :ok
+  @spec check_pullup(GPIO2.gpio_spec(), GPIO2.gpio_spec(), keyword()) :: :ok
   def check_pullup(gpio_spec1, gpio_spec2, _options) do
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output, initial_value: 0)
     {:ok, gpio2} = GPIO2.open(gpio_spec2, :input, pull_mode: :pullup)
@@ -233,7 +224,7 @@ defmodule Circuits.GPIO2.Diagnostics do
   end
 
   @doc false
-  @spec check_pulldown(Circuits.GPIO2.gpio_spec(), Circuits.GPIO2.gpio_spec(), keyword()) :: :ok
+  @spec check_pulldown(GPIO2.gpio_spec(), GPIO2.gpio_spec(), keyword()) :: :ok
   def check_pulldown(gpio_spec1, gpio_spec2, _options) do
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output, initial_value: 1)
     {:ok, gpio2} = GPIO2.open(gpio_spec2, :input, pull_mode: :pulldown)
