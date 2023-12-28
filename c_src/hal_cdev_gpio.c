@@ -280,10 +280,8 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
         sprintf(path, "/dev/gpiochip%d", i);
 
         int fd = open(path, O_RDONLY|O_CLOEXEC);
-        if (fd < 0) {
-            debug("could not open gpiochip %d %s", i, strerror(errno));
+        if (fd < 0)
             continue;
-        }
 
         struct gpiochip_info info;
         memset(&info, 0, sizeof(struct gpiochip_info));
@@ -299,7 +297,6 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
             memset(&line, 0, sizeof(struct gpio_v2_line_info));
             line.offset = j;
             if (ioctl(fd, GPIO_V2_GET_LINEINFO_IOCTL, &line) >= 0) {
-                debug("  {:cdev, \"%s\", %d} -> {\"%s\", \"%s\"}", info.name, j, info.label, line.name);
                 ERL_NIF_TERM line_map = enif_make_new_map(env);
                 ERL_NIF_TERM line_offset = enif_make_int(env, j);
                 ERL_NIF_TERM line_label = line.name[0] == '\0' ? line_offset : make_string_binary(env, line.name);
