@@ -44,8 +44,7 @@ int get_value_v2(int fd)
     return vals.bits & 0x1;
 }
 
-int request_line_v2(int fd, unsigned int offset,
-                    uint64_t flags, unsigned int val)
+int request_line_v2(int fd, unsigned int offset, uint64_t flags, int val)
 {
     struct gpio_v2_line_request req;
     memset(&req, 0, sizeof(req));

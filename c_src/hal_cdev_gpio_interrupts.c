@@ -56,31 +56,6 @@ static void compact_listeners(struct gpio_monitor_info *infos, int count)
     }
 }
 
-static void add_listener(struct gpio_monitor_info *infos, const struct gpio_monitor_info *to_add)
-{
-    for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
-        if (!infos[i].enabled || infos[i].fd == to_add->fd) {
-            memcpy(&infos[i], to_add, sizeof(struct gpio_monitor_info));
-            return;
-        }
-    }
-    error("Too many gpio listeners. Max is %d", MAX_GPIO_LISTENERS);
-}
-
-static void remove_listener(struct gpio_monitor_info *infos, int fd)
-{
-    for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
-        if (!infos[i].enabled)
-            return;
-
-        if (infos[i].fd == fd) {
-            infos[i].enabled = false;
-            compact_listeners(infos, MAX_GPIO_LISTENERS);
-            return;
-        }
-    }
-}
-
 static int64_t timestamp_nanoseconds()
 {
     struct timespec ts;
@@ -124,6 +99,56 @@ static int handle_gpio_update(ErlNifEnv *env,
         break;
     }
     return rc;
+}
+
+static int send_gpio_update(ErlNifEnv *env,
+                            struct gpio_monitor_info *info,
+                            int64_t timestamp)
+{
+    int lfd = request_line_v2(info->fd, info->offset, GPIO_V2_LINE_FLAG_INPUT, 0);
+    int value = get_value_v2(lfd);
+    close(lfd);
+    if (value < 0) {
+        error("error reading gpio %d", info->offset);
+        info->enabled = false;
+        return -1;
+    } else {
+        if (!handle_gpio_update(env,
+                                info,
+                                timestamp,
+                                value)) {
+            error("send for gpio %d failed, so not listening to it any more", info->offset);
+            info->enabled = false;
+            return -1;
+        }
+    }
+    return 0;
+}
+
+static void add_listener(ErlNifEnv *env, struct gpio_monitor_info *infos, const struct gpio_monitor_info *to_add, int64_t timestamp)
+{
+    for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
+        if (!infos[i].enabled || infos[i].fd == to_add->fd) {
+            memcpy(&infos[i], to_add, sizeof(struct gpio_monitor_info));
+            send_gpio_update(env, &infos[i], timestamp);
+            return;
+        }
+    }
+    error("Too many gpio listeners. Max is %d", MAX_GPIO_LISTENERS);
+}
+
+static void remove_listener(struct gpio_monitor_info *infos, int fd)
+{
+    for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
+        if (!infos[i].enabled)
+            return;
+
+        if (infos[i].fd == fd) {
+            infos[i].enabled = false;
+            compact_listeners(infos, MAX_GPIO_LISTENERS);
+            return;
+        }
+    }
 }
 
 void *gpio_poller_thread(void *arg)
@@ -183,7 +208,7 @@ void *gpio_poller_thread(void *arg)
             }
 
             if (message.enabled)
-                add_listener(monitor_info, &message);
+                add_listener(env, monitor_info, &message, timestamp);
             else
                 remove_listener(monitor_info, message.fd);
         }
@@ -192,23 +217,8 @@ void *gpio_poller_thread(void *arg)
         for (nfds_t i = 0; i < count - 1; i++) {
             if (fdset[i].revents) {
                 if (fdset[i].revents & POLLPRI) {
-                    int lfd = request_line_v2(fdset[i].fd, monitor_info[i].offset, GPIO_V2_LINE_FLAG_INPUT, 0);
-                    int value = get_value_v2(lfd);
-                    close(lfd);
-                    if (value < 0) {
-                        error("error reading gpio %d", monitor_info[i].offset);
-                        monitor_info[i].enabled = false;
+                    if (send_gpio_update(env, &monitor_info[i], timestamp) < 0)
                         cleanup = true;
-                    } else {
-                        if (!handle_gpio_update(env,
-                                                &monitor_info[i],
-                                                timestamp,
-                                                value)) {
-                            error("send for gpio %d failed, so not listening to it any more", monitor_info[i].offset);
-                            monitor_info[i].enabled = false;
-                            cleanup = true;
-                        }
-                    }
                 } else {
                     error("error listening on gpio %d", monitor_info[i].offset);
                     monitor_info[i].enabled = false;
@@ -233,7 +243,7 @@ int update_polling_thread(struct gpio_pin *pin)
     struct hal_cdev_gpio_priv *priv = (struct hal_cdev_gpio_priv *) pin->hal_priv;
 
     struct gpio_monitor_info message;
-    message.enabled = (pin->config.trigger == TRIGGER_NONE);
+    message.enabled = (pin->config.trigger != TRIGGER_NONE);
     message.fd = pin->fd;
     message.offset = pin->offset;
     message.gpio_spec = pin->gpio_spec;
