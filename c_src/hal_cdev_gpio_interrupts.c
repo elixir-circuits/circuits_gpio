@@ -70,6 +70,7 @@ static int handle_gpio_update(ErlNifEnv *env,
                               int64_t timestamp,
                               int value)
 {
+    debug("handle_gpio_update %d", info->offset);
     int rc = 1;
     switch (info->trigger) {
     case TRIGGER_NONE:
@@ -105,6 +106,7 @@ static int send_gpio_update(ErlNifEnv *env,
                             struct gpio_monitor_info *info,
                             int64_t timestamp)
 {
+    debug("send_gpio_update %d", info->offset);
     int lfd = request_line_v2(info->fd, info->offset, GPIO_V2_LINE_FLAG_INPUT, 0);
     int value = get_value_v2(lfd);
     close(lfd);
