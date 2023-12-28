@@ -130,7 +130,13 @@ defmodule Circuits.GPIO2.Diagnostics do
       {name, {:error, Exception.message(e)}}
   end
 
-  defp check_reading_and_writing(gpio_spec1, gpio_spec2, _options) do
+  @doc false
+  @spec check_reading_and_writing(
+          Circuits.GPIO2.gpio_spec(),
+          Circuits.GPIO2.gpio_spec(),
+          keyword()
+        ) :: :ok
+  def check_reading_and_writing(gpio_spec1, gpio_spec2, _options) do
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output)
     {:ok, gpio2} = GPIO2.open(gpio_spec2, :input)
 
@@ -147,7 +153,13 @@ defmodule Circuits.GPIO2.Diagnostics do
     GPIO2.close(gpio2)
   end
 
-  defp check_setting_initial_value(gpio_spec1, gpio_spec2, options) do
+  @doc false
+  @spec check_setting_initial_value(
+          Circuits.GPIO2.gpio_spec(),
+          Circuits.GPIO2.gpio_spec(),
+          keyword()
+        ) :: :ok
+  def check_setting_initial_value(gpio_spec1, gpio_spec2, options) do
     value = options[:value]
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output, initial_value: value)
     {:ok, gpio2} = GPIO2.open(gpio_spec2, :input)
@@ -159,7 +171,10 @@ defmodule Circuits.GPIO2.Diagnostics do
     GPIO2.close(gpio2)
   end
 
-  defp check_preserves_value(gpio_spec1, gpio_spec2, options) do
+  @doc false
+  @spec check_preserves_value(Circuits.GPIO2.gpio_spec(), Circuits.GPIO2.gpio_spec(), keyword()) ::
+          :ok
+  def check_preserves_value(gpio_spec1, gpio_spec2, options) do
     value = options[:value]
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output)
     GPIO2.write(gpio1, value)
@@ -175,7 +190,9 @@ defmodule Circuits.GPIO2.Diagnostics do
     GPIO2.close(gpio2)
   end
 
-  defp check_interrupts(gpio_spec1, gpio_spec2, _options) do
+  @doc false
+  @spec check_interrupts(Circuits.GPIO2.gpio_spec(), Circuits.GPIO2.gpio_spec(), keyword()) :: :ok
+  def check_interrupts(gpio_spec1, gpio_spec2, _options) do
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output, initial_value: 0)
     {:ok, gpio2} = GPIO2.open(gpio_spec2, :input)
 
@@ -192,7 +209,9 @@ defmodule Circuits.GPIO2.Diagnostics do
     GPIO2.close(gpio2)
   end
 
-  defp check_pullup(gpio_spec1, gpio_spec2, _options) do
+  @doc false
+  @spec check_pullup(Circuits.GPIO2.gpio_spec(), Circuits.GPIO2.gpio_spec(), keyword()) :: :ok
+  def check_pullup(gpio_spec1, gpio_spec2, _options) do
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output, initial_value: 0)
     {:ok, gpio2} = GPIO2.open(gpio_spec2, :input, pull_mode: :pullup)
 
@@ -213,7 +232,9 @@ defmodule Circuits.GPIO2.Diagnostics do
     GPIO2.close(gpio2)
   end
 
-  defp check_pulldown(gpio_spec1, gpio_spec2, _options) do
+  @doc false
+  @spec check_pulldown(Circuits.GPIO2.gpio_spec(), Circuits.GPIO2.gpio_spec(), keyword()) :: :ok
+  def check_pulldown(gpio_spec1, gpio_spec2, _options) do
     {:ok, gpio1} = GPIO2.open(gpio_spec1, :output, initial_value: 1)
     {:ok, gpio2} = GPIO2.open(gpio_spec2, :input, pull_mode: :pulldown)
 
