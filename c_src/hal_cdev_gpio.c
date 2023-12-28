@@ -53,12 +53,12 @@ int request_line_v2(int fd, unsigned int offset, uint64_t flags, int val)
     req.offsets[0] = offset;
     req.config.flags = flags;
     strcpy(req.consumer, CONSUMER);
-    if (flags & GPIO_V2_LINE_FLAG_OUTPUT) {
+    if ((flags & GPIO_V2_LINE_FLAG_OUTPUT) && val >= 0) {
+        debug("Initializing output to %d", val);
         req.config.num_attrs = 1;
         req.config.attrs[0].mask = 1;
         req.config.attrs[0].attr.id = GPIO_V2_LINE_ATTR_ID_OUTPUT_VALUES;
-        if (val)
-            req.config.attrs[0].attr.values = 1;
+        req.config.attrs[0].attr.values = (unsigned int) val;
     }
 
     if (ioctl(fd, GPIO_V2_GET_LINE_IOCTL, &req) < 0) {
@@ -181,7 +181,7 @@ int hal_read_gpio(struct gpio_pin *pin)
     debug("hal_read_gpio");
     uint64_t flags = GPIO_V2_LINE_FLAG_INPUT;
     debug("request_line_v2 %d %d", pin->fd, pin->offset);
-    int lfd = request_line_v2(pin->fd, pin->offset, flags, 0);
+    int lfd = request_line_v2(pin->fd, pin->offset, flags, -1);
     if (lfd < 0)
         return lfd;
 
@@ -198,7 +198,7 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
     int lfd = request_line_v2(pin->fd, pin->offset, flags, value);
     close(lfd);
 
-    if(lfd < 0) return lfd;
+    if (lfd < 0) return lfd;
     return 0;
 }
 
@@ -235,7 +235,7 @@ int hal_apply_direction(struct gpio_pin *pin)
     int lfd = request_line_v2(pin->fd, pin->offset, flags, value);
     close(lfd);
 
-    if(lfd < 0) return lfd;
+    if (lfd < 0) return lfd;
     return 0;
 }
 

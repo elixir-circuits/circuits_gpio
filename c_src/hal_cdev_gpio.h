@@ -18,6 +18,6 @@ struct gpio_pin;
 void *gpio_poller_thread(void *arg);
 int update_polling_thread(struct gpio_pin *pin);
 int get_value_v2(int fd);
-int request_line_v2(int fd, unsigned int offset, uint64_t flags, unsigned int val);
+int request_line_v2(int fd, unsigned int offset, uint64_t flags, int val);
 
 #endif // HAL_CDEV_GPIO_H
