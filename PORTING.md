@@ -12,18 +12,29 @@ dependency specification is recommended to allow both `circuits_gpio` versions:
    {:circuits_gpio, "~> 2.0 or ~> 1.0"}
 ```
 
-The following potentially breaking changes were made:
+The following breaking changes were made:
 
-1. `Circuits.GPIO.open/1` accepts more general pin specifications called
+1. `Circuits.GPIO.open/3` accepts more general pin specifications called
    `gpio_spec`s. This allows you to specify GPIO controllers and refer to pins
    by labels. Please see `Circuits.GPIO.gpio_spec/0` since referring to pins by
-   number can be brittle.
-2. `Circuits.GPIO.set_interrupts/3` does not send an initial notification.
+   number is brittle and has broken in the past.
+2. `Circuits.GPIO.open/3` no longer can preserve the previous output value on
+   a pin automatically. I.e., `initial_value: :not_set` is no longer supported.
+3. Reading the values of output GPIOs is not supported. This does have a chance
+   of working depending on the backend, but it's no longer a requirement of the
+   API since some backends may not be readable. The workaround is to cache what
+   you wrote.
+4. `Circuits.GPIO.set_interrupts/3` does not send an initial notification.
    Notifications are ONLY sent on GPIO transitions now.
-3. The `stub` implementation still exists and is useful for testing the cdev NIF
+5. The `stub` implementation still exists and is useful for testing the cdev NIF
    interface. It's possible to have alternative GPIO backends now. If you have
    simple needs, the `stub` is convenient since it provides pairs of connected
    GPIOs (e.g., 0 and 1, 2 and 3, etc.).
+
+You should hopefully find that the semantics of API are more explicit now or at
+least the function documentation is more clear. This was necessary to support
+more backends without requiring backend authors to implement features that are
+trickier than you'd expect.
 
 ## Upgrading from  Elixir/ALE to Circuits.GPIO2
 

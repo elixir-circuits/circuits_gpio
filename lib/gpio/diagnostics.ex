@@ -64,8 +64,6 @@ defmodule Circuits.GPIO2.Diagnostics do
       {"Writes can be read 2->1", &check_reading_and_writing/3, swap: true},
       {"Can set 0 on open", &check_setting_initial_value/3, value: 0},
       {"Can set 1 on open", &check_setting_initial_value/3, value: 1},
-      {"Preserves 0 across opens", &check_preserves_value/3, value: 0},
-      {"Preserves 1 across opens", &check_preserves_value/3, value: 1},
       {"Input interrupts sent", &check_interrupts/3, []},
       {"Interrupt timing sane", &check_interrupt_timing/3, []},
       {"Internal pullup works", &check_pullup/3, []},
@@ -102,30 +100,32 @@ defmodule Circuits.GPIO2.Diagnostics do
   end
 
   defmacrop assert(expr) do
+    line = __CALLER__.line
+
     quote do
       unless unquote(expr) do
-        raise "Assertion failed: #{unquote(Macro.to_string(expr))}"
+        raise "#{unquote(line)}: Assertion failed: #{unquote(Macro.to_string(expr))}"
       end
     end
   end
 
-  defmacrop assert_receive(expected_message, timeout \\ 500) do
+  defmacrop assert_receive(expected, timeout \\ 500) do
     quote do
       receive do
-        unquote(expected_message) = x ->
+        unquote(expected) = x ->
           x
       after
         unquote(timeout) ->
-          raise "Expected message not received within #{unquote(timeout)}ms: #{unquote(Macro.to_string(expected_message))}"
+          raise "Expected message not received within #{unquote(timeout)}ms: #{unquote(Macro.to_string(expected))}"
       end
     end
   end
 
-  defmacrop refute_receive(expected_message, timeout \\ 50) do
+  defmacrop refute_receive(unexpected, timeout \\ 50) do
     quote do
       receive do
-        unquote(expected_message) ->
-          raise "Should not have received message within #{unquote(timeout)}ms: #{unquote(Macro.to_string(expected_message))}"
+        unquote(unexpected) ->
+          raise "Should not have received message within #{unquote(timeout)}ms: #{unquote(Macro.to_string(unexpected))}"
       after
         unquote(timeout) -> :ok
       end
@@ -179,25 +179,6 @@ defmodule Circuits.GPIO2.Diagnostics do
     {:ok, gpio2} = GPIO2.open(gpio_spec2, :input)
 
     assert GPIO2.read(gpio2) == value
-    assert GPIO2.read(gpio1) == value
-
-    GPIO2.close(gpio1)
-    GPIO2.close(gpio2)
-  end
-
-  @doc false
-  @spec check_preserves_value(GPIO2.gpio_spec(), GPIO2.gpio_spec(), keyword()) :: :ok
-  def check_preserves_value(gpio_spec1, gpio_spec2, options) do
-    value = options[:value]
-    {:ok, gpio1} = GPIO2.open(gpio_spec1, :output)
-    GPIO2.write(gpio1, value)
-    GPIO2.close(gpio1)
-
-    {:ok, gpio1} = GPIO2.open(gpio_spec1, :output)
-    {:ok, gpio2} = GPIO2.open(gpio_spec2, :input)
-
-    assert GPIO2.read(gpio2) == value
-    assert GPIO2.read(gpio1) == value
 
     GPIO2.close(gpio1)
     GPIO2.close(gpio2)

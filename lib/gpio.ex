@@ -15,6 +15,8 @@ defmodule Circuits.GPIO2 do
   """
   alias Circuits.GPIO2.Handle
 
+  require Logger
+
   @typedoc """
   Backends specify an implementation of a Circuits.GPIO2.Backend behaviour
 
@@ -89,7 +91,7 @@ defmodule Circuits.GPIO2 do
   @typedoc """
   Options for `open/3`
   """
-  @type open_options() :: [initial_value: value() | :not_set, pull_mode: pull_mode()]
+  @type open_options() :: [initial_value: value(), pull_mode: pull_mode()]
 
   @typedoc """
   Options for `set_interrupt/2`
@@ -110,8 +112,7 @@ defmodule Circuits.GPIO2 do
 
   Options:
 
-  * :initial_value - Set to `:not_set`, `0` or `1` if this is an output.
-    `:not_set` is the default.
+  * :initial_value - Set to `0` or `1`. Only used for outputs. Defaults to `0`.
   * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
      input pin. `:not_set` is the default.
 
@@ -126,7 +127,7 @@ defmodule Circuits.GPIO2 do
     all_options =
       backend_defaults
       |> Keyword.merge(options)
-      |> Keyword.put_new(:initial_value, :not_set)
+      |> Keyword.put_new(:initial_value, 0)
       |> Keyword.put_new(:pull_mode, :not_set)
 
     backend.open(gpio_spec, direction, all_options)
@@ -135,8 +136,12 @@ defmodule Circuits.GPIO2 do
   defp check_options!([]), do: :ok
 
   defp check_options!([{:initial_value, value} | rest]) do
-    unless value in [:not_set, 0, 1],
-      do: raise(ArgumentError, ":initial_value should be :not_set, 0, or 1")
+    case value do
+      0 -> :ok
+      1 -> :ok
+      :not_set -> Logger.warning("Circuits.GPIO no longer supports :not_set for :initial_value")
+      _ -> raise(ArgumentError, ":initial_value should be :not_set, 0, or 1")
+    end
 
     check_options!(rest)
   end
@@ -154,7 +159,7 @@ defmodule Circuits.GPIO2 do
   end
 
   @doc """
-  Release the resources associated with the GPIO.
+  Release the resources associated with a GPIO
 
   This is optional. The garbage collector will free GPIO resources that aren't in
   use, but this will free them sooner.
@@ -163,14 +168,18 @@ defmodule Circuits.GPIO2 do
   defdelegate close(handle), to: Handle
 
   @doc """
-  Read the current value on a pin.
+  Read a GPIO's value
+
+  The value returned for GPIO's that are configured as outputs is
+  undefined. Backends may choose not to support this.
   """
   @spec read(Handle.t()) :: value()
   defdelegate read(handle), to: Handle
 
   @doc """
-  Set the value of a pin. The pin should be configured to an output
-  for this to work.
+  Set the value of a GPIO
+
+  The GPIO must be configured as an output.
   """
   @spec write(Handle.t(), value()) :: :ok
   defdelegate write(handle, value), to: Handle

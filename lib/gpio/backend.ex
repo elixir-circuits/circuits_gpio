@@ -26,8 +26,7 @@ defmodule Circuits.GPIO2.Backend do
 
   Options:
 
-  * :initial_value - Set to `:not_set`, `0` or `1` if this is an output.
-    `:not_set` is the default.
+  * :initial_value - Set to `0` or `1` if this is an output. `0` is the default.
   * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
      input pin. `:not_set` is the default.
   """

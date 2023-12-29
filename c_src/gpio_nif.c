@@ -237,8 +237,9 @@ static int get_value(ErlNifEnv *env, ERL_NIF_TERM term, int *value)
         // Force v to be 0 or 1
         *value = !!v;
     } else {
-        // Interpret anything else as ":not_set"
-        *value = -1;
+        // Interpret anything else as 0 for backwards compatibility
+        // with Circuit.GPIO v1's ":not_set". 0 is cdev's default.
+        *value = 0;
     }
     return true;
 }
