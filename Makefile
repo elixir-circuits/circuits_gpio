@@ -12,7 +12,7 @@
 # Variables to override:
 #
 # MIX_APP_PATH  path to the build directory
-# CIRCUITS_GPIO_BACKEND Backend to build - `"normal"`, `"test"`, or `"disabled"` will build a NIF
+# CIRCUITS_GPIO_BACKEND Backend to build - `"cdev"`, `"test"`, or `"disabled"` will build a NIF
 #
 # CC            C compiler
 # CROSSCOMPILE	crosscompiler prefix, if any
@@ -40,7 +40,7 @@ CFLAGS += -fPIC
 LDFLAGS += -fPIC -shared
 else
 LDFLAGS += -undefined dynamic_lookup -dynamiclib
-ifeq ($(CIRCUITS_GPIO_BACKEND),normal)
+ifeq ($(CIRCUITS_GPIO_BACKEND),cdev)
 $(error Circuits.GPIO2 Linux cdev backend is not supported on non-Linux platforms. Review circuits_gpio2 backend configuration or report an issue if improperly detected.)
 endif
 endif
@@ -50,7 +50,7 @@ LDFLAGS += -fPIC -shared
 CFLAGS += -fPIC
 endif
 
-ifeq ($(CIRCUITS_GPIO_BACKEND),normal)
+ifeq ($(CIRCUITS_GPIO_BACKEND),cdev)
 # Enable real GPIO calls. This is the default and works with Nerves
 else
 ifeq ($(CIRCUITS_GPIO_BACKEND),test)

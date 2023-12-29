@@ -105,12 +105,12 @@ defmodule Circuits.GPIO2.MixProject do
     if Keyword.get(options, :test) do
       "test"
     else
-      "normal"
+      "cdev"
     end
   end
 
   defp cdev_compile_mode(Circuits.GPIO2.CDev) do
-    "normal"
+    "cdev"
   end
 
   defp cdev_compile_mode(_other) do
