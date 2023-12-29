@@ -32,7 +32,7 @@ defmodule Circuits.GPIO.MixProject do
   def application do
     # IMPORTANT: This provides a default at runtime and at compile-time when
     # circuits_gpio is pulled in as a dependency.
-    [env: [default_backend: default_backend()]]
+    [env: [default_backend: default_backend()], extra_applications: [:logger]]
   end
 
   defp package do
