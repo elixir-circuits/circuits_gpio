@@ -53,15 +53,6 @@ static void compact_listeners(struct gpio_monitor_info *infos, int count)
     }
 }
 
-static uint64_t timestamp_nanoseconds()
-{
-    struct timespec ts;
-    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
-        return 0;
-
-    return (uint64_t) ts.tv_sec * 1000000000ULL + ts.tv_nsec;
-}
-
 static int handle_gpio_update(ErlNifEnv *env,
                               struct gpio_monitor_info *info,
                               uint64_t timestamp,
