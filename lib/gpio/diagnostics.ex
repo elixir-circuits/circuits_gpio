@@ -36,6 +36,7 @@ defmodule Circuits.GPIO2.Diagnostics do
 
       GPIO 1: #{inspect(gpio_spec1)}
       GPIO 2: #{inspect(gpio_spec2)}
+      Backend: #{inspect(Circuits.GPIO2.info()[:name])}
 
       """,
       Enum.map(results, &pass_text/1),
@@ -107,7 +108,7 @@ defmodule Circuits.GPIO2.Diagnostics do
     end
   end
 
-  defmacrop assert_receive(expected_message, timeout \\ 100) do
+  defmacrop assert_receive(expected_message, timeout \\ 500) do
     quote do
       receive do
         unquote(expected_message) ->
@@ -120,14 +121,23 @@ defmodule Circuits.GPIO2.Diagnostics do
   end
 
   defp check({name, test, options}, gpio_spec1, gpio_spec2) do
-    if options[:swap] do
-      {name, test.(gpio_spec2, gpio_spec1, options)}
-    else
-      {name, test.(gpio_spec1, gpio_spec2, options)}
-    end
+    {gpio_spec1, gpio_spec2} =
+      if options[:swap], do: {gpio_spec2, gpio_spec1}, else: {gpio_spec1, gpio_spec2}
+
+    # Run the tests in a process so that GPIO handles get cleaned up and the process
+    # mailbox is empty for interrupt checks.
+    t = Task.async(fn -> safe_check(test, gpio_spec1, gpio_spec2, options) end)
+
+    {name, Task.await(t)}
   rescue
     e ->
       {name, {:error, Exception.message(e)}}
+  end
+
+  defp safe_check(test, gpio_spec1, gpio_spec2, options) do
+    test.(gpio_spec1, gpio_spec2, options)
+  rescue
+    e -> {:error, Exception.message(e)}
   end
 
   @doc false
@@ -188,13 +198,19 @@ defmodule Circuits.GPIO2.Diagnostics do
     {:ok, gpio2} = GPIO2.open(gpio_spec2, :input)
 
     :ok = GPIO2.set_interrupts(gpio2, :both)
+
+    # Initial notification
     assert_receive {:circuits_gpio2, ^gpio_spec2, _timestamp, 0}
 
-    GPIO2.write(gpio1, 1)
-    assert_receive {:circuits_gpio2, ^gpio_spec2, _timestamp, 1}
+    # Toggle enough times to avoid being tricked by something
+    # works a few times and then stops.
+    for _ <- 1..64 do
+      GPIO2.write(gpio1, 1)
+      assert_receive {:circuits_gpio2, ^gpio_spec2, _timestamp, 1}
 
-    GPIO2.write(gpio1, 0)
-    assert_receive {:circuits_gpio2, ^gpio_spec2, _timestamp, 0}
+      GPIO2.write(gpio1, 0)
+      assert_receive {:circuits_gpio2, ^gpio_spec2, _timestamp, 0}
+    end
 
     GPIO2.close(gpio1)
     GPIO2.close(gpio2)

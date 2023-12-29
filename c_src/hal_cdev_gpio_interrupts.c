@@ -24,14 +24,11 @@
 #endif
 
 struct gpio_monitor_info {
-    bool enabled;
+    enum trigger_mode trigger;
     int fd;
     int offset;
     ErlNifPid pid;
     ERL_NIF_TERM gpio_spec;
-    int last_value;
-    enum trigger_mode trigger;
-    bool suppress_glitches;
 };
 
 static void init_listeners(struct gpio_monitor_info *infos)
@@ -43,7 +40,7 @@ static void compact_listeners(struct gpio_monitor_info *infos, int count)
 {
     int j = -1;
     for (int i = 0; i < count - 1; i++) {
-        if (infos[i].enabled) {
+        if (infos[i].trigger == TRIGGER_NONE) {
             if (j >= 0) {
                 memcpy(&infos[j], &infos[i], sizeof(struct gpio_monitor_info));
                 memset(&infos[i], 0, sizeof(struct gpio_monitor_info));
@@ -56,81 +53,83 @@ static void compact_listeners(struct gpio_monitor_info *infos, int count)
     }
 }
 
-static int64_t timestamp_nanoseconds()
+static uint64_t timestamp_nanoseconds()
 {
     struct timespec ts;
     if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
         return 0;
 
-    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+    return (uint64_t) ts.tv_sec * 1000000000ULL + ts.tv_nsec;
 }
 
 static int handle_gpio_update(ErlNifEnv *env,
                               struct gpio_monitor_info *info,
-                              int64_t timestamp,
-                              int value)
+                              uint64_t timestamp,
+                              int event_id)
 {
     debug("handle_gpio_update %d", info->offset);
-    int rc = 1;
-    switch (info->trigger) {
-    case TRIGGER_NONE:
-        // Shouldn't happen.
-        rc = 0;
-        break;
+    int value = event_id == GPIO_V2_LINE_EVENT_RISING_EDGE ? 1 : 0;
 
-    case TRIGGER_RISING:
-        if (value || !info->suppress_glitches)
-            rc = send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, 1);
-        break;
-
-    case TRIGGER_FALLING:
-        if (!value || !info->suppress_glitches)
-            rc = send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, 0);
-        break;
-
-    case TRIGGER_BOTH:
-        if (value != info->last_value) {
-            rc = send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, value);
-            info->last_value = value;
-        } else if (!info->suppress_glitches) {
-            // Send two messages so that the user sees an instantaneous transition
-            send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, value ? 0 : 1);
-            rc = send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, value);
-        }
-        break;
-    }
-    return rc;
+    return send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, value);
 }
 
-static int send_gpio_update(ErlNifEnv *env,
-                            struct gpio_monitor_info *info,
-                            int64_t timestamp)
+static int force_gpio_update(ErlNifEnv *env,
+                             struct gpio_monitor_info *info)
 {
-    debug("send_gpio_update %d", info->offset);
+    debug("force_gpio_update %d", info->offset);
     int value = get_value_v2(info->fd);
     if (value < 0) {
         error("error reading gpio %d", info->offset);
-        info->enabled = false;
+        info->trigger = TRIGGER_NONE;
         return -1;
-    } else {
-        if (!handle_gpio_update(env,
-                                info,
+    }
+
+    if (info->trigger == TRIGGER_BOTH ||
+        (info->trigger == TRIGGER_RISING && value == 1) ||
+        (info->trigger == TRIGGER_FALLING && value == 0)) {
+        uint64_t timestamp = timestamp_nanoseconds();
+        if (!send_gpio_message(env,
+                                info->gpio_spec,
+                                &info->pid,
                                 timestamp,
                                 value)) {
             error("send for gpio %d failed, so not listening to it any more", info->offset);
-            info->enabled = false;
+            info->trigger = TRIGGER_NONE;
             return -1;
         }
     }
     return 0;
 }
 
-static void add_listener(ErlNifEnv *env, struct gpio_monitor_info *infos, const struct gpio_monitor_info *to_add, int64_t timestamp)
+static int process_gpio_events(ErlNifEnv *env,
+                               struct gpio_monitor_info *info)
+{
+    struct gpio_v2_line_event events[16];
+    ssize_t amount_read = read(info->fd, events, sizeof(events));
+    if (amount_read < 0) {
+        error("Unexpected return from reading gpio events: %d, errno=%d", amount_read, errno);
+        return -1;
+    }
+
+    int num_events = amount_read / sizeof(struct gpio_v2_line_event);
+    for (int i = 0; i < num_events; i++) {
+        if (!handle_gpio_update(env,
+                                info,
+                                events[i].timestamp_ns,
+                                events[i].id)) {
+            error("send for gpio %d failed, so not listening to it any more", info->offset);
+            return -1;
+        }
+    }
+    return 0;
+}
+
+static void add_listener(ErlNifEnv *env, struct gpio_monitor_info *infos, const struct gpio_monitor_info *to_add)
 {
     for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
-        if (!infos[i].enabled || infos[i].fd == to_add->fd) {
+        if (infos[i].trigger == TRIGGER_NONE || infos[i].fd == to_add->fd) {
             memcpy(&infos[i], to_add, sizeof(struct gpio_monitor_info));
-            send_gpio_update(env, &infos[i], timestamp);
+            force_gpio_update(env, &infos[i]);
             return;
         }
     }
@@ -140,11 +139,11 @@ static void add_listener(ErlNifEnv *env, struct gpio_monitor_info *infos, const 
 static void remove_listener(struct gpio_monitor_info *infos, int fd)
 {
     for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
-        if (!infos[i].enabled)
+        if (infos[i].trigger == TRIGGER_NONE)
             return;
 
         if (infos[i].fd == fd) {
-            infos[i].enabled = false;
+            infos[i].trigger = TRIGGER_NONE;
             compact_listeners(infos, MAX_GPIO_LISTENERS);
             return;
         }
@@ -165,10 +164,11 @@ void *gpio_poller_thread(void *arg)
         struct pollfd *fds = &fdset[0];
         nfds_t count = 0;
 
-        struct gpio_monitor_info *info = monitor_info;
-        while (info->enabled) {
+        struct gpio_monitor_info *info = &monitor_info[0];
+        while (info->trigger != TRIGGER_NONE) {
+            debug("adding fd %d to poll list", info->fd);
             fds->fd = info->fd;
-            fds->events = POLLPRI;
+            fds->events = POLLIN;
             fds->revents = 0;
             fds++;
             info++;
@@ -180,6 +180,7 @@ void *gpio_poller_thread(void *arg)
         fds->revents = 0;
         count++;
 
+        debug("poll waiting on %d handles", count);
         int rc = poll(fdset, count, -1);
         if (rc < 0) {
             // Retry if EINTR
@@ -190,10 +191,6 @@ void *gpio_poller_thread(void *arg)
             break;
         }
         debug("poll returned rc=%d", rc);
-
-        int64_t timestamp = timestamp_nanoseconds();
-        // enif_monotonic_time only works in scheduler threads
-        //ErlNifTime timestamp = enif_monotonic_time(ERL_NIF_NSEC);
 
         short revents = fdset[count - 1].revents;
         if (revents & (POLLERR | POLLNVAL)) {
@@ -208,8 +205,8 @@ void *gpio_poller_thread(void *arg)
                 break;
             }
 
-            if (message.enabled)
-                add_listener(env, monitor_info, &message, timestamp);
+            if (message.trigger != TRIGGER_NONE)
+                add_listener(env, monitor_info, &message);
             else
                 remove_listener(monitor_info, message.fd);
         }
@@ -217,13 +214,15 @@ void *gpio_poller_thread(void *arg)
         bool cleanup = false;
         for (nfds_t i = 0; i < count - 1; i++) {
             if (fdset[i].revents) {
-                if (fdset[i].revents & POLLPRI) {
+                if (fdset[i].revents) {
                     debug("interrupt on %d", monitor_info[i].offset);
-                    if (send_gpio_update(env, &monitor_info[i], timestamp) < 0)
+                    if (process_gpio_events(env, &monitor_info[i]) < 0) {
+                        monitor_info[i].trigger = TRIGGER_NONE;
                         cleanup = true;
+                    }
                 } else {
                     error("error listening on gpio %d", monitor_info[i].offset);
-                    monitor_info[i].enabled = false;
+                    monitor_info[i].trigger = TRIGGER_NONE;
                     cleanup = true;
                 }
             }
@@ -245,14 +244,11 @@ int update_polling_thread(struct gpio_pin *pin)
     struct hal_cdev_gpio_priv *priv = (struct hal_cdev_gpio_priv *) pin->hal_priv;
 
     struct gpio_monitor_info message;
-    message.enabled = (pin->config.trigger != TRIGGER_NONE);
+    message.trigger = pin->config.trigger;
     message.fd = pin->fd;
     message.offset = pin->offset;
     message.gpio_spec = pin->gpio_spec;
     message.pid = pin->config.pid;
-    message.last_value = -1;
-    message.trigger = pin->config.trigger;
-    message.suppress_glitches = pin->config.suppress_glitches;
     if (write(priv->pipe_fds[1], &message, sizeof(message)) != sizeof(message)) {
         error("Error writing polling thread!");
         return -1;

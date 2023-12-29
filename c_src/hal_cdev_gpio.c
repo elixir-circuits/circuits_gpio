@@ -207,8 +207,9 @@ int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 {
     (void) env;
     debug("hal_apply_interrupts %s:%d", pin->gpiochip, pin->offset);
-    // Tell polling thread to wait for notifications
-    if (update_polling_thread(pin) < 0)
+    // Update the configuration and start or stop polling
+    if (hal_apply_direction(pin) < 0 ||
+        update_polling_thread(pin) < 0)
         return -1;
 
     return 0;
@@ -230,6 +231,21 @@ int hal_apply_direction(struct gpio_pin *pin)
         flags |= GPIO_V2_LINE_FLAG_BIAS_PULL_DOWN;
     } else {
         flags |= GPIO_V2_LINE_FLAG_BIAS_DISABLED;
+    }
+
+    switch (pin->config.trigger) {
+    case TRIGGER_RISING:
+        flags |= GPIO_V2_LINE_FLAG_EDGE_RISING;
+        break;
+    case TRIGGER_FALLING:
+        flags |= GPIO_V2_LINE_FLAG_EDGE_FALLING;
+        break;
+    case TRIGGER_BOTH:
+        flags |= GPIO_V2_LINE_FLAG_EDGE_RISING | GPIO_V2_LINE_FLAG_EDGE_FALLING;
+        break;
+    case TRIGGER_NONE:
+    default:
+        break;
     }
 
     return set_config_v2(pin->fd, flags);

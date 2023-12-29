@@ -31,7 +31,7 @@ extern FILE *log_location;
 #define MAX_GPIO_LISTENERS 32
 
 enum trigger_mode {
-    TRIGGER_NONE,
+    TRIGGER_NONE = 0,
     TRIGGER_RISING,
     TRIGGER_FALLING,
     TRIGGER_BOTH

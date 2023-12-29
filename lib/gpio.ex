@@ -183,10 +183,8 @@ defmodule Circuits.GPIO2 do
   * :both - Send a notification on all changes
 
   Available Options:
-  * `suppress_glitches` - It is possible that the pin transitions to a value
-  and back by the time that Circuits GPIO gets to process it. This controls
-  whether a notification is sent. Set this to `false` to receive notifications.
-  * `receiver` - Process which should receive the notifications.
+  * `:suppress_glitches` - Not supported in Circuits.GPIO v2
+  * `:receiver` - Process which should receive the notifications.
   Defaults to the calling process (`self()`)
 
   Notification messages look like:
