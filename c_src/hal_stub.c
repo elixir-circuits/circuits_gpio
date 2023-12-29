@@ -52,9 +52,11 @@ int hal_open_gpio(struct gpio_pin *pin,
     struct stub_priv *hal_priv = pin->hal_priv;
     int pin_base;
 
-    if (strcmp(pin->gpiochip, "gpiochip0") == 0) {
+    if (strcmp(pin->gpiochip, "gpiochip0") == 0 ||
+            strcmp(pin->gpiochip, "/dev/gpiochip0") == 0) {
         pin_base = 0;
-    } else if (strcmp(pin->gpiochip, "gpiochip1") == 0) {
+    } else if (strcmp(pin->gpiochip, "gpiochip1") == 0 ||
+               strcmp(pin->gpiochip, "/dev/gpiochip1") == 0) {
         pin_base = 32;
     } else {
         strcpy(error_str, "open_failed");
