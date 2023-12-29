@@ -19,6 +19,59 @@
 
 #define CONSUMER "circuits_gpio"
 
+/* Some time between Linux 5.10 and Linux 5.15, GPIO numbering changed on
+ * AM335x devices (Beaglebone, etc.). These devices have 4 banks of 32 GPIOs.
+ * They used to be alphabetically sorted for file names which mirrored the
+ * order they showed up in the I/O address map. Now they show up with the bank
+ * at address 0x44c00000 coming after all of the 0x48000000 banks.
+ *
+ * To get the original mapping, gpiochips 0-3 need to be rotated.
+ *
+ * The real fix is to embrace cdev and stop using GPIO numbers, but that
+ * requires changing a lot of code, so work around it.
+ */
+static int gpiochip_order_r[] = {15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+
+static void check_bbb_linux_5_15_gpio_change()
+{
+    // Check for the gpiochip ordering that has the 0x44c00000 controller
+    // ordered AFTER the 0x48000000.
+    //
+    // These are ordered so that the for loop fails as soon as possible on
+    // non-AM335x platforms. Since few devices get up to gpiochip3, the
+    // readlink(2) call should fail and there shouldn't even be a string
+    // compare.
+    static const char *symlink_value[] = {
+        "/sys/bus/gpio/devices/gpiochip3",
+        "../../../devices/platform/ocp/44c00000.interconnect/44c00000.interconnect:segment@200000/44e07000.target-module/44e07000.gpio/gpiochip3",
+        "/sys/bus/gpio/devices/gpiochip0",
+        "../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@0/4804c000.target-module/4804c000.gpio/gpiochip0",
+        "/sys/bus/gpio/devices/gpiochip1",
+        "../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@100000/481ac000.target-module/481ac000.gpio/gpiochip1",
+        "/sys/bus/gpio/devices/gpiochip2",
+        "../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@100000/481ae000.target-module/481ae000.gpio/gpiochip2"
+    };
+
+    char path[128];
+    int i;
+
+    for (i = 0; i < 8; i += 2) {
+        ssize_t path_len = readlink(symlink_value[i], path, sizeof(path) - 1);
+        if (path_len < 0)
+            return;
+
+        path[path_len] = '\0';
+        if (strcmp(symlink_value[i + 1], path) != 0)
+            return;
+    }
+
+    // This is a BBB with the new mapping. Rotate the scan order to compensate:
+    gpiochip_order_r[15] = 1;
+    gpiochip_order_r[14] = 2;
+    gpiochip_order_r[13] = 3;
+    gpiochip_order_r[12] = 0;
+}
+
 int get_value_v2(int fd)
 {
     struct gpio_v2_line_values vals;
@@ -141,6 +194,7 @@ int hal_load(void *hal_priv)
 {
     struct hal_cdev_gpio_priv *priv = hal_priv;
     memset(priv, 0, sizeof(struct hal_cdev_gpio_priv));
+    check_bbb_linux_5_15_gpio_change();
 
     if (pipe(priv->pipe_fds) < 0) {
         error("pipe failed");
@@ -258,10 +312,13 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
 {
     int i;
 
+    // This code scans GPIOs in reverse order so that the resulting list that
+    // is built is in order. Order matters because it looks nice and pin number
+    // compatibility with Circuits.GPIO v1 depends on it.
     ERL_NIF_TERM gpio_list = enif_make_list(env, 0);
-    for (i = 15; i >= 0; i--) {
+    for (i = 0; i < 16; i++) {
         char path[32];
-        sprintf(path, "/dev/gpiochip%d", i);
+        sprintf(path, "/dev/gpiochip%d", gpiochip_order_r[i]);
 
         int fd = open(path, O_RDONLY|O_CLOEXEC);
         if (fd < 0)
