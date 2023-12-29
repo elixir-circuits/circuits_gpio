@@ -82,6 +82,7 @@ defmodule Circuits.GPIO.MixProject do
 
   defp default_backend(), do: default_backend(Mix.env(), Mix.target())
   defp default_backend(:test, _target), do: {Circuits.GPIO.CDev, test: true}
+  defp default_backend(:nil_test, _target), do: Circuits.GPIO.NilBackend
 
   defp default_backend(_env, :host) do
     case :os.type() do

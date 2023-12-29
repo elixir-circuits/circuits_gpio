@@ -35,6 +35,7 @@ jobs:
             - v1-mix-cache-<< parameters.tag >>-{{ checksum "mix.lock" }}
       - run: mix deps.get
       - run: mix compile --warnings-as-errors
+      - run: MIX_ENV=nil_test mix compile --warnings-as-errors
       - run: MIX_ENV=test mix compile --warnings-as-errors
       - run: mix test
       - when:
