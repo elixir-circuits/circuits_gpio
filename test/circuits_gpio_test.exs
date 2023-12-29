@@ -99,9 +99,11 @@ defmodule Circuits.GPIO2Test do
     refute Process.alive?(pid)
     assert_receive {:done, ^count}
 
+    :erlang.garbage_collect()
+
     # Wait a fraction of a second to allow GC to run since there's
     # a race between the send and the GC actually running.
-    Process.sleep(10)
+    Process.sleep(100)
 
     assert GPIO.info().pins_open == 0
   end
