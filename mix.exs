@@ -16,8 +16,9 @@ defmodule Circuits.GPIO.MixProject do
       compilers: [:elixir_make | Mix.compilers()],
       make_targets: ["all"],
       make_clean: ["clean"],
+      make_env: make_env(),
       docs: docs(),
-      aliases: [compile: [&set_make_env/1, "compile"], format: [&format_c/1, "format"]],
+      aliases: [format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
       dialyzer: dialyzer(),
       deps: deps(),
@@ -92,13 +93,13 @@ defmodule Circuits.GPIO.MixProject do
   # Assume Nerves for a default
   defp default_backend(_env, _not_host), do: Circuits.GPIO.CDev
 
-  defp set_make_env(_args) do
+  defp make_env() do
     # Since user configuration hasn't been loaded into the application
     # environment when `project/1` is called, load it here for building
     # the NIF.
     backend = Application.get_env(:circuits_gpio, :default_backend, default_backend())
 
-    System.put_env("CIRCUITS_GPIO_BACKEND", cdev_compile_mode(backend))
+    %{"CIRCUITS_GPIO_BACKEND" => cdev_compile_mode(backend)}
   end
 
   defp cdev_compile_mode({Circuits.GPIO.CDev, options}) do

@@ -52,6 +52,7 @@ endif
 
 ifeq ($(CIRCUITS_GPIO_BACKEND),cdev)
 # Enable real GPIO calls. This is the default and works with Nerves
+HAL_SRC = c_src/hal_cdev_gpio.c c_src/hal_cdev_gpio_interrupts.c
 else
 ifeq ($(CIRCUITS_GPIO_BACKEND),test)
 # Stub out ioctls and send back test data
@@ -66,7 +67,6 @@ endif
 ERL_CFLAGS ?= -I$(ERL_EI_INCLUDE_DIR)
 ERL_LDFLAGS ?= -L$(ERL_EI_LIBDIR) -lei
 
-HAL_SRC ?= c_src/hal_cdev_gpio.c c_src/hal_cdev_gpio_interrupts.c
 HAL_SRC += c_src/nif_utils.c
 SRC = $(HAL_SRC) c_src/gpio_nif.c
 HEADERS =$(wildcard c_src/*.h)
