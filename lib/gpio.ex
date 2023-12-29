@@ -193,9 +193,16 @@ defmodule Circuits.GPIO2 do
   {:circuits_gpio2, gpio_spec, timestamp, value}
   ```
 
-  Where `gpio_spec` is the gpio_spec passed to `open/3`, `timestamp` is roughly when
-  the transition occurred in nanoseconds since host system boot time,
-  and `value` is the new value.
+  Where `gpio_spec` is the gpio_spec passed to `open/3`, `timestamp` is an OS
+  monotonic timestamp in nanoseconds, and `value` is the new value.
+
+  Timestamps are not necessarily the same as from `System.monotonic_time/0`.
+  For example, with the cdev backend, they're applied by the Linux kernel or
+  can be come from a hardware timer. Erlang's monotonic time is adjusted so
+  it's not the same as OS monotonic time. The result is that these timestamps
+  can be compared with each other, but not with anything else.
+
+  Notifications only get
 
   NOTE: You will need to store the `Circuits.GPIO2` reference somewhere (like
   your `GenServer`'s state) so that it doesn't get garbage collected. Event

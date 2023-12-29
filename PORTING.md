@@ -1,4 +1,31 @@
-# Porting Elixir/ALE to Circuits.GPIO2
+# Porting
+
+## Upgrading Circuits.GPIO 1.0 projects to 2.0
+
+Circuits.GPIO 2.0 supports alternative GPIO hardware and the ability to mock or
+emulate devices via backends. The Linux cdev backend is the default and usage is
+similar to Circuits.GPIO 1.0. Most projects won't need any changes other than to
+update the dependency in `mix.exs`. If upgrading a library, The following
+dependency specification is recommended to allow both `circuits_gpio` versions:
+
+```elixir
+   {:circuits_gpio, "~> 2.0 or ~> 1.0"}
+```
+
+The following potentially breaking changes were made:
+
+1. `Circuits.GPIO.open/1` accepts more general pin specifications called
+   `gpio_spec`s. This allows you to specify GPIO controllers and refer to pins
+   by labels. Please see `Circuits.GPIO.gpio_spec/0` since referring to pins by
+   number can be brittle.
+2. `Circuits.GPIO.set_interrupts/3` does not send an initial notification.
+   Notifications are ONLY sent on GPIO transitions now.
+3. The `stub` implementation still exists and is useful for testing the cdev NIF
+   interface. It's possible to have alternative GPIO backends now. If you have
+   simple needs, the `stub` is convenient since it provides pairs of connected
+   GPIOs (e.g., 0 and 1, 2 and 3, etc.).
+
+## Upgrading from  Elixir/ALE to Circuits.GPIO2
 
 The `Circuits.GPIO2` package is the next version of Elixir/ALE's GPIO support.
 If you're currently using Elixir/ALE, you're encouraged to switch. Here are some
@@ -10,16 +37,12 @@ benefits:
    still to use GPIOs for buttons, LEDs, and other low frequency devices and use
    specialized device drivers for the rest. However, we know that's not always easy
    and the extra performance is really nice to have.
-3. Included pull up/pull down support for Raspberry Pi. We'd like to include
-   this for other platforms as well. This was the single-most requested feature
-   for Elixir/ALE.
+3. Included pull up/pull down support. This was the single-most requested
+   feature for Elixir/ALE.
 4. Timestamped interrupt reports - This is makes it possible to measure time
    deltas between GPIO changes with higher accuracy by removing variability from
    messages sitting in queues and passing between processes
-5. Interrupt glitch detection  - When the GPIO toggles faster than
-   `Circuits.GPIO2` can handle, it can either synthesize an interrupt event or
-   suppress the event.
-6. Lower resource usage - Elixir/ALE created a GenServer and OS process for each
+5. Lower resource usage - Elixir/ALE created a GenServer and OS process for each
    GPIO. `Circuits.GPIO2` creates a NIF resource (Elixir Reference) for each
    GPIO.
 

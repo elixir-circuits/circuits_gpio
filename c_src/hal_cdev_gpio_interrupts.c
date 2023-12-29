@@ -73,34 +73,6 @@ static int handle_gpio_update(ErlNifEnv *env,
     return send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, value);
 }
 
-static int force_gpio_update(ErlNifEnv *env,
-                             struct gpio_monitor_info *info)
-{
-    debug("force_gpio_update %d", info->offset);
-    int value = get_value_v2(info->fd);
-    if (value < 0) {
-        error("error reading gpio %d", info->offset);
-        info->trigger = TRIGGER_NONE;
-        return -1;
-    }
-
-    if (info->trigger == TRIGGER_BOTH ||
-        (info->trigger == TRIGGER_RISING && value == 1) ||
-        (info->trigger == TRIGGER_FALLING && value == 0)) {
-        uint64_t timestamp = timestamp_nanoseconds();
-        if (!send_gpio_message(env,
-                                info->gpio_spec,
-                                &info->pid,
-                                timestamp,
-                                value)) {
-            error("send for gpio %d failed, so not listening to it any more", info->offset);
-            info->trigger = TRIGGER_NONE;
-            return -1;
-        }
-    }
-    return 0;
-}
-
 static int process_gpio_events(ErlNifEnv *env,
                                struct gpio_monitor_info *info)
 {
@@ -129,7 +101,6 @@ static void add_listener(ErlNifEnv *env, struct gpio_monitor_info *infos, const 
     for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
         if (infos[i].trigger == TRIGGER_NONE || infos[i].fd == to_add->fd) {
             memcpy(&infos[i], to_add, sizeof(struct gpio_monitor_info));
-            force_gpio_update(env, &infos[i]);
             return;
         }
     }

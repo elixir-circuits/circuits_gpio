@@ -145,12 +145,12 @@ defmodule Circuits.GPIO2Test do
     GPIO2.close(gpio)
   end
 
-  test "initial interrupt on set_interrupts" do
+  test "no initial interrupt on set_interrupts" do
     {:ok, gpio0} = GPIO2.open({@gpiochip, 0}, :output)
     {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :both)
-    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
+    refute_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, _}
 
     GPIO2.close(gpio0)
     GPIO2.close(gpio1)
@@ -161,7 +161,7 @@ defmodule Circuits.GPIO2Test do
     {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :both)
-    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
+    refute_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, _}
 
     :ok = GPIO2.write(gpio0, 1)
     assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 1}
@@ -180,7 +180,7 @@ defmodule Circuits.GPIO2Test do
       {:ok, gpio1} = GPIO2.open(spec1, :input)
 
       :ok = GPIO2.set_interrupts(gpio1, :both)
-      assert_receive {:circuits_gpio2, ^spec1, _timestamp, 0}
+      refute_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, _}
 
       :ok = GPIO2.write(gpio0, 1)
       assert_receive {:circuits_gpio2, ^spec1, _timestamp, 1}
@@ -198,7 +198,7 @@ defmodule Circuits.GPIO2Test do
     {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :falling)
-    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
+    refute_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, _}
 
     :ok = GPIO2.write(gpio0, 1)
     refute_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 1}
@@ -232,7 +232,7 @@ defmodule Circuits.GPIO2Test do
     {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :both)
-    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
+    refute_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, _}
 
     :ok = GPIO2.write(gpio0, 1)
     assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 1}
@@ -250,7 +250,7 @@ defmodule Circuits.GPIO2Test do
     {:ok, gpio1} = GPIO2.open({@gpiochip, 1}, :input)
 
     :ok = GPIO2.set_interrupts(gpio1, :both)
-    assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 0}
+    refute_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, _}
 
     :ok = GPIO2.write(gpio0, 1)
     assert_receive {:circuits_gpio2, {@gpiochip, 1}, _timestamp, 1}

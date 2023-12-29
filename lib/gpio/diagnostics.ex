@@ -67,6 +67,7 @@ defmodule Circuits.GPIO2.Diagnostics do
       {"Preserves 0 across opens", &check_preserves_value/3, value: 0},
       {"Preserves 1 across opens", &check_preserves_value/3, value: 1},
       {"Input interrupts sent", &check_interrupts/3, []},
+      {"Interrupt timing sane", &check_interrupt_timing/3, []},
       {"Internal pullup works", &check_pullup/3, []},
       {"Internal pulldown works", &check_pulldown/3, []}
     ]
@@ -111,11 +112,22 @@ defmodule Circuits.GPIO2.Diagnostics do
   defmacrop assert_receive(expected_message, timeout \\ 500) do
     quote do
       receive do
-        unquote(expected_message) ->
-          :ok
+        unquote(expected_message) = x ->
+          x
       after
         unquote(timeout) ->
           raise "Expected message not received within #{unquote(timeout)}ms: #{unquote(Macro.to_string(expected_message))}"
+      end
+    end
+  end
+
+  defmacrop refute_receive(expected_message, timeout \\ 50) do
+    quote do
+      receive do
+        unquote(expected_message) ->
+          raise "Should not have received message within #{unquote(timeout)}ms: #{unquote(Macro.to_string(expected_message))}"
+      after
+        unquote(timeout) -> :ok
       end
     end
   end
@@ -200,20 +212,51 @@ defmodule Circuits.GPIO2.Diagnostics do
     :ok = GPIO2.set_interrupts(gpio2, :both)
 
     # Initial notification
-    assert_receive {:circuits_gpio2, ^gpio_spec2, _timestamp, 0}
+    refute_receive {:circuits_gpio2, _spec, _timestamp, _}
 
     # Toggle enough times to avoid being tricked by something
     # works a few times and then stops.
     for _ <- 1..64 do
       GPIO2.write(gpio1, 1)
-      assert_receive {:circuits_gpio2, ^gpio_spec2, _timestamp, 1}
+      _ = assert_receive {:circuits_gpio2, ^gpio_spec2, _timestamp, 1}
 
       GPIO2.write(gpio1, 0)
-      assert_receive {:circuits_gpio2, ^gpio_spec2, _timestamp, 0}
+      _ = assert_receive {:circuits_gpio2, ^gpio_spec2, _timestamp, 0}
     end
 
     GPIO2.close(gpio1)
     GPIO2.close(gpio2)
+  end
+
+  @doc false
+  @spec check_interrupt_timing(GPIO2.gpio_spec(), GPIO2.gpio_spec(), keyword()) :: :ok
+  def check_interrupt_timing(gpio_spec1, gpio_spec2, _options) do
+    {:ok, gpio1} = GPIO2.open(gpio_spec1, :output, initial_value: 0)
+    {:ok, gpio2} = GPIO2.open(gpio_spec2, :input)
+
+    :ok = GPIO2.set_interrupts(gpio2, :both)
+
+    # No notifications until something changes
+    refute_receive {:circuits_gpio2, _, _, _}
+
+    GPIO2.write(gpio1, 1)
+    {_, _, first_ns, _} = assert_receive {:circuits_gpio2, ^gpio_spec2, _, 1}
+
+    GPIO2.write(gpio1, 0)
+    {_, _, second_ns, _} = assert_receive {:circuits_gpio2, ^gpio_spec2, _, 0}
+
+    # No notifications after this
+    refute_receive {:circuits_gpio2, _, _, _}
+
+    GPIO2.close(gpio1)
+    GPIO2.close(gpio2)
+
+    # Check that the timestamps are ordered and not too far apart.
+    assert first_ns < second_ns
+    assert second_ns - first_ns < 100_000_000
+    assert second_ns - first_ns > 100
+
+    :ok
   end
 
   @doc false

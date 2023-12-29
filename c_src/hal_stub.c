@@ -166,13 +166,10 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
 int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 {
     struct stub_priv *hal_priv = pin->hal_priv;
-    int value = hal_read_gpio(pin);
 
     hal_priv->mode[pin->pin_number] = pin->config.trigger;
     hal_priv->pid[pin->pin_number] = pin->config.pid;
     hal_priv->gpio_pins[pin->pin_number] = pin;
-
-    maybe_send_notification(env, pin, value);
 
     return 0;
 }
