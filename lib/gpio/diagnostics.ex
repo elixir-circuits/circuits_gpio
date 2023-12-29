@@ -40,7 +40,7 @@ defmodule Circuits.GPIO2.Diagnostics do
 
       """,
       Enum.map(results, &pass_text/1),
-      "\n\nSpeed test: #{speed_test(gpio_spec1)} toggles/second\n\n",
+      "\n\nSpeed test: #{speed_test(gpio_spec1) |> round()} toggles/second (toggle = set to 1, then set to 0)\n\n",
       if(passed, do: "All tests passed", else: "Failed")
     ]
     |> IO.ANSI.format()
