@@ -2,13 +2,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-defmodule Circuits.GPIO2.NilBackend do
+defmodule Circuits.GPIO.NilBackend do
   @moduledoc """
-  Circuits.GPIO2 backend when nothing else is available
+  Circuits.GPIO backend when nothing else is available
   """
-  @behaviour Circuits.GPIO2.Backend
+  @behaviour Circuits.GPIO.Backend
 
-  alias Circuits.GPIO2.Backend
+  alias Circuits.GPIO.Backend
 
   @impl Backend
   def enumerate() do

@@ -20,7 +20,7 @@ erl_crash.dump
 *.ez
 
 # Ignore package tarball (built via "mix hex.build").
-circuits_gpio2-*.tar
+circuits_gpio-*.tar
 
 # Ignore C object files and executables
 /priv

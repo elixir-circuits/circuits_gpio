@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-defmodule Circuits.GPIO2.Line do
+defmodule Circuits.GPIO.Line do
   @moduledoc """
   Information about a GPIO line returned from `GPIO.enumerate/0`
   """
-  alias Circuits.GPIO2
+  alias Circuits.GPIO
 
   defstruct [:gpio_spec, :label, :controller]
 
@@ -18,8 +18,8 @@ defmodule Circuits.GPIO2.Line do
   * `:label` - a controller label, line label tuple. Could have empty strings if no labels
   """
   @type t() :: %__MODULE__{
-          gpio_spec: GPIO2.gpio_spec(),
-          controller: GPIO2.controller(),
-          label: {GPIO2.label(), GPIO2.label()}
+          gpio_spec: GPIO.gpio_spec(),
+          controller: GPIO.controller(),
+          label: {GPIO.label(), GPIO.label()}
         }
 end

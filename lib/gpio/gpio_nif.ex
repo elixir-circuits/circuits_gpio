@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-defmodule Circuits.GPIO2.Nif do
+defmodule Circuits.GPIO.Nif do
   @moduledoc false
 
   defp load_nif() do
-    nif_binary = Application.app_dir(:circuits_gpio2, "priv/gpio_nif")
+    nif_binary = Application.app_dir(:circuits_gpio, "priv/gpio_nif")
     :erlang.load_nif(to_charlist(nif_binary), 0)
   end
 

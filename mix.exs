@@ -1,13 +1,13 @@
-defmodule Circuits.GPIO2.MixProject do
+defmodule Circuits.GPIO.MixProject do
   use Mix.Project
 
   @version "2.0.0-pre.0"
   @description "Use GPIOs in Elixir"
-  @source_url "https://github.com/elixir-circuits/circuits_gpio2"
+  @source_url "https://github.com/elixir-circuits/circuits_gpio"
 
   def project do
     [
-      app: :circuits_gpio2,
+      app: :circuits_gpio,
       version: @version,
       elixir: "~> 1.11",
       description: @description,
@@ -31,7 +31,7 @@ defmodule Circuits.GPIO2.MixProject do
 
   def application do
     # IMPORTANT: This provides a default at runtime and at compile-time when
-    # circuits_gpio2 is pulled in as a dependency.
+    # circuits_gpio is pulled in as a dependency.
     [env: [default_backend: default_backend()]]
   end
 
@@ -80,28 +80,28 @@ defmodule Circuits.GPIO2.MixProject do
   end
 
   defp default_backend(), do: default_backend(Mix.env(), Mix.target())
-  defp default_backend(:test, _target), do: {Circuits.GPIO2.CDev, test: true}
+  defp default_backend(:test, _target), do: {Circuits.GPIO.CDev, test: true}
 
   defp default_backend(_env, :host) do
     case :os.type() do
-      {:unix, :linux} -> Circuits.GPIO2.CDev
-      _ -> {Circuits.GPIO2.CDev, test: true}
+      {:unix, :linux} -> Circuits.GPIO.CDev
+      _ -> {Circuits.GPIO.CDev, test: true}
     end
   end
 
   # Assume Nerves for a default
-  defp default_backend(_env, _not_host), do: Circuits.GPIO2.CDev
+  defp default_backend(_env, _not_host), do: Circuits.GPIO.CDev
 
   defp set_make_env(_args) do
     # Since user configuration hasn't been loaded into the application
     # environment when `project/1` is called, load it here for building
     # the NIF.
-    backend = Application.get_env(:circuits_gpio2, :default_backend, default_backend())
+    backend = Application.get_env(:circuits_gpio, :default_backend, default_backend())
 
     System.put_env("CIRCUITS_GPIO_BACKEND", cdev_compile_mode(backend))
   end
 
-  defp cdev_compile_mode({Circuits.GPIO2.CDev, options}) do
+  defp cdev_compile_mode({Circuits.GPIO.CDev, options}) do
     if Keyword.get(options, :test) do
       "test"
     else
@@ -109,7 +109,7 @@ defmodule Circuits.GPIO2.MixProject do
     end
   end
 
-  defp cdev_compile_mode(Circuits.GPIO2.CDev) do
+  defp cdev_compile_mode(Circuits.GPIO.CDev) do
     "cdev"
   end
 

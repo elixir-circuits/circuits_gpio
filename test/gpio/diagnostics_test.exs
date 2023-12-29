@@ -2,9 +2,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-defmodule Circuits.GPIO2.DiagnosticsTest do
+defmodule Circuits.GPIO.DiagnosticsTest do
   use ExUnit.Case
-  alias Circuits.GPIO2.Diagnostics
+  alias Circuits.GPIO.Diagnostics
 
   import ExUnit.CaptureIO
 

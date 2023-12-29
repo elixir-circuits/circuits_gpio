@@ -2,13 +2,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-defmodule Circuits.GPIO2.Backend do
+defmodule Circuits.GPIO.Backend do
   @moduledoc """
   Backends provide the connection to the real or virtual GPIO controllers
   """
-  alias Circuits.GPIO2
-  alias Circuits.GPIO2.Handle
-  alias Circuits.GPIO2.Line
+  alias Circuits.GPIO
+  alias Circuits.GPIO.Handle
+  alias Circuits.GPIO.Line
 
   @doc """
   Return a list of GPIOs
@@ -31,9 +31,9 @@ defmodule Circuits.GPIO2.Backend do
      input pin. `:not_set` is the default.
   """
   @callback open(
-              gpio_spec :: GPIO2.gpio_spec(),
-              direction :: GPIO2.direction(),
-              options :: GPIO2.open_options()
+              gpio_spec :: GPIO.gpio_spec(),
+              direction :: GPIO.direction(),
+              options :: GPIO.open_options()
             ) ::
               {:ok, Handle.t()} | {:error, atom()}
 

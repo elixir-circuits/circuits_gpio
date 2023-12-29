@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: circuits_gpio2
+Upstream-Name: circuits_gpio
 Upstream-Contact: Frank Hunleth <fhunleth@troodon-software.com>
-Source: https://github.com/elixir-circuits/circuits_gpio2
+Source: https://github.com/elixir-circuits/circuits_gpio
 
 Files: README.md CHANGELOG.md PORTING.md RELEASE.md
 Copyright: 2014 Frank Hunleth

@@ -2,7 +2,7 @@
 
 ## v2.0.0-pre.0 - 2023-05-30
 
-This is a major update to Circuits.GPIO2 that removes the requirement to use
+This is a major update to Circuits.GPIO that removes the requirement to use
 Nerves or Linux. The API is almost the same and the default is to compile and
 use the Linux backend, so changes may not be needed.
 
@@ -11,7 +11,7 @@ This is a prerelease so APIs may still change before the v2.0.0 release.
 * Changes
   * Support alternative backends for different operating systems or for
     simulated hardware
-  * Defer loading the Linux NIF until `Circuits.GPIO2.open/2` is called
+  * Defer loading the Linux NIF until `Circuits.GPIO.open/2` is called
 
 ## v1.1.0 - 2022-12-31
 
@@ -77,12 +77,12 @@ still work, but it's no longer being verified on CI.
     filters out transitions on a GPIO line that are too fast for Linux and the
     NIF to see both the rising and falling edges. Turning it off synthesizes
     events. You can identify synthesized events since they have the same
-    timestamp to the nanosecond. See `Circuits.GPIO2.set_interrupts/3`.
+    timestamp to the nanosecond. See `Circuits.GPIO.set_interrupts/3`.
 
 * Improvement
   * It's possible to enable the "stub" on Linux by setting
     `CIRCUITS_MIX_ENV=test`. This can be useful for unit testing code that uses
-    Circuits.GPIO2. Thanks to Enrico Rivarola for adding this!
+    Circuits.GPIO. Thanks to Enrico Rivarola for adding this!
 
 ## v0.4.2
 
@@ -92,7 +92,7 @@ still work, but it's no longer being verified on CI.
 ## v0.4.1
 
 * Bug fixes
-  * Fix a race condition on Raspbian where Circuits.GPIO2 would try to open the
+  * Fix a race condition on Raspbian where Circuits.GPIO would try to open the
     GPIO sysfs file before udev had a chance to fix its permissions.
   * Fix RPi platform detection on Raspbian so that pull-ups/pull-downs work
     without passing any flags.
@@ -101,9 +101,9 @@ still work, but it's no longer being verified on CI.
 
 The GPIO interrupt notification messages have been changed for consistency with
 other circuits projects. The initial element of the tuple is now
-`:circuits_gpio2`, so messages will look like:
+`:circuits_gpio`, so messages will look like:
 
-`{:circuits_gpio2, 19, 83268239, 1}`
+`{:circuits_gpio, 19, 83268239, 1}`
 
 Please update your project if you call `set_interrupts/2`.
 
