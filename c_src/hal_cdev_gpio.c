@@ -47,6 +47,42 @@ static int set_value_v2(int fd, int value)
     return 0;
 }
 
+static uint64_t config_to_flags(const struct gpio_pin *pin)
+{
+    uint64_t flags = pin->config.is_output ? GPIO_V2_LINE_FLAG_OUTPUT : GPIO_V2_LINE_FLAG_INPUT;
+
+    switch (pin->config.pull) {
+    case PULL_UP:
+        flags |= GPIO_V2_LINE_FLAG_BIAS_PULL_UP;
+        break;
+    case PULL_DOWN:
+        flags |= GPIO_V2_LINE_FLAG_BIAS_PULL_DOWN;
+        break;
+    case PULL_NONE:
+        flags |= GPIO_V2_LINE_FLAG_BIAS_DISABLED;
+        break;
+    default:
+        break;
+    }
+
+    switch (pin->config.trigger) {
+    case TRIGGER_RISING:
+        flags |= GPIO_V2_LINE_FLAG_EDGE_RISING;
+        break;
+    case TRIGGER_FALLING:
+        flags |= GPIO_V2_LINE_FLAG_EDGE_FALLING;
+        break;
+    case TRIGGER_BOTH:
+        flags |= GPIO_V2_LINE_FLAG_EDGE_RISING | GPIO_V2_LINE_FLAG_EDGE_FALLING;
+        break;
+    case TRIGGER_NONE:
+    default:
+        break;
+    }
+
+    return flags;
+}
+
 static int set_config_v2(int fd, uint64_t flags)
 {
     struct gpio_v2_line_config config;
@@ -139,24 +175,9 @@ int hal_open_gpio(struct gpio_pin *pin,
         strcpy(error_str, "open_failed");
         return -1;
     }
-    int value = 0;
-    uint64_t flags = 0;
-    if (pin->config.is_output) {
-        flags &= ~GPIO_V2_LINE_FLAG_INPUT;
-        flags |= GPIO_V2_LINE_FLAG_OUTPUT;
-        value = pin->config.initial_value;
-    } else {
-        flags = GPIO_V2_LINE_FLAG_INPUT;
-        value = 0;
-    }
 
-    if (pin->config.pull == PULL_UP) {
-        flags |= GPIO_V2_LINE_FLAG_BIAS_PULL_UP;
-    } else if (pin->config.pull == PULL_DOWN) {
-        flags |= GPIO_V2_LINE_FLAG_BIAS_PULL_DOWN;
-    } else {
-        flags |= GPIO_V2_LINE_FLAG_BIAS_DISABLED;
-    }
+    uint64_t flags = config_to_flags(pin);
+    int value = pin->config.is_output ? pin->config.initial_value : -1;
 
     pin->fd = request_line_v2(gpiochip_fd, pin->offset, flags, value);
     close(gpiochip_fd);
@@ -203,12 +224,18 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
     return set_value_v2(pin->fd, value);
 }
 
+static int refresh_config(const struct gpio_pin *pin)
+{
+    uint64_t flags = config_to_flags(pin);
+    return set_config_v2(pin->fd, flags);
+}
+
 int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 {
     (void) env;
     debug("hal_apply_interrupts %s:%d", pin->gpiochip, pin->offset);
     // Update the configuration and start or stop polling
-    if (hal_apply_direction(pin) < 0 ||
+    if (refresh_config(pin) < 0 ||
         update_polling_thread(pin) < 0)
         return -1;
 
@@ -218,47 +245,13 @@ int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 int hal_apply_direction(struct gpio_pin *pin)
 {
     debug("hal_apply_direction %s:%d", pin->gpiochip, pin->offset);
-    uint64_t flags = 0;
-    if (pin->config.is_output) {
-        flags = GPIO_V2_LINE_FLAG_OUTPUT;
-    } else {
-        flags = GPIO_V2_LINE_FLAG_INPUT;
-    }
-
-    if (pin->config.pull == PULL_UP) {
-        flags |= GPIO_V2_LINE_FLAG_BIAS_PULL_UP;
-    } else if (pin->config.pull == PULL_DOWN) {
-        flags |= GPIO_V2_LINE_FLAG_BIAS_PULL_DOWN;
-    } else {
-        flags |= GPIO_V2_LINE_FLAG_BIAS_DISABLED;
-    }
-
-    switch (pin->config.trigger) {
-    case TRIGGER_RISING:
-        flags |= GPIO_V2_LINE_FLAG_EDGE_RISING;
-        break;
-    case TRIGGER_FALLING:
-        flags |= GPIO_V2_LINE_FLAG_EDGE_FALLING;
-        break;
-    case TRIGGER_BOTH:
-        flags |= GPIO_V2_LINE_FLAG_EDGE_RISING | GPIO_V2_LINE_FLAG_EDGE_FALLING;
-        break;
-    case TRIGGER_NONE:
-    default:
-        break;
-    }
-
-    return set_config_v2(pin->fd, flags);
+    return refresh_config(pin);
 }
 
 int hal_apply_pull_mode(struct gpio_pin *pin)
 {
     debug("hal_apply_pull_mode %s:%d", pin->gpiochip, pin->offset);
-    if (pin->config.pull == PULL_NOT_SET)
-        return 0;
-
-    // Exact same handling as applying the direction now.
-    return hal_apply_direction(pin);
+    return refresh_config(pin);
 }
 
 ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
