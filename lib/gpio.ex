@@ -105,6 +105,9 @@ defmodule Circuits.GPIO2 do
   should be `:input` or `:output`. If opening as an output, then be sure to set
   the `:initial_value` option if you need the set to be glitch free.
 
+  If you're having trouble, see `enumerate/0` for available `gpio_spec`'s.
+  `Circuits.GPIO.Diagnostics` might also be helpful.
+
   Options:
 
   * :initial_value - Set to `:not_set`, `0` or `1` if this is an output.

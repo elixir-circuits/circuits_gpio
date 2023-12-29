@@ -259,7 +259,8 @@ you're trying to do:
    can flash LEDs, trigger off events and more. See [nerves_leds](https://github.com/nerves-project/nerves_leds).
 
 If you're still intent on optimizing GPIO access, you may be interested in
-[gpio_twiddler](https://github.com/fhunleth/gpio_twiddler).
+[gpio_twiddler](https://github.com/fhunleth/gpio_twiddler). Note that the
+twiddler doc is dated. Circuits.GPIO v2 should be faster than v1.
 
 ### Can I develop code that uses GPIO on my laptop?
 
