@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.0.0-pre.2 - 2023-12-30
+
+* Changes
+  * Fix Beaglebone workaround issues
+  * Add Circuits.GPIO version to diagnostics and simplify
+
 ## v2.0.0-pre.1 - 2023-12-29
 
 This is a major update over pre.0 that has a significant upgrade to the backend
