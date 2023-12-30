@@ -41,6 +41,7 @@ defmodule Circuits.GPIO.MixProject do
       files: [
         "lib",
         "c_src/*.[ch]",
+        "c_src/linux/gpio.h",
         "mix.exs",
         "README.md",
         "PORTING.md",
