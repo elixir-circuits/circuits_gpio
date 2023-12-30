@@ -52,7 +52,7 @@ static void check_bbb_linux_5_15_gpio_change()
         "../../../devices/platform/ocp/48000000.interconnect/48000000.interconnect:segment@100000/481ae000.target-module/481ae000.gpio/gpiochip2"
     };
 
-    char path[128];
+    char path[192];
     int i;
 
     for (i = 0; i < 8; i += 2) {
