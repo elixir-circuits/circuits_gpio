@@ -14,10 +14,18 @@ defmodule Circuits.GPIO.Diagnostics do
   alias Circuits.GPIO
 
   @doc """
+  Reminder for how to use report/2
+  """
+  @spec report() :: String.t()
+  def report() do
+    "Externally connect two GPIOs. Pass the gpio_specs for each to report/2."
+  end
+
+  @doc """
   Print a summary of the GPIO diagnostics
 
-  Connect the pins referred to by `gpio_spec1` and `gpio_spec2` together. When
-  using the cdev stub implementation, any pair of GPIOs can be used. For
+  Connect the pins referred to by `out_gpio_spec` and `in_gpio_spec` together.
+  When using the cdev stub implementation, any pair of GPIOs can be used. For
   example, run:
 
   ```elixir
@@ -28,21 +36,21 @@ defmodule Circuits.GPIO.Diagnostics do
   use.
   """
   @spec report(GPIO.gpio_spec(), GPIO.gpio_spec()) :: boolean
-  def report(gpio_spec1, gpio_spec2) do
-    results = run(gpio_spec1, gpio_spec2)
+  def report(out_gpio_spec, in_gpio_spec) do
+    results = run(out_gpio_spec, in_gpio_spec)
     passed = Enum.all?(results, fn {_, result} -> result == :ok end)
 
     [
       """
       Circuits.GPIO Diagnostics #{Application.spec(:circuits_gpio)[:vsn]}
 
-      GPIO 1: #{inspect(gpio_spec1)}
-      GPIO 2: #{inspect(gpio_spec2)}
+      Output GPIO: #{inspect(out_gpio_spec)}
+      Input GPIO: #{inspect(in_gpio_spec)}
       Backend: #{inspect(Circuits.GPIO.info()[:name])}
 
       """,
       Enum.map(results, &pass_text/1),
-      "\n\nSpeed test: #{speed_test(gpio_spec1) |> round()} toggles/second (toggle = set to 1, then set to 0)\n\n",
+      "\n\nSpeed test: #{speed_test(out_gpio_spec) |> round()} writes/second\n\n",
       if(passed, do: "All tests passed", else: "Failed")
     ]
     |> IO.ANSI.format()
@@ -60,10 +68,9 @@ defmodule Circuits.GPIO.Diagnostics do
   Run GPIO tests and return a list of the results
   """
   @spec run(GPIO.gpio_spec(), GPIO.gpio_spec()) :: list()
-  def run(gpio_spec1, gpio_spec2) do
+  def run(out_gpio_spec, in_gpio_spec) do
     tests = [
-      {"Writes can be read 1->2", &check_reading_and_writing/3, swap: false},
-      {"Writes can be read 2->1", &check_reading_and_writing/3, swap: true},
+      {"Simple writes and reads work", &check_reading_and_writing/3, []},
       {"Can set 0 on open", &check_setting_initial_value/3, value: 0},
       {"Can set 1 on open", &check_setting_initial_value/3, value: 1},
       {"Input interrupts sent", &check_interrupts/3, []},
@@ -73,11 +80,11 @@ defmodule Circuits.GPIO.Diagnostics do
     ]
 
     tests
-    |> Enum.map(&check(&1, gpio_spec1, gpio_spec2))
+    |> Enum.map(&check(&1, out_gpio_spec, in_gpio_spec))
   end
 
   @doc """
-  Return the number of times a GPIO can be toggled per second
+  Return the number of times a GPIO can be written per second
 
   Disclaimer: There should be a better way than relying on the Circuits.GPIO
   write performance on nearly every device. Write performance shouldn't be
@@ -92,7 +99,8 @@ defmodule Circuits.GPIO.Diagnostics do
     {micros, :ok} = :timer.tc(fn -> toggle(gpio, times) end)
     GPIO.close(gpio)
 
-    times / micros * 1_000_000
+    # 2 writes/toggle
+    times / micros * 1_000_000 * 2
   end
 
   defp toggle(gpio, times) do
@@ -135,13 +143,10 @@ defmodule Circuits.GPIO.Diagnostics do
     end
   end
 
-  defp check({name, test, options}, gpio_spec1, gpio_spec2) do
-    {gpio_spec1, gpio_spec2} =
-      if options[:swap], do: {gpio_spec2, gpio_spec1}, else: {gpio_spec1, gpio_spec2}
-
+  defp check({name, test, options}, out_gpio_spec, in_gpio_spec) do
     # Run the tests in a process so that GPIO handles get cleaned up and the process
     # mailbox is empty for interrupt checks.
-    t = Task.async(fn -> safe_check(test, gpio_spec1, gpio_spec2, options) end)
+    t = Task.async(fn -> safe_check(test, out_gpio_spec, in_gpio_spec, options) end)
 
     {name, Task.await(t)}
   rescue
@@ -149,51 +154,51 @@ defmodule Circuits.GPIO.Diagnostics do
       {name, {:error, Exception.message(e)}}
   end
 
-  defp safe_check(test, gpio_spec1, gpio_spec2, options) do
-    test.(gpio_spec1, gpio_spec2, options)
+  defp safe_check(test, out_gpio_spec, in_gpio_spec, options) do
+    test.(out_gpio_spec, in_gpio_spec, options)
   rescue
     e -> {:error, Exception.message(e)}
   end
 
   @doc false
   @spec check_reading_and_writing(GPIO.gpio_spec(), GPIO.gpio_spec(), keyword()) :: :ok
-  def check_reading_and_writing(gpio_spec1, gpio_spec2, _options) do
-    {:ok, gpio1} = GPIO.open(gpio_spec1, :output)
-    {:ok, gpio2} = GPIO.open(gpio_spec2, :input)
+  def check_reading_and_writing(out_gpio_spec, in_gpio_spec, _options) do
+    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :output)
+    {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input)
 
-    GPIO.write(gpio1, 0)
-    assert GPIO.read(gpio2) == 0
+    GPIO.write(out_gpio, 0)
+    assert GPIO.read(in_gpio) == 0
 
-    GPIO.write(gpio1, 1)
-    assert GPIO.read(gpio2) == 1
+    GPIO.write(out_gpio, 1)
+    assert GPIO.read(in_gpio) == 1
 
-    GPIO.write(gpio1, 0)
-    assert GPIO.read(gpio2) == 0
+    GPIO.write(out_gpio, 0)
+    assert GPIO.read(in_gpio) == 0
 
-    GPIO.close(gpio1)
-    GPIO.close(gpio2)
+    GPIO.close(out_gpio)
+    GPIO.close(in_gpio)
   end
 
   @doc false
   @spec check_setting_initial_value(GPIO.gpio_spec(), GPIO.gpio_spec(), keyword()) :: :ok
-  def check_setting_initial_value(gpio_spec1, gpio_spec2, options) do
+  def check_setting_initial_value(out_gpio_spec, in_gpio_spec, options) do
     value = options[:value]
-    {:ok, gpio1} = GPIO.open(gpio_spec1, :output, initial_value: value)
-    {:ok, gpio2} = GPIO.open(gpio_spec2, :input)
+    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :output, initial_value: value)
+    {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input)
 
-    assert GPIO.read(gpio2) == value
+    assert GPIO.read(in_gpio) == value
 
-    GPIO.close(gpio1)
-    GPIO.close(gpio2)
+    GPIO.close(out_gpio)
+    GPIO.close(in_gpio)
   end
 
   @doc false
   @spec check_interrupts(GPIO.gpio_spec(), GPIO.gpio_spec(), keyword()) :: :ok
-  def check_interrupts(gpio_spec1, gpio_spec2, _options) do
-    {:ok, gpio1} = GPIO.open(gpio_spec1, :output, initial_value: 0)
-    {:ok, gpio2} = GPIO.open(gpio_spec2, :input)
+  def check_interrupts(out_gpio_spec, in_gpio_spec, _options) do
+    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :output, initial_value: 0)
+    {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input)
 
-    :ok = GPIO.set_interrupts(gpio2, :both)
+    :ok = GPIO.set_interrupts(in_gpio, :both)
 
     # Initial notification
     refute_receive {:circuits_gpio, _spec, _timestamp, _}
@@ -201,39 +206,39 @@ defmodule Circuits.GPIO.Diagnostics do
     # Toggle enough times to avoid being tricked by something
     # works a few times and then stops.
     for _ <- 1..64 do
-      GPIO.write(gpio1, 1)
-      _ = assert_receive {:circuits_gpio, ^gpio_spec2, _timestamp, 1}
+      GPIO.write(out_gpio, 1)
+      _ = assert_receive {:circuits_gpio, ^in_gpio_spec, _timestamp, 1}
 
-      GPIO.write(gpio1, 0)
-      _ = assert_receive {:circuits_gpio, ^gpio_spec2, _timestamp, 0}
+      GPIO.write(out_gpio, 0)
+      _ = assert_receive {:circuits_gpio, ^in_gpio_spec, _timestamp, 0}
     end
 
-    GPIO.close(gpio1)
-    GPIO.close(gpio2)
+    GPIO.close(out_gpio)
+    GPIO.close(in_gpio)
   end
 
   @doc false
   @spec check_interrupt_timing(GPIO.gpio_spec(), GPIO.gpio_spec(), keyword()) :: :ok
-  def check_interrupt_timing(gpio_spec1, gpio_spec2, _options) do
-    {:ok, gpio1} = GPIO.open(gpio_spec1, :output, initial_value: 0)
-    {:ok, gpio2} = GPIO.open(gpio_spec2, :input)
+  def check_interrupt_timing(out_gpio_spec, in_gpio_spec, _options) do
+    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :output, initial_value: 0)
+    {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input)
 
-    :ok = GPIO.set_interrupts(gpio2, :both)
+    :ok = GPIO.set_interrupts(in_gpio, :both)
 
     # No notifications until something changes
     refute_receive {:circuits_gpio, _, _, _}
 
-    GPIO.write(gpio1, 1)
-    {_, _, first_ns, _} = assert_receive {:circuits_gpio, ^gpio_spec2, _, 1}
+    GPIO.write(out_gpio, 1)
+    {_, _, first_ns, _} = assert_receive {:circuits_gpio, ^in_gpio_spec, _, 1}
 
-    GPIO.write(gpio1, 0)
-    {_, _, second_ns, _} = assert_receive {:circuits_gpio, ^gpio_spec2, _, 0}
+    GPIO.write(out_gpio, 0)
+    {_, _, second_ns, _} = assert_receive {:circuits_gpio, ^in_gpio_spec, _, 0}
 
     # No notifications after this
     refute_receive {:circuits_gpio, _, _, _}
 
-    GPIO.close(gpio1)
-    GPIO.close(gpio2)
+    GPIO.close(out_gpio)
+    GPIO.close(in_gpio)
 
     # Check that the timestamps are ordered and not too far apart.
     assert first_ns < second_ns
@@ -245,47 +250,47 @@ defmodule Circuits.GPIO.Diagnostics do
 
   @doc false
   @spec check_pullup(GPIO.gpio_spec(), GPIO.gpio_spec(), keyword()) :: :ok
-  def check_pullup(gpio_spec1, gpio_spec2, _options) do
-    {:ok, gpio1} = GPIO.open(gpio_spec1, :output, initial_value: 0)
-    {:ok, gpio2} = GPIO.open(gpio_spec2, :input, pull_mode: :pullup)
+  def check_pullup(out_gpio_spec, in_gpio_spec, _options) do
+    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :output, initial_value: 0)
+    {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input, pull_mode: :pullup)
 
     # Check non-pullup case
-    assert GPIO.read(gpio2) == 0
-    GPIO.write(gpio1, 1)
-    assert GPIO.read(gpio2) == 1
-    GPIO.write(gpio1, 0)
-    assert GPIO.read(gpio2) == 0
+    assert GPIO.read(in_gpio) == 0
+    GPIO.write(out_gpio, 1)
+    assert GPIO.read(in_gpio) == 1
+    GPIO.write(out_gpio, 0)
+    assert GPIO.read(in_gpio) == 0
 
-    # Check pullup by re-opening gpio1 as an input
-    GPIO.close(gpio1)
-    {:ok, gpio1} = GPIO.open(gpio_spec1, :input)
+    # Check pullup by re-opening out_gpio as an input
+    GPIO.close(out_gpio)
+    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :input)
 
-    assert GPIO.read(gpio2) == 1
+    assert GPIO.read(in_gpio) == 1
 
-    GPIO.close(gpio1)
-    GPIO.close(gpio2)
+    GPIO.close(out_gpio)
+    GPIO.close(in_gpio)
   end
 
   @doc false
   @spec check_pulldown(GPIO.gpio_spec(), GPIO.gpio_spec(), keyword()) :: :ok
-  def check_pulldown(gpio_spec1, gpio_spec2, _options) do
-    {:ok, gpio1} = GPIO.open(gpio_spec1, :output, initial_value: 1)
-    {:ok, gpio2} = GPIO.open(gpio_spec2, :input, pull_mode: :pulldown)
+  def check_pulldown(out_gpio_spec, in_gpio_spec, _options) do
+    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :output, initial_value: 1)
+    {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input, pull_mode: :pulldown)
 
     # Check non-pullup case
-    assert GPIO.read(gpio2) == 1
-    GPIO.write(gpio1, 0)
-    assert GPIO.read(gpio2) == 0
-    GPIO.write(gpio1, 1)
-    assert GPIO.read(gpio2) == 1
+    assert GPIO.read(in_gpio) == 1
+    GPIO.write(out_gpio, 0)
+    assert GPIO.read(in_gpio) == 0
+    GPIO.write(out_gpio, 1)
+    assert GPIO.read(in_gpio) == 1
 
-    # Check pulldown by re-opening gpio1 as an input
-    GPIO.close(gpio1)
-    {:ok, gpio1} = GPIO.open(gpio_spec1, :input)
+    # Check pulldown by re-opening out_gpio as an input
+    GPIO.close(out_gpio)
+    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :input)
 
-    assert GPIO.read(gpio2) == 0
+    assert GPIO.read(in_gpio) == 0
 
-    GPIO.close(gpio1)
-    GPIO.close(gpio2)
+    GPIO.close(out_gpio)
+    GPIO.close(in_gpio)
   end
 end
