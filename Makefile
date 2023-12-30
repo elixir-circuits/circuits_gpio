@@ -53,6 +53,8 @@ endif
 ifeq ($(CIRCUITS_GPIO_BACKEND),cdev)
 # Enable real GPIO calls. This is the default and works with Nerves
 HAL_SRC = c_src/hal_cdev_gpio.c c_src/hal_cdev_gpio_interrupts.c
+# Hide cdev ioctl warnings
+CFLAGS += -Wno-overflow
 else
 ifeq ($(CIRCUITS_GPIO_BACKEND),test)
 # Stub out ioctls and send back test data
