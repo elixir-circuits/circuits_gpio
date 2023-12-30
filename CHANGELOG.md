@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.0.0-pre.1 - 2023-12-29
+
+This is a major update over pre.0 that has a significant upgrade to the backend
+for Nerves and Linux users.
+
+* Changes
+  * Replace the Linux sysfs backend with one that uses the Linux cdev interface
+  * Add workaround for reordering of GPIO controllers on Beaglebones with Linux
+    5.15 and later.
+  * Add `Circuits.GPIO.Diagnostics` to simplify testing runtime capabilities
+  * Support pull modes on all targets that support them instead of only
+    Raspberry Pis
+  * Many documentation updates
+
 ## v2.0.0-pre.0 - 2023-05-30
 
 This is a major update to Circuits.GPIO that removes the requirement to use
