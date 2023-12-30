@@ -34,7 +34,7 @@ defmodule Circuits.GPIO.Diagnostics do
 
     [
       """
-      Circuits.GPIO Diagnostics
+      Circuits.GPIO Diagnostics #{Application.spec(:circuits_gpio)[:vsn]}
 
       GPIO 1: #{inspect(gpio_spec1)}
       GPIO 2: #{inspect(gpio_spec2)}
