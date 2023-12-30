@@ -66,10 +66,10 @@ static void check_bbb_linux_5_15_gpio_change()
     }
 
     // This is a BBB with the new mapping. Rotate the scan order to compensate:
-    gpiochip_order_r[15] = 1;
-    gpiochip_order_r[14] = 2;
-    gpiochip_order_r[13] = 3;
-    gpiochip_order_r[12] = 0;
+    gpiochip_order_r[15] = 3;
+    gpiochip_order_r[14] = 0;
+    gpiochip_order_r[13] = 1;
+    gpiochip_order_r[12] = 2;
 }
 
 int get_value_v2(int fd)
