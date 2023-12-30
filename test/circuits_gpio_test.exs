@@ -7,6 +7,8 @@ defmodule Circuits.GPIO2Test do
   alias Circuits.GPIO
   alias Circuits.GPIO.Line
 
+  doctest GPIO
+
   setup do
     # Verify the test is being run with a clean environment
     assert GPIO.info().pins_open == 0, "Some other test didn't stop cleanly"

@@ -6,12 +6,22 @@ defmodule Circuits.GPIO do
   @moduledoc """
   Control GPIOs from Elixir
 
-  If you're coming from Elixir/ALE, check out our [porting guide](PORTING.md).
+  See the [Readme](README.md) for a tutorial and the [porting guide](PORTING.md)
+  if updating from Circuits.GPIO v1.x.
 
-  `Circuits.GPIO` works great with LEDs, buttons, many kinds of sensors, and
-  simple control of motors. In general, if a device requires high speed
-  transactions or has hard real-time constraints in its interactions, this is not
-  the right library. For those devices, see if there's a Linux kernel driver.
+  Simple example:
+
+  ```elixir
+  # GPIO 2 is connected to GPIO 3
+  iex> {:ok, my_output_gpio} = Circuits.GPIO.open({"gpiochip0", 2}, :output)
+  iex> {:ok, my_input_gpio} = Circuits.GPIO.open({"gpiochip0", 3}, :input)
+  iex> Circuits.GPIO.write(my_output_gpio, 1)
+  :ok
+  iex> Circuits.GPIO.read(my_input_gpio)
+  1
+  iex> Circuits.GPIO.close(my_output_gpio)
+  iex> Circuits.GPIO.close(my_input_gpio)
+  ```
   """
   alias Circuits.GPIO.Handle
 
@@ -28,10 +38,10 @@ defmodule Circuits.GPIO do
   @typedoc """
   GPIO controller
 
-  GPIO controllers manage one or more GPIO lines. They're referred to
-  by strings. For example, you'll mostly see `"gpiochip0"`, etc. but
-  they could be anything or even empty strings there's no reason to
-  differentiate controllers on a device.
+  GPIO controllers manage one or more GPIO lines. They're referred to by
+  strings. For example, you'll mostly see `"gpiochip0"`, etc. but they could be
+  anything or even empty strings there's no reason to differentiate controllers
+  on a device.
   """
   @type controller() :: String.t()
 
@@ -47,16 +57,17 @@ defmodule Circuits.GPIO do
   @typedoc """
   A GPIO controller or line label
 
-  Labels provide aliases for GPIO lines and controllers. They're system-specific.
-  On Linux, labels are provided in device tree files.
+  Labels provide aliases for GPIO lines and controllers. They're
+  system-specific. On Linux, labels are provided in device tree files.
   """
   @type label() :: String.t()
 
   @typedoc """
   An identifier for a GPIO
 
-  Call `Circuits.GPIO.enumerate/0` to see what GPIOs are available on your device. Several
-  ways exist to refer to GPIOs due to variations in devices and programmer preference.
+  Call `Circuits.GPIO.enumerate/0` to see what GPIOs are available on your
+  device. Several ways exist to refer to GPIOs due to variations in devices and
+  programmer preference.
 
   Options:
 
@@ -161,8 +172,8 @@ defmodule Circuits.GPIO do
   @doc """
   Release the resources associated with a GPIO
 
-  This is optional. The garbage collector will free GPIO resources that aren't in
-  use, but this will free them sooner.
+  This is optional. The garbage collector will free GPIO resources that aren't
+  in use, but this will free them sooner.
   """
   @spec close(Handle.t()) :: :ok
   defdelegate close(handle), to: Handle
@@ -170,8 +181,8 @@ defmodule Circuits.GPIO do
   @doc """
   Read a GPIO's value
 
-  The value returned for GPIO's that are configured as outputs is
-  undefined. Backends may choose not to support this.
+  The value returned for GPIO's that are configured as outputs is undefined.
+  Backends may choose not to support this.
   """
   @spec read(Handle.t()) :: value()
   defdelegate read(handle), to: Handle
@@ -239,8 +250,8 @@ defmodule Circuits.GPIO do
   @doc """
   Get the GPIO pin number
 
-  This function is for Circuits.GPIO v1.0 compatibility. It is recommended
-  to use other ways of identifying GPIOs going forward. See `gpio_spec/0`.
+  This function is for Circuits.GPIO v1.0 compatibility. It is recommended to
+  use other ways of identifying GPIOs going forward. See `gpio_spec/0`.
   """
   @spec pin(Handle.t()) :: non_neg_integer()
   def pin(handle) do

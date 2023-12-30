@@ -5,6 +5,21 @@
 defmodule Circuits.GPIO.CDev do
   @moduledoc """
   Circuits.GPIO backend that uses the Linux CDev for controlling GPIOs
+
+  This is the default on Linux and Nerves. Nothing needs to be done to
+  use it on those platforms. If you need to be explicit, here's the
+  configuration to force it:
+
+  ```elixir
+  config :circuits_gpio, default_backend: Circuits.GPIO.CDev
+  ```
+
+  It takes one option, `:test`, that can be set to `true` to compile
+  the stub implementation that can be useful for testing.
+
+  ```elixir
+  config :circuits_gpio, default_backend: {Circuits.GPIO.CDev, test: true}
+  ```
   """
   @behaviour Circuits.GPIO.Backend
 

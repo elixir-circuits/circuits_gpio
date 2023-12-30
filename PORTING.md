@@ -16,8 +16,8 @@ The following breaking changes were made:
 
 1. `Circuits.GPIO.open/3` accepts more general pin specifications called
    `gpio_spec`s. This allows you to specify GPIO controllers and refer to pins
-   by labels. Please see `Circuits.GPIO.gpio_spec/0` since referring to pins by
-   number is brittle and has broken in the past.
+   by labels. Please see `t:Circuits.GPIO.gpio_spec/0` since referring to pins
+   by number is brittle and has broken in the past.
 2. `Circuits.GPIO.open/3` no longer can preserve the previous output value on
    a pin automatically. I.e., `initial_value: :not_set` is no longer supported.
 3. Reading the values of output GPIOs is not supported. This does have a chance

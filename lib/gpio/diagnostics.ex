@@ -6,24 +6,26 @@ defmodule Circuits.GPIO.Diagnostics do
   @moduledoc """
   Runtime diagnostics
 
-  This module provides simple diagnostics to verify GPIO controller
-  and implementation differences. Along with the device that you're
-  using, this is super helpful for diagnosing issues since some GPIO
-  features aren't supposed to work on some devices.
+  This module provides simple diagnostics to verify GPIO controller and
+  implementation differences. Along with the device that you're using, this is
+  super helpful for diagnosing issues since some GPIO features aren't supposed
+  to work on some devices.
   """
   alias Circuits.GPIO
 
   @doc """
   Print a summary of the GPIO diagnostics
 
-  Connect the pins referred to by `gpio_spec1` and `gpio_spec2` together. When using
-  the cdev stub implementation, any pair of GPIOs can be used. For example, run:
+  Connect the pins referred to by `gpio_spec1` and `gpio_spec2` together. When
+  using the cdev stub implementation, any pair of GPIOs can be used. For
+  example, run:
 
   ```elixir
   Circuits.GPIO.Diagnostics.report({"gpiochip0", 0}, {"gpiochip0", 1})
   ```
 
-  This function is intended for IEx prompt usage. See `run/2` for programmatic use.
+  This function is intended for IEx prompt usage. See `run/2` for programmatic
+  use.
   """
   @spec report(GPIO.gpio_spec(), GPIO.gpio_spec()) :: boolean
   def report(gpio_spec1, gpio_spec2) do
@@ -77,8 +79,9 @@ defmodule Circuits.GPIO.Diagnostics do
   @doc """
   Return the number of times a GPIO can be toggled per second
 
-  Disclaimer: There should be a better way than relying on the Circuits.GPIO write performance
-  on nearly every device. Write performance shouldn't be terrible, though.
+  Disclaimer: There should be a better way than relying on the Circuits.GPIO
+  write performance on nearly every device. Write performance shouldn't be
+  terrible, though.
   """
   @spec speed_test(GPIO.gpio_spec()) :: float()
   def speed_test(gpio_spec) do

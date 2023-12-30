@@ -15,19 +15,11 @@ defmodule Circuits.GPIO.NilBackend do
     []
   end
 
-  @doc """
-  Open a GPIO
-
-  No supported options.
-  """
   @impl Backend
   def open(_pin_spec, _direction, _options) do
     {:error, :unimplemented}
   end
 
-  @doc """
-  Return information about this backend
-  """
   @impl Backend
   def info() do
     %{name: __MODULE__}
