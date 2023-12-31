@@ -67,7 +67,8 @@ defmodule Circuits.GPIO do
 
   Call `Circuits.GPIO.enumerate/0` to see what GPIOs are available on your
   device. Several ways exist to refer to GPIOs due to variations in devices and
-  programmer preference.
+  programmer preference. The Raspberry Pi, for example, labels many pins by
+  their physical location (e.g., `"PIN37"` for GPIO 26.)
 
   Options:
 
