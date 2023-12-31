@@ -21,15 +21,20 @@ v1.x. Here's what's new:
 * Develop using simulated GPIOs to work with LEDs and buttons with
   [CircuitsSim](https://github.com/elixir-circuits/circuits_sim)
 
-If you've used `Circuits.GPIO` v1.x, nearly all of your code will be the same.`Circuits.GPIO` offers a substantial improvement by more descriptive GPIO specs for identifying GPIOs. You can still refer to GPIOs by number. However, you can also refer to GPIOs by labels and by which GPIO controller handles them. The new `enumerate/0` can help with this.
+If you've used `Circuits.GPIO` v1.x, nearly all of your code will be the
+same.`Circuits.GPIO` offers a substantial improvement by more descriptive GPIO
+specs for identifying GPIOs. You can still refer to GPIOs by number. However,
+you can also refer to GPIOs by labels and by which GPIO controller handles them.
+The new `enumerate/0` can help with this.
 
 Please review the [porting guide](PORTING.md) when upgrading from v1.x.
 
 ## Getting started on Nerves and Linux
 
-If you're natively compiling `circuits_gpio` using Nerves or using a Linux-based SBC like a Raspberry Pi,
-everything should work like any other Elixir library. Normally, you would
-include `circuits_gpio` as a dependency in your `mix.exs` like this:
+If you're natively compiling `circuits_gpio` using Nerves or using a Linux-based
+SBC like a Raspberry Pi, everything should work like any other Elixir library.
+Normally, you would include `circuits_gpio` as a dependency in your `mix.exs`
+like this:
 
 ```elixir
 def deps do
@@ -37,18 +42,19 @@ def deps do
 end
 ```
 
-One common error on RaspberryPi OS is that the Erlang headers are missing (`erl_nif.h`),
-you may need to install erlang with `apt-get install erlang-dev` or build Erlang
-from source per instructions [here](http://elinux.org/Erlang).
+One common error on RaspberryPi OS is that the Erlang headers are missing
+(`erl_nif.h`), you may need to install erlang with `apt-get install erlang-dev`
+or build Erlang from source per instructions [here](http://elinux.org/Erlang).
 
 ## Examples
 
-While `Circuits.GPIO` can support non-Nerves and non-Linux systems, the examples below were made using Nerves. Operation on other devices mostly differs on how to refer to GPIOs.
+While `Circuits.GPIO` can support non-Nerves and non-Linux systems, the examples
+below were made using Nerves. Operation on other devices mostly differs on how
+to refer to GPIOs.
 
-The following examples were tested on a Raspberry
-Pi that was connected to an [Erlang Embedded Demo
-Board](http://solderpad.com/omerk/erlhwdemo/). There's nothing special about
-either the demo board or the Raspberry Pi.
+The following examples were tested on a Raspberry Pi that was connected to an
+[Erlang Embedded Demo Board](http://solderpad.com/omerk/erlhwdemo/). There's
+nothing special about either the demo board or the Raspberry Pi.
 
 ## GPIO
 
@@ -62,10 +68,14 @@ Here's an example of turning an LED on or off:
 
 ![GPIO LED schematic](assets/images/schematic-gpio-led.png)
 
-To turn on the LED that's connected to the net (or wire) labeled `GPIO18`, you need to open it first. The first parameter to `Circuits.GPIO.open/2` is called a GPIO spec and identifies the GPIO. You can pass `18`, but the preferred way is to also specify the GPIO controller name as well (more on this later):
+To turn on the LED that's connected to the net (or wire) labeled `GPIO18`, you
+need to open it first. The first parameter to `Circuits.GPIO.open/2` is called a
+GPIO spec and identifies the GPIO. The Raspberry Pis are nice and provide string
+names for GPIOs. Other boards are not as nice so you always have to check. The
+string name for this GPIO is `"PIN12"` since that's what GPIO 18's physical pin.
 
 ```elixir
-iex> {:ok, gpio} = Circuits.GPIO.open({"gpiochip0", 18}, :output)
+iex> {:ok, gpio} = Circuits.GPIO.open("PIN12", :output)
 {:ok, #Reference<...>}
 
 iex> Circuits.GPIO.write(gpio, 1)
@@ -94,7 +104,7 @@ pull-up/pull-down resistors](#internal-pull-uppull-down).
 The code looks like this in `Circuits.GPIO`:
 
 ```elixir
-iex> {:ok, gpio} = Circuits.GPIO.open({"gpiochip0", 17}, :input)
+iex> {:ok, gpio} = Circuits.GPIO.open("PIN11", :input)
 {:ok, #Reference<...>}
 
 iex> Circuits.GPIO.read(gpio)
@@ -148,10 +158,14 @@ maintained, even when the CPU is powered down.
 
 ## GPIO Specs
 
-`Circuits.GPIO` V2.0 supports a new form of specifying how to open a pin called a `Spec`. These specs are based on the *newer* gpio-cdev subsystem
-in Linux. Notably, they include the concept of `gpiochips` and `lines`, both of which are used internally to provide pin numbers for the *older* pin numbering scheme.
+`Circuits.GPIO` V2.0 supports a new form of specifying how to open a pin called
+a `Spec`. These specs are based on the *newer* gpio-cdev subsystem in Linux.
+Notably, they include the concept of `gpiochips` and `lines`, both of which are
+used internally to provide pin numbers for the *older* pin numbering scheme.
 
-Specs are a tuple of a `gpiochip` and a `line`. The gpiochip may be provided as either a label for a chip if configured by your platform, or as it's name as listed in `/dev`.
+Specs are a tuple of a `gpiochip` and a `line`. The gpiochip may be provided as
+either a label for a chip if configured by your platform, or as it's name as
+listed in `/dev`.
 
 ```elixir
 iex> {:ok, ref} = Circuits.GPIO.open({"gpiochip0", 1}, :input)
@@ -161,27 +175,32 @@ iex> {:ok, ref} = Circuits.GPIO.open({"gpiochip0", 1}, :input)
 The spec `line` may also be provided as a label if configured for your platform:
 
 ```elixir
-iex> {:ok, ref} = Circuits.GPIO.open({"gpiochip0", "special-name-for-pin-0"})
+iex> {:ok, ref} = Circuits.GPIO.open("special-name-for-pin-0"})
 {:ok, #Reference<...>}
 ```
 
-Additionally, if the label for a pin is unique, that label may be provided without a gpiochip in the spec.
-If the label is *not* unique, the first line matching that name will be opened.
+Additionally, if the label for a pin is unique, that label may be provided
+without a gpiochip in the spec.  If the label is *not* unique, the first line
+matching that name will be opened.
 
 ```elixir
 iex> {:ok, ref} = Circuits.GPIO.open("special-name-for-pin-0")
 {:ok, #Reference<...>}
 ```
 
-See [Enumeration](#enumeration) for listing out all available pin specs for your device.
+See [Enumeration](#enumeration) for listing out all available pin specs for your
+device.
 
 ## Enumeration
 
-`Circuits.GPIO` v2.0 supports a new function, `enumerate/0`, which lists every known GPIO pin.
+`Circuits.GPIO` v2.0 supports a new function, `enumerate/0`, which lists every
+known GPIO pin.
 
-For Nerves and Linux users, the `gpio-cdev` subsystem maintains the official list. See
-the [Official DeviceTree documentation for GPIOs](https://elixir.bootlin.com/linux/v6.6.6/source/Documentation/devicetree/bindings/gpio/gpio.txt) for more
-information on how to configure the fields of this struct for your own system.
+For Nerves and Linux users, the `gpio-cdev` subsystem maintains the official
+list. See the [Official DeviceTree documentation for
+GPIOs](https://elixir.bootlin.com/linux/v6.6.6/source/Documentation/devicetree/bindings/gpio/gpio.txt)
+for more information on how to configure the fields of this struct for your own
+system.
 
 ```elixir
 iex> Circuits.GPIO.enumerate()
@@ -196,8 +215,8 @@ iex> Circuits.GPIO.enumerate()
 ## Testing
 
 `Circuits.GPIO` supports a "stub" hardware abstraction layer on platforms
-without GPIO support and when `MIX_ENV=test`. The stub allows for some
-limited unit testing without real hardware.
+without GPIO support and when `MIX_ENV=test`. The stub allows for some limited
+unit testing without real hardware.
 
 To use it, first check that you're using the "stub" HAL:
 
@@ -206,10 +225,9 @@ iex> Circuits.GPIO.info
 %{name: :stub, pins_open: 0}
 ```
 
-The stub HAL has 64 GPIOs. Each pair of GPIOs is connected. For example,
-GPIO 0 is connected to GPIO 1. If you open GPIO 0 as an output and
-GPIO 1 as an input, you can write to GPIO 0 and see the result on GPIO 1.
-Here's an example:
+The stub HAL has 64 GPIOs. Each pair of GPIOs is connected. For example, GPIO 0
+is connected to GPIO 1. If you open GPIO 0 as an output and GPIO 1 as an input,
+you can write to GPIO 0 and see the result on GPIO 1. Here's an example:
 
 ```elixir
 iex> {:ok, gpio0} = Circuits.GPIO.open({"gpiochip0", 0}, :output)
