@@ -42,6 +42,7 @@ defmodule Circuits.GPIO.Diagnostics do
     results = run(out_gpio_spec, in_gpio_spec)
     passed = Enum.all?(results, fn {_, result} -> result == :ok end)
     check_connections? = hd(results) != {"Simple writes and reads work", :ok}
+    speed_results = speed_test(out_gpio_spec)
 
     [
       """
@@ -56,7 +57,12 @@ defmodule Circuits.GPIO.Diagnostics do
 
       """,
       Enum.map(results, &pass_text/1),
-      "\n\nSpeed test: #{speed_test(out_gpio_spec) |> round()} writes/second\n\n",
+      """
+
+      Writes/second: #{round(speed_results.writes_per_sec)}
+      Reads/second: #{round(speed_results.reads_per_sec)}
+
+      """,
       if(check_connections?,
         do: [
           :red,
@@ -98,29 +104,43 @@ defmodule Circuits.GPIO.Diagnostics do
   end
 
   @doc """
-  Return the number of times a GPIO can be written per second
+  Run GPIO API performance tests
 
   Disclaimer: There should be a better way than relying on the Circuits.GPIO
   write performance on nearly every device. Write performance shouldn't be
   terrible, though.
   """
-  @spec speed_test(GPIO.gpio_spec()) :: float()
+  @spec speed_test(GPIO.gpio_spec()) :: %{writes_per_sec: float(), reads_per_sec: float()}
   def speed_test(gpio_spec) do
     times = 1000
 
     {:ok, gpio} = GPIO.open(gpio_spec, :output)
-    toggle(gpio, 10)
-    {micros, :ok} = :timer.tc(fn -> toggle(gpio, times) end)
+    toggle_write(gpio, 10)
+    {write_micros, :ok} = :timer.tc(fn -> toggle_read(gpio, times) end)
     GPIO.close(gpio)
 
-    # 2 writes/toggle
-    times / micros * 1_000_000 * 2
+    {:ok, gpio} = GPIO.open(gpio_spec, :input)
+    toggle_read(gpio, 10)
+    {read_micros, :ok} = :timer.tc(fn -> toggle_read(gpio, times) end)
+
+    # 2 ops/toggle
+    %{
+      writes_per_sec: times / write_micros * 1_000_000 * 2,
+      reads_per_sec: times / read_micros * 1_000_000 * 2
+    }
   end
 
-  defp toggle(gpio, times) do
+  defp toggle_write(gpio, times) do
     Enum.each(1..times, fn _ ->
       GPIO.write(gpio, 0)
       GPIO.write(gpio, 1)
+    end)
+  end
+
+  defp toggle_read(gpio, times) do
+    Enum.each(1..times, fn _ ->
+      GPIO.read(gpio)
+      GPIO.read(gpio)
     end)
   end
 

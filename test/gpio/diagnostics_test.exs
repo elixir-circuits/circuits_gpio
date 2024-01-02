@@ -20,10 +20,10 @@ defmodule Circuits.GPIO.DiagnosticsTest do
   end
 
   test "speed_test/1" do
-    tps = Diagnostics.speed_test(10)
+    results = Diagnostics.speed_test(10)
 
     # Just check that the result is not completely bogus
-    assert is_float(tps)
-    assert tps > 1000
+    assert results.writes_per_sec > 1000
+    assert results.reads_per_sec > 1000
   end
 end
