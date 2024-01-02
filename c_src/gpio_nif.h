@@ -84,6 +84,7 @@ extern ERL_NIF_TERM atom_struct;
 extern ERL_NIF_TERM atom_circuits_gpio_line;
 extern ERL_NIF_TERM atom_controller;
 extern ERL_NIF_TERM atom_circuits_gpio;
+extern ERL_NIF_TERM atom_consumer;
 
 // HAL
 

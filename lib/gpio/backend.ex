@@ -18,17 +18,33 @@ defmodule Circuits.GPIO.Backend do
   @callback enumerate() :: [Line.t()]
 
   @doc """
-  Open one or more GPIOs
+  Return information about a GPIO line
 
-  `gpio_spec` should be a valid GPIO pin specification on the system and `direction`
-  should be `:input` or `:output`. If opening as an output, then be sure to set
-  the `:initial_value` option if you need the set to be glitch free.
+  See `t:gpio_spec/0` for the ways of referring to GPIOs. The `options` contain
+  and backend-specific options that would otherwise be passed to `open/3`.
+
+  If the GPIO is found, this function returns information about the GPIO.
+  """
+  @callback line_info(
+              gpio_spec :: GPIO.gpio_spec(),
+              options :: GPIO.open_options()
+            ) :: {:ok, Line.t()} | {:error, atom()}
+
+  @doc """
+  Open a GPIO
+
+  See `t:gpio_spec/0` for the ways of referring to GPIOs. Set `direction` to
+  either `:input` or `:output`. If opening as an output, then be sure to set
+  the `:initial_value` option to minimize the time the GPIO is in the default
+  state.
 
   Options:
 
-  * :initial_value - Set to `0` or `1` if this is an output. `0` is the default.
+  * :initial_value - Set to `0` or `1`. Only used for outputs. Defaults to `0`.
   * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
      input pin. `:not_set` is the default.
+
+  Returns `{:ok, handle}` on success.
   """
   @callback open(
               gpio_spec :: GPIO.gpio_spec(),

@@ -22,6 +22,7 @@ ERL_NIF_TERM atom_struct;
 ERL_NIF_TERM atom_circuits_gpio_line;
 ERL_NIF_TERM atom_controller;
 ERL_NIF_TERM atom_circuits_gpio;
+ERL_NIF_TERM atom_consumer;
 
 #ifdef DEBUG
 FILE *log_location = NULL;
@@ -117,6 +118,7 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
     atom_struct = enif_make_atom(env, "__struct__");
     atom_circuits_gpio_line = enif_make_atom(env, "Elixir.Circuits.GPIO.Line");
     atom_circuits_gpio = enif_make_atom(env, "circuits_gpio");
+    atom_consumer = enif_make_atom(env, "consumer");
 
     size_t extra_size = hal_priv_size();
     struct gpio_priv *priv = enif_alloc(sizeof(struct gpio_priv) + extra_size);

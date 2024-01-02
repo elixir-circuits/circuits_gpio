@@ -113,11 +113,25 @@ defmodule Circuits.GPIO do
   # Public API
 
   @doc """
+  Return information about a GPIO line
+
+  See `t:gpio_spec/0` for the ways of referring to GPIOs. If the GPIO is found,
+  this function returns information about the GPIO.
+  """
+  @spec line_info(gpio_spec()) :: {:ok, Line.t()} | {:error, atom()}
+  def line_info(gpio_spec) do
+    {backend, backend_defaults} = default_backend()
+
+    backend.line_info(gpio_spec, backend_defaults)
+  end
+
+  @doc """
   Open a GPIO
 
-  `gpio_spec` should be a valid GPIO pin number on the system and `direction`
-  should be `:input` or `:output`. If opening as an output, then be sure to set
-  the `:initial_value` option if you need the set to be glitch free.
+  See `t:gpio_spec/0` for the ways of referring to GPIOs. Set `direction` to
+  either `:input` or `:output`. If opening as an output, then be sure to set
+  the `:initial_value` option to minimize the time the GPIO is in the default
+  state.
 
   If you're having trouble, see `enumerate/0` for available `gpio_spec`'s.
   `Circuits.GPIO.Diagnostics` might also be helpful.

@@ -35,35 +35,40 @@ defmodule Circuits.GPIO.CDev do
     Nif.enumerate()
   end
 
-  defp normalize_gpio_spec(number) when is_integer(number) do
+  @impl Backend
+  def line_info(number, _options) when is_integer(number) and number >= 0 do
     info = enumerate() |> Enum.at(number)
-
-    if info, do: {:ok, info.gpio_spec}, else: {:error, :not_found}
+    if info, do: {:ok, info}, else: {:error, :not_found}
   end
 
-  defp normalize_gpio_spec(line_label) when is_binary(line_label) do
-    spec =
-      Enum.find_value(enumerate(), fn
-        %Line{gpio_spec: spec, label: {_chip_label, ^line_label}} -> spec
-        _ -> false
-      end)
-
-    if spec, do: {:ok, spec}, else: {:error, :not_found}
+  def line_info(line_label, _options) when is_binary(line_label) do
+    Enum.find_value(enumerate(), {:error, :not_found}, fn
+      %Line{label: ^line_label} = info -> {:ok, info}
+      _ -> false
+    end)
   end
 
-  defp normalize_gpio_spec({chip_label, line_label})
-       when is_binary(chip_label) and is_binary(line_label) do
-    spec =
-      Enum.find_value(enumerate(), fn
-        %Line{gpio_spec: spec, label: {^chip_label, ^line_label}} -> spec
-        _ -> false
-      end)
-
-    if spec, do: {:ok, spec}, else: {:error, :not_found}
+  def line_info({chip_label, line_label}, _options)
+      when is_binary(chip_label) and is_binary(line_label) do
+    Enum.find_value(enumerate(), {:error, :not_found}, fn
+      %Line{controller: ^chip_label, label: ^line_label} = info -> {:ok, info}
+      _ -> false
+    end)
   end
 
-  defp normalize_gpio_spec({controller, line}) when is_binary(controller) and is_integer(line) do
+  def line_info(_gpio_spec, _options) do
+    {:error, :not_found}
+  end
+
+  defp normalize_gpio_spec({controller, line}, _options)
+       when is_binary(controller) and is_integer(line) do
     {:ok, {controller, line}}
+  end
+
+  defp normalize_gpio_spec(gpio_spec, options) do
+    with {:ok, line_info} <- line_info(gpio_spec, options) do
+      {:ok, line_info.gpio_spec}
+    end
   end
 
   defp resolve_gpiochip({controller, line}) do
@@ -79,7 +84,7 @@ defmodule Circuits.GPIO.CDev do
     value = Keyword.fetch!(options, :initial_value)
     pull_mode = Keyword.fetch!(options, :pull_mode)
 
-    with {:ok, normalized_spec} <- normalize_gpio_spec(gpio_spec),
+    with {:ok, normalized_spec} <- normalize_gpio_spec(gpio_spec, options),
          resolved_spec = resolve_gpiochip(normalized_spec),
          {:ok, ref} <- Nif.open(gpio_spec, resolved_spec, direction, value, pull_mode) do
       {:ok, %__MODULE__{ref: ref}}

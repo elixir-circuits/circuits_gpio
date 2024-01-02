@@ -34,6 +34,47 @@ defmodule Circuits.GPIO2Test do
     assert info.pins_open == 0
   end
 
+  describe "line_info/2" do
+    test "lines in stub0" do
+      for spec <- [4, "pair_2_0", {"stub0", "pair_2_0"}] do
+        line_info = GPIO.line_info(spec)
+
+        expected_line_info = %Circuits.GPIO.Line{
+          gpio_spec: {"gpiochip0", 4},
+          label: "pair_2_0",
+          controller: "stub0"
+        }
+
+        assert line_info == {:ok, expected_line_info},
+               "Unexpected info for #{inspect(spec)} -> #{inspect(line_info)}"
+      end
+    end
+
+    test "lines in stub1" do
+      for spec <- [33, "pair_16_1", {"stub1", "pair_16_1"}] do
+        line_info = GPIO.line_info(spec)
+
+        expected_line_info = %Circuits.GPIO.Line{
+          gpio_spec: {"gpiochip1", 1},
+          label: "pair_16_1",
+          controller: "stub1"
+        }
+
+        assert line_info == {:ok, expected_line_info},
+               "Unexpected info for #{inspect(spec)} -> #{inspect(line_info)}"
+      end
+    end
+
+    test "nonexistent lines" do
+      for spec <- [-1, 65, "pair_100_0", {"stub10", "pair_2_0"}] do
+        line_info = GPIO.line_info(spec)
+
+        assert line_info == {:error, :not_found},
+               "Unexpected info for #{inspect(spec)} -> #{inspect(line_info)}"
+      end
+    end
+  end
+
   test "opening and closing a pin gets counted" do
     {:ok, gpio} = GPIO.open({@gpiochip, 1}, :input)
     assert is_struct(gpio, Circuits.GPIO.CDev)
@@ -179,7 +220,7 @@ defmodule Circuits.GPIO2Test do
 
   test "interrupt with various specs" do
     # Test that interrupts sent the original spec that they were opened with
-    for spec1 <- [33, "pair_16_1", {"stub", "pair_16_1"}] do
+    for spec1 <- [33, "pair_16_1", {"stub1", "pair_16_1"}] do
       {:ok, gpio0} = GPIO.open({"gpiochip1", 0}, :output)
       {:ok, gpio1} = GPIO.open(spec1, :input)
 
@@ -297,14 +338,14 @@ defmodule Circuits.GPIO2Test do
 
     assert hd(result) == %Line{
              gpio_spec: {"gpiochip0", 0},
-             controller: "gpiochip0",
-             label: {"stub", "pair_0_0"}
+             controller: "stub0",
+             label: "pair_0_0"
            }
 
     assert List.last(result) == %Line{
              gpio_spec: {"gpiochip1", 31},
-             controller: "gpiochip1",
-             label: {"stub", "pair_31_1"}
+             controller: "stub1",
+             label: "pair_31_1"
            }
   end
 

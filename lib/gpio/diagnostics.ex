@@ -37,6 +37,8 @@ defmodule Circuits.GPIO.Diagnostics do
   """
   @spec report(GPIO.gpio_spec(), GPIO.gpio_spec()) :: boolean
   def report(out_gpio_spec, in_gpio_spec) do
+    {:ok, out_gpio_info} = GPIO.line_info(out_gpio_spec)
+    {:ok, in_gpio_info} = GPIO.line_info(in_gpio_spec)
     results = run(out_gpio_spec, in_gpio_spec)
     passed = Enum.all?(results, fn {_, result} -> result == :ok end)
 
@@ -45,7 +47,10 @@ defmodule Circuits.GPIO.Diagnostics do
       Circuits.GPIO Diagnostics #{Application.spec(:circuits_gpio)[:vsn]}
 
       Output GPIO: #{inspect(out_gpio_spec)}
-      Input GPIO: #{inspect(in_gpio_spec)}
+      Input GPIO:  #{inspect(in_gpio_spec)}
+
+      Output info: #{inspect(out_gpio_info)}
+      Input info:  #{inspect(in_gpio_info)}
       Backend: #{inspect(Circuits.GPIO.info()[:name])}
 
       """,

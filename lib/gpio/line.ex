@@ -8,18 +8,22 @@ defmodule Circuits.GPIO.Line do
   """
   alias Circuits.GPIO
 
-  defstruct [:gpio_spec, :label, :controller]
+  @derive {Inspect, optional: [:label, :controller, :consumer]}
+
+  defstruct gpio_spec: nil, label: "", controller: "", consumer: ""
 
   @typedoc """
   Line information
 
   * `:gpio_spec` - the gpio spec to pass to `GPIO.open/3` to use the GPIO
-  * `:controller` - the GPIO controller name or an empty string if unnamed
-  * `:label` - a controller label, line label tuple. Could have empty strings if no labels
+  * `:controller` - the GPIO controller name or label. Empty string if unnamed
+  * `:label` - a label for the line. Empty string if no label
+  * `:consumer` - a hint at who's using the GPIO. Empty string if unused or unknown
   """
   @type t() :: %__MODULE__{
           gpio_spec: GPIO.gpio_spec(),
-          controller: GPIO.controller(),
-          label: {GPIO.label(), GPIO.label()}
+          controller: GPIO.controller() | GPIO.label(),
+          label: GPIO.label(),
+          consumer: String.t()
         }
 end

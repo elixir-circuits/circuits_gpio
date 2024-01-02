@@ -16,7 +16,12 @@ defmodule Circuits.GPIO.NilBackend do
   end
 
   @impl Backend
-  def open(_pin_spec, _direction, _options) do
+  def line_info(_gpio_spec, _options) do
+    {:error, :not_found}
+  end
+
+  @impl Backend
+  def open(_gpio_spec, _direction, _options) do
     {:error, :unimplemented}
   end
 

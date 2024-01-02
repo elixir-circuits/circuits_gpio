@@ -340,12 +340,14 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
             if (ioctl(fd, GPIO_V2_GET_LINEINFO_IOCTL, &line) >= 0) {
                 ERL_NIF_TERM line_map = enif_make_new_map(env);
                 ERL_NIF_TERM line_offset = enif_make_int(env, j);
-                ERL_NIF_TERM line_label = line.name[0] == '\0' ? line_offset : make_string_binary(env, line.name);
+                ERL_NIF_TERM line_label = make_string_binary(env, line.name);
+                ERL_NIF_TERM consumer = make_string_binary(env, line.consumer);
 
                 enif_make_map_put(env, line_map, atom_struct, atom_circuits_gpio_line, &line_map);
-                enif_make_map_put(env, line_map, atom_controller, chip_name, &line_map);
-                enif_make_map_put(env, line_map, atom_label, enif_make_tuple2(env, chip_label, line_label), &line_map);
+                enif_make_map_put(env, line_map, atom_controller, chip_label, &line_map);
+                enif_make_map_put(env, line_map, atom_label, line_label, &line_map);
                 enif_make_map_put(env, line_map, atom_gpio_spec, enif_make_tuple2(env, chip_name, line_offset), &line_map);
+                enif_make_map_put(env, line_map, atom_consumer, consumer, &line_map);
 
                 gpio_list = enif_make_list_cell(env, line_map, gpio_list);
             }
