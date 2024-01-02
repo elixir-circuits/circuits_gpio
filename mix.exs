@@ -1,7 +1,7 @@
 defmodule Circuits.GPIO.MixProject do
   use Mix.Project
 
-  @version "2.0.0-pre.2"
+  @version "2.0.0-pre.3"
   @description "Use GPIOs in Elixir"
   @source_url "https://github.com/elixir-circuits/circuits_gpio"
 

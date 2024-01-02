@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.0.0-pre.3 - 2024-1-1
+
+* Changes
+  * Add Circuits.GPIO.line_info/2 to simplify getting information about a GPIO
+  * Add consumer information to the line information and change the label to
+    just be the label rather than a tuple that contains the controller. This
+    matches better to what would normally be passed to `Circuits.GPIO.open/3`
+  * Add more information to the diagnostics report to simplify debugging
+  * Add a read performance measurement to the diagnostics report
+
 ## v2.0.0-pre.2 - 2023-12-30
 
 * Changes
