@@ -41,6 +41,7 @@ defmodule Circuits.GPIO.Diagnostics do
     {:ok, in_gpio_info} = GPIO.line_info(in_gpio_spec)
     results = run(out_gpio_spec, in_gpio_spec)
     passed = Enum.all?(results, fn {_, result} -> result == :ok end)
+    check_connections? = hd(results) != {"Simple writes and reads work", :ok}
 
     [
       """
@@ -56,6 +57,14 @@ defmodule Circuits.GPIO.Diagnostics do
       """,
       Enum.map(results, &pass_text/1),
       "\n\nSpeed test: #{speed_test(out_gpio_spec) |> round()} writes/second\n\n",
+      if(check_connections?,
+        do: [
+          :red,
+          "Check that the pins are physically connected and the gpio_specs are correct.\n",
+          :reset
+        ],
+        else: []
+      ),
       if(passed, do: "All tests passed", else: "Failed")
     ]
     |> IO.ANSI.format()
