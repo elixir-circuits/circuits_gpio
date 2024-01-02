@@ -24,6 +24,7 @@ defmodule Circuits.GPIO do
   ```
   """
   alias Circuits.GPIO.Handle
+  alias Circuits.GPIO.Line
 
   require Logger
 
