@@ -41,8 +41,7 @@ defmodule Circuits.GPIO do
 
   GPIO controllers manage one or more GPIO lines. They're referred to by
   strings. For example, you'll mostly see `"gpiochip0"`, etc. but they could be
-  anything or even empty strings there's no reason to differentiate controllers
-  on a device.
+  anything or even an empty string if there's only one controller.
   """
   @type controller() :: String.t()
 
@@ -78,17 +77,17 @@ defmodule Circuits.GPIO do
      number. There are issues with this strategy since GPIO indices can change.
      It is so common that it's still supported. Prefer other ways when you're
      able to change code.
-  2. `{controller, line_offset}` - Specify a line on a specific GPIO
+  2. `{controller_name, line_offset}` - Specify a line on a specific GPIO
      controller. E.g., `{"gpiochip0", 10}`
   3. `label` - Specify a GPIO line label. The first controller that has a
      matching line is used. This lets you move the mapping of GPIOs to
      peripheral connections to a device tree file or other central place. E.g.,
      `"LED_ENABLE"`
-  4. `{label, label}` - Specify both GPIO controller and line labels. E.g.,
-     `{"primary-gpios", "PIO4"}`
+  4. `{controller_name, label}` - Specify both GPIO controller and line labels.
+     E.g., `{"gpiochip4", "PIO4"}`
   """
   @type gpio_spec() ::
-          non_neg_integer() | {controller(), line_offset()} | label() | {label(), label()}
+          non_neg_integer() | {controller(), line_offset()} | label() | {controller(), label()}
 
   @typedoc "The GPIO direction (input or output)"
   @type direction() :: :input | :output

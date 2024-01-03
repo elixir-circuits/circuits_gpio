@@ -4,7 +4,9 @@
 
 defmodule Circuits.GPIO.Line do
   @moduledoc """
-  Information about a GPIO line returned from `GPIO.enumerate/0`
+  Information about a GPIO line
+
+  See `Circuits.GPIO.enumerate/0` and `Circuits.GPIO.line_info/1`.
   """
   alias Circuits.GPIO
 
@@ -16,8 +18,9 @@ defmodule Circuits.GPIO.Line do
   Line information
 
   * `:gpio_spec` - the gpio spec to pass to `GPIO.open/3` to use the GPIO
-  * `:controller` - the GPIO controller name or label. Empty string if unnamed
-  * `:label` - a label for the line. Empty string if no label
+  * `:controller` - a GPIO controller label or description. Empty string if unused
+  * `:label` - a label for the line. This could also be passed to
+    `GPIO.open/3`. Empty string if no label
   * `:consumer` - a hint at who's using the GPIO. Empty string if unused or unknown
   """
   @type t() :: %__MODULE__{
