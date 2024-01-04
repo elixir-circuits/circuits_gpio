@@ -291,6 +291,25 @@ defmodule Circuits.GPIO do
   def enumerate(nil), do: enumerate(default_backend())
   def enumerate({backend, _options}), do: backend.enumerate()
 
+  @doc """
+  Guard version of gpio_spec?/1
+
+  Add `require Circuits.GPIO` to your source file to use this guard.
+  """
+  defguard is_gpio_spec(x)
+           when (is_tuple(x) and is_binary(elem(x, 0)) and
+                   (is_binary(elem(x, 1)) or is_integer(elem(x, 1)))) or is_binary(x) or
+                  is_integer(x)
+
+  @doc """
+  Return if a term looks like a gpio_spec
+
+  This function only verifies that the term has the right shape to be a gpio_spec. Whether or not
+  it refers to a usable GPIO is checked by `Circuits.GPIO.open/3`.
+  """
+  @spec gpio_spec?(any) :: boolean()
+  def gpio_spec?(x), do: is_gpio_spec(x)
+
   defp default_backend() do
     case Application.get_env(:circuits_gpio, :default_backend) do
       nil -> {Circuits.GPIO.NilBackend, []}

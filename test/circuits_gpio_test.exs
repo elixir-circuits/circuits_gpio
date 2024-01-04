@@ -4,6 +4,7 @@
 
 defmodule Circuits.GPIO2Test do
   use ExUnit.Case
+  require Circuits.GPIO
   alias Circuits.GPIO
   alias Circuits.GPIO.Line
 
@@ -373,5 +374,25 @@ defmodule Circuits.GPIO2Test do
       assert false == :code.purge(Circuits.GPIO.Nif)
       assert false == :code.purge(Circuits.GPIO)
     end
+  end
+
+  test "is_gpio_spec/1" do
+    assert Circuits.GPIO.is_gpio_spec("PA8")
+    assert Circuits.GPIO.is_gpio_spec(1 * 1 * 32 + 8)
+    assert Circuits.GPIO.is_gpio_spec({"gpiochip0", 8})
+    assert Circuits.GPIO.is_gpio_spec({"gpiochip0", "PA8"})
+    refute Circuits.GPIO.is_gpio_spec({nil, nil})
+    refute Circuits.GPIO.is_gpio_spec(nil)
+    refute Circuits.GPIO.is_gpio_spec(%{})
+  end
+
+  test "gpio_spec?/1" do
+    assert Circuits.GPIO.gpio_spec?("PA8")
+    assert Circuits.GPIO.gpio_spec?(1 * 1 * 32 + 8)
+    assert Circuits.GPIO.gpio_spec?({"gpiochip0", 8})
+    assert Circuits.GPIO.gpio_spec?({"gpiochip0", "PA8"})
+    refute Circuits.GPIO.gpio_spec?({nil, nil})
+    refute Circuits.GPIO.gpio_spec?(nil)
+    refute Circuits.GPIO.gpio_spec?(%{})
   end
 end
