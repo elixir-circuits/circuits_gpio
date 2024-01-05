@@ -128,12 +128,10 @@ void hal_unload(void *hal_priv);
  * Open up and initialize a GPIO.
  *
  * @param pin information about the GPIO
- * @param error_str helpful text if something goes wrong
  * @param env a NIF environment in case a message is sent
- * @return 0 on success
+ * @return 0 on success, -errno on failure
  */
 int hal_open_gpio(struct gpio_pin *pin,
-                  char *error_str,
                   ErlNifEnv *env);
 
 /**
@@ -193,7 +191,7 @@ int hal_apply_pull_mode(struct gpio_pin *pin);
 
 // nif_utils.c
 ERL_NIF_TERM make_ok_tuple(ErlNifEnv *env, ERL_NIF_TERM value);
-ERL_NIF_TERM make_error_tuple(ErlNifEnv *env, const char *reason);
+ERL_NIF_TERM make_errno_error(ErlNifEnv *env, int errno_value);
 ERL_NIF_TERM make_string_binary(ErlNifEnv *env, const char *str);
 int enif_get_boolean(ErlNifEnv *env, ERL_NIF_TERM term, bool *v);
 

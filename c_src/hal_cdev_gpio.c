@@ -72,7 +72,7 @@ static void check_bbb_linux_5_15_gpio_change()
     gpiochip_order_r[12] = 2;
 }
 
-int get_value_v2(int fd)
+static int get_value_v2(int fd)
 {
     struct gpio_v2_line_values vals;
     memset(&vals, 0, sizeof(vals));
@@ -91,9 +91,8 @@ static int set_value_v2(int fd, int value)
     vals.bits = value;
     vals.mask = 1;
 
-    if (ioctl(fd, GPIO_V2_LINE_SET_VALUES_IOCTL, &vals) < 0) {
+    if (ioctl(fd, GPIO_V2_LINE_SET_VALUES_IOCTL, &vals) < 0)
         return -errno;
-    }
 
     return 0;
 }
@@ -217,34 +216,30 @@ void hal_unload(void *hal_priv)
 }
 
 int hal_open_gpio(struct gpio_pin *pin,
-                  char *error_str,
                   ErlNifEnv *env)
 {
     int gpiochip_fd = open(pin->gpiochip, O_RDWR|O_CLOEXEC);
-    if (gpiochip_fd < 0) {
-        strcpy(error_str, "open_failed");
-        return -1;
-    }
+    if (gpiochip_fd < 0)
+        return -errno;
 
     uint64_t flags = config_to_flags(pin);
     int value = pin->config.is_output ? pin->config.initial_value : -1;
 
     pin->fd = request_line_v2(gpiochip_fd, pin->offset, flags, value);
     close(gpiochip_fd);
-    debug("requesting pin %s:%d -> %d, errno=%d", pin->gpiochip, pin->offset, pin->fd, errno);
-    if(pin->fd < 0) {
-        strcpy(error_str, strerror(-pin->fd));
-        return -1;
-    }
+    debug("requesting pin %s:%d -> %d", pin->gpiochip, pin->offset, pin->fd);
+    if (pin->fd < 0)
+        return pin->fd;
 
     // Only call hal_apply_interrupts if there's a trigger
-    if (pin->config.trigger != TRIGGER_NONE && hal_apply_interrupts(pin, env) < 0) {
-        strcpy(error_str, "error_setting_interrupts");
-        close(pin->fd);
-        return -1;
+    if (pin->config.trigger != TRIGGER_NONE) {
+        int rc = hal_apply_interrupts(pin, env);
+        if (rc < 0) {
+            close(pin->fd);
+            return rc;
+        }
     }
 
-    *error_str = '\0';
     return 0;
 }
 

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "gpio_nif.h"
+#include <errno.h>
 #include <string.h>
 
 #define NUM_GPIOS 64
@@ -47,7 +48,6 @@ void hal_unload(void *hal_priv)
 }
 
 int hal_open_gpio(struct gpio_pin *pin,
-                  char *error_str,
                   ErlNifEnv *env)
 {
     struct stub_priv *hal_priv = pin->hal_priv;
@@ -60,14 +60,12 @@ int hal_open_gpio(struct gpio_pin *pin,
                strcmp(pin->gpiochip, "/dev/gpiochip1") == 0) {
         pin_base = 32;
     } else {
-        strcpy(error_str, "open_failed");
-        return -1;
+        return -ENOENT;
     }
 
-    if (pin->offset < 0 || pin->offset >= 32) {
-        strcpy(error_str, "invalid_pin");
-        return -1;
-    }
+    if (pin->offset < 0 || pin->offset >= 32)
+        return -ENOENT;
+
     pin->pin_number = pin_base + pin->offset;
     pin->fd = pin->pin_number;
     hal_priv->gpio_pins[pin->pin_number] = pin;
@@ -84,7 +82,6 @@ int hal_open_gpio(struct gpio_pin *pin,
         hal_priv->value[pin->pin_number] = -1;
     }
     hal_priv->in_use[pin->pin_number]++;
-    *error_str = '\0';
     return 0;
 }
 

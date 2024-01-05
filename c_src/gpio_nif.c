@@ -278,9 +278,10 @@ static ERL_NIF_TERM set_interrupts(ErlNifEnv *env, int argc, const ERL_NIF_TERM 
         return enif_make_badarg(env);
     }
 
-    if (hal_apply_interrupts(pin, env) < 0) {
+    int rc = hal_apply_interrupts(pin, env);
+    if (rc < 0) {
         pin->config = old_config;
-        return make_error_tuple(env, "hal_apply_interrupts");
+        return make_errno_error(env, rc);
     }
 
     return atom_ok;
@@ -299,9 +300,10 @@ static ERL_NIF_TERM set_direction(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
     if (!get_direction(env, argv[1], &pin->config.is_output))
         return enif_make_badarg(env);
 
-    if (hal_apply_direction(pin) < 0) {
+    int rc = hal_apply_direction(pin);
+    if (rc < 0) {
         pin->config = old_config;
-        return make_error_tuple(env, "write_pin_direction");
+        return make_errno_error(env, rc);
     }
 
     return atom_ok;
@@ -320,9 +322,10 @@ static ERL_NIF_TERM set_pull_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
     if (!get_pull_mode(env, argv[1], &pin->config.pull))
         return enif_make_badarg(env);
 
-    if (hal_apply_pull_mode(pin) < 0) {
+    int rc = hal_apply_pull_mode(pin);
+    if (rc < 0) {
         pin->config = old_config;
-        return make_error_tuple(env, "write_pull_mode");
+        return make_errno_error(env, rc);
     }
 
     return atom_ok;
@@ -382,10 +385,10 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     pin->config.suppress_glitches = false;
     pin->config.initial_value = initial_value;
 
-    char error_str[64];
-    if (hal_open_gpio(pin, error_str, env) < 0) {
+    int rc = hal_open_gpio(pin, env);
+    if (rc < 0) {
         enif_release_resource(pin);
-        return make_error_tuple(env, error_str);
+        return make_errno_error(env, rc);
     }
 
     // Transfer ownership of the resource to Erlang so that it can be garbage collected.

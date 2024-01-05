@@ -17,6 +17,5 @@ struct gpio_pin;
 
 void *gpio_poller_thread(void *arg);
 int update_polling_thread(struct gpio_pin *pin);
-int get_value_v2(int fd);
 
 #endif // HAL_CDEV_GPIO_H
