@@ -79,7 +79,6 @@ int get_value_v2(int fd)
     vals.mask = 1;
 
     if (ioctl(fd, GPIO_V2_LINE_GET_VALUES_IOCTL, &vals) < 0) {
-        debug("GPIO_V2_LINE_GET_VALUES_IOCTL failed");
         return -errno;
     }
 
@@ -93,7 +92,6 @@ static int set_value_v2(int fd, int value)
     vals.mask = 1;
 
     if (ioctl(fd, GPIO_V2_LINE_SET_VALUES_IOCTL, &vals) < 0) {
-        debug("GPIO_V2_LINE_GET_VALUES_IOCTL failed");
         return -errno;
     }
 
@@ -143,7 +141,6 @@ static int set_config_v2(int fd, uint64_t flags)
 
     config.flags = flags;
     if (ioctl(fd, GPIO_V2_LINE_SET_CONFIG_IOCTL, &config) < 0) {
-        debug("GPIO_V2_LINE_SET_CONFIG_IOCTL failed");
         return -errno;
     }
 
@@ -172,7 +169,6 @@ static int request_line_v2(int fd, unsigned int offset, uint64_t flags, int val)
     }
 
     if (ioctl(fd, GPIO_V2_GET_LINE_IOCTL, &req) < 0) {
-        debug("GPIO_V2_GET_LINE_IOCTL failed");
         return -errno;
     }
     return req.fd;
@@ -237,7 +233,7 @@ int hal_open_gpio(struct gpio_pin *pin,
     close(gpiochip_fd);
     debug("requesting pin %s:%d -> %d, errno=%d", pin->gpiochip, pin->offset, pin->fd, errno);
     if(pin->fd < 0) {
-        strcpy(error_str, "invalid_pin");
+        strcpy(error_str, strerror(-pin->fd));
         return -1;
     }
 
