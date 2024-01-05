@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.0.0-pre.4 - 2024-1-5
+
+This release is looking really close to the final prerelease. Please provide
+feedback soon if there are issues.
+
+* Changes
+  * Add `Circuits.GPIO.gpio_spec?/1` and `Circuits.GPIO.is_gpio_spec/1` to
+    support sanity checking GPIOs when parsing config options in user code.
+  * Documentation updates
+
 ## v2.0.0-pre.3 - 2024-1-1
 
 * Changes
