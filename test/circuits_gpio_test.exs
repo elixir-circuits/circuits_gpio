@@ -377,22 +377,69 @@ defmodule Circuits.GPIO2Test do
   end
 
   test "is_gpio_spec/1" do
-    assert Circuits.GPIO.is_gpio_spec("PA8")
-    assert Circuits.GPIO.is_gpio_spec(1 * 1 * 32 + 8)
-    assert Circuits.GPIO.is_gpio_spec({"gpiochip0", 8})
-    assert Circuits.GPIO.is_gpio_spec({"gpiochip0", "PA8"})
-    refute Circuits.GPIO.is_gpio_spec({nil, nil})
-    refute Circuits.GPIO.is_gpio_spec(nil)
-    refute Circuits.GPIO.is_gpio_spec(%{})
+    assert GPIO.is_gpio_spec("PA8")
+    assert GPIO.is_gpio_spec(1 * 1 * 32 + 8)
+    assert GPIO.is_gpio_spec({"gpiochip0", 8})
+    assert GPIO.is_gpio_spec({"gpiochip0", "PA8"})
+    refute GPIO.is_gpio_spec({nil, nil})
+    refute GPIO.is_gpio_spec(nil)
+    refute GPIO.is_gpio_spec(%{})
   end
 
   test "gpio_spec?/1" do
-    assert Circuits.GPIO.gpio_spec?("PA8")
-    assert Circuits.GPIO.gpio_spec?(1 * 1 * 32 + 8)
-    assert Circuits.GPIO.gpio_spec?({"gpiochip0", 8})
-    assert Circuits.GPIO.gpio_spec?({"gpiochip0", "PA8"})
-    refute Circuits.GPIO.gpio_spec?({nil, nil})
-    refute Circuits.GPIO.gpio_spec?(nil)
-    refute Circuits.GPIO.gpio_spec?(%{})
+    assert GPIO.gpio_spec?("PA8")
+    assert GPIO.gpio_spec?(1 * 1 * 32 + 8)
+    assert GPIO.gpio_spec?({"gpiochip0", 8})
+    assert GPIO.gpio_spec?({"gpiochip0", "PA8"})
+    refute GPIO.gpio_spec?({nil, nil})
+    refute GPIO.gpio_spec?(nil)
+    refute GPIO.gpio_spec?(%{})
+  end
+
+  test "line_info/2" do
+    expected = %Circuits.GPIO.Line{
+      gpio_spec: {"gpiochip0", 5},
+      label: "pair_2_1",
+      controller: "stub0"
+    }
+
+    assert GPIO.line_info(5) == {:ok, expected}
+    assert GPIO.line_info("pair_2_1") == {:ok, expected}
+    assert GPIO.line_info({"gpiochip0", 5}) == {:ok, expected}
+    assert GPIO.line_info({"stub0", 5}) == {:ok, expected}
+    assert GPIO.line_info({"gpiochip0", "pair_2_1"}) == {:ok, expected}
+    assert GPIO.line_info({"stub0", "pair_2_1"}) == {:ok, expected}
+
+    assert GPIO.line_info(-1) == {:error, :not_found}
+    assert GPIO.line_info(64) == {:error, :not_found}
+    assert GPIO.line_info("something") == {:error, :not_found}
+    assert GPIO.line_info({"gpiochip0", 64}) == {:error, :not_found}
+    assert GPIO.line_info({"stub0", 64}) == {:error, :not_found}
+    assert GPIO.line_info({"gpiochip0", "something"}) == {:error, :not_found}
+    assert GPIO.line_info({"stub0", "something"}) == {:error, :not_found}
+  end
+
+  test "refresh enumeration cache" do
+    bogus_gpio = %Circuits.GPIO.Line{
+      gpio_spec: {"gpiochip10", 5},
+      label: "not_a_gpio",
+      controller: "not_a_controller"
+    }
+
+    good_gpio = %Circuits.GPIO.Line{
+      gpio_spec: {"gpiochip1", 5},
+      label: "pair_18_1",
+      controller: "stub1"
+    }
+
+    # Set the cache to something bogus and check that it's comes back
+    :persistent_term.put(Circuits.GPIO.CDev, [bogus_gpio])
+    assert GPIO.line_info("not_a_gpio") == {:ok, bogus_gpio}
+
+    # Now check that the cache gets refreshed when a gpio isn't found
+    assert GPIO.line_info("pair_18_1") == {:ok, good_gpio}
+
+    # The bogus GPIO doesn't come back
+    assert GPIO.line_info("not_a_gpio") == {:error, :not_found}
   end
 end

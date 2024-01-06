@@ -11,7 +11,7 @@ defmodule Circuits.GPIO.NilBackend do
   alias Circuits.GPIO.Backend
 
   @impl Backend
-  def enumerate() do
+  def enumerate(_options) do
     []
   end
 

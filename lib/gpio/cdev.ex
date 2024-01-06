@@ -31,29 +31,57 @@ defmodule Circuits.GPIO.CDev do
   defstruct [:ref]
 
   @impl Backend
-  def enumerate() do
-    Nif.enumerate()
+  def enumerate(options) do
+    cached = :persistent_term.get(__MODULE__, [])
+
+    if cached == [] or options[:force_enumeration] do
+      results = Nif.enumerate()
+      :persistent_term.put(__MODULE__, results)
+      results
+    else
+      cached
+    end
   end
 
-  @impl Backend
-  def line_info(number, _options) when is_integer(number) and number >= 0 do
-    info = enumerate() |> Enum.at(number)
+  defp find_by_index(gpios, index), do: Enum.at(gpios, index)
+
+  defp find_by_tuple(gpios, {controller, label_or_index}) do
+    Enum.find(gpios, fn
+      %Line{gpio_spec: {^controller, _}, label: ^label_or_index} -> true
+      %Line{controller: ^controller, label: ^label_or_index} -> true
+      %Line{gpio_spec: {^controller, ^label_or_index}} -> true
+      %Line{controller: ^controller, gpio_spec: {_, ^label_or_index}} -> true
+      _ -> false
+    end)
+  end
+
+  defp find_by_label(gpios, label) do
+    Enum.find(gpios, fn
+      %Line{label: ^label} -> true
+      _ -> false
+    end)
+  end
+
+  defp retry_find(options, find_fun) do
+    info =
+      find_fun.(enumerate(options)) ||
+        find_fun.(enumerate([{:force_enumeration, true} | options]))
+
     if info, do: {:ok, info}, else: {:error, :not_found}
   end
 
-  def line_info(line_label, _options) when is_binary(line_label) do
-    Enum.find_value(enumerate(), {:error, :not_found}, fn
-      %Line{label: ^line_label} = info -> {:ok, info}
-      _ -> false
-    end)
+  @impl Backend
+  def line_info(number, options) when is_integer(number) and number >= 0 do
+    retry_find(options, &find_by_index(&1, number))
   end
 
-  def line_info({chip_label, line_label}, _options)
-      when is_binary(chip_label) and is_binary(line_label) do
-    Enum.find_value(enumerate(), {:error, :not_found}, fn
-      %Line{controller: ^chip_label, label: ^line_label} = info -> {:ok, info}
-      _ -> false
-    end)
+  def line_info(line_label, options) when is_binary(line_label) do
+    retry_find(options, &find_by_label(&1, line_label))
+  end
+
+  def line_info(tuple_spec, options)
+      when is_tuple(tuple_spec) and tuple_size(tuple_spec) == 2 do
+    retry_find(options, &find_by_tuple(&1, tuple_spec))
   end
 
   def line_info(_gpio_spec, _options) do

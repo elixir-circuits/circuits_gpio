@@ -13,15 +13,16 @@ defmodule Circuits.GPIO.Backend do
   @doc """
   Return a list of GPIOs
 
-  See the `Line` struct for the information that is returned.
+  See the `Line` struct for the information that is returned. The `options` contain
+  backend-specific options to help with enumeration.
   """
-  @callback enumerate() :: [Line.t()]
+  @callback enumerate(options :: GPIO.open_options()) :: [Line.t()]
 
   @doc """
   Return information about a GPIO line
 
   See `t:gpio_spec/0` for the ways of referring to GPIOs. The `options` contain
-  and backend-specific options that would otherwise be passed to `open/3`.
+  backend-specific options to help enumerating GPIOs.
 
   If the GPIO is found, this function returns information about the GPIO.
   """

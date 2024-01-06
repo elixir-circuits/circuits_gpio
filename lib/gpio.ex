@@ -103,8 +103,18 @@ defmodule Circuits.GPIO do
 
   @typedoc """
   Options for `open/3`
+
+  * `:initial_value` - the initial value of an output GPIO
+  * `:pull_mode` - the initial pull mode for an input GPIO
+  * `:force_enumeration` - Linux cdev-specific option to force a scan of
+    available GPIOs rather than using the cache. This is only for test purposes
+    since the GPIO cache should rescan as needed.
   """
-  @type open_options() :: [initial_value: value(), pull_mode: pull_mode()]
+  @type open_options() :: [
+          initial_value: value(),
+          pull_mode: pull_mode(),
+          force_enumeration: boolean()
+        ]
 
   @typedoc """
   Options for `set_interrupt/2`
@@ -289,7 +299,7 @@ defmodule Circuits.GPIO do
   @spec enumerate(backend() | nil) :: map()
   def enumerate(backend \\ nil)
   def enumerate(nil), do: enumerate(default_backend())
-  def enumerate({backend, _options}), do: backend.enumerate()
+  def enumerate({backend, options}), do: backend.enumerate(options)
 
   @doc """
   Guard version of gpio_spec?/1
