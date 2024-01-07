@@ -41,7 +41,7 @@ defmodule Circuits.GPIO2Test do
         line_info = GPIO.line_info(spec)
 
         expected_line_info = %Circuits.GPIO.Line{
-          gpio_spec: {"gpiochip0", 4},
+          location: {"gpiochip0", 4},
           label: "pair_2_0",
           controller: "stub0"
         }
@@ -56,7 +56,7 @@ defmodule Circuits.GPIO2Test do
         line_info = GPIO.line_info(spec)
 
         expected_line_info = %Circuits.GPIO.Line{
-          gpio_spec: {"gpiochip1", 1},
+          location: {"gpiochip1", 1},
           label: "pair_16_1",
           controller: "stub1"
         }
@@ -338,13 +338,13 @@ defmodule Circuits.GPIO2Test do
     assert length(result) == 64
 
     assert hd(result) == %Line{
-             gpio_spec: {"gpiochip0", 0},
+             location: {"gpiochip0", 0},
              controller: "stub0",
              label: "pair_0_0"
            }
 
     assert List.last(result) == %Line{
-             gpio_spec: {"gpiochip1", 31},
+             location: {"gpiochip1", 31},
              controller: "stub1",
              label: "pair_31_1"
            }
@@ -398,7 +398,7 @@ defmodule Circuits.GPIO2Test do
 
   test "line_info/2" do
     expected = %Circuits.GPIO.Line{
-      gpio_spec: {"gpiochip0", 5},
+      location: {"gpiochip0", 5},
       label: "pair_2_1",
       controller: "stub0"
     }
@@ -421,13 +421,13 @@ defmodule Circuits.GPIO2Test do
 
   test "refresh enumeration cache" do
     bogus_gpio = %Circuits.GPIO.Line{
-      gpio_spec: {"gpiochip10", 5},
+      location: {"gpiochip10", 5},
       label: "not_a_gpio",
       controller: "not_a_controller"
     }
 
     good_gpio = %Circuits.GPIO.Line{
-      gpio_spec: {"gpiochip1", 5},
+      location: {"gpiochip1", 5},
       label: "pair_18_1",
       controller: "stub1"
     }

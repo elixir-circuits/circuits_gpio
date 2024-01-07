@@ -17,7 +17,7 @@ ERL_NIF_TERM atom_ok;
 ERL_NIF_TERM atom_error;
 ERL_NIF_TERM atom_name;
 ERL_NIF_TERM atom_label;
-ERL_NIF_TERM atom_gpio_spec;
+ERL_NIF_TERM atom_location;
 ERL_NIF_TERM atom_struct;
 ERL_NIF_TERM atom_circuits_gpio_line;
 ERL_NIF_TERM atom_controller;
@@ -113,7 +113,7 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
     atom_error = enif_make_atom(env, "error");
     atom_name = enif_make_atom(env, "name");
     atom_label = enif_make_atom(env, "label");
-    atom_gpio_spec = enif_make_atom(env, "gpio_spec");
+    atom_location = enif_make_atom(env, "location");
     atom_controller = enif_make_atom(env, "controller");
     atom_struct = enif_make_atom(env, "__struct__");
     atom_circuits_gpio_line = enif_make_atom(env, "Elixir.Circuits.GPIO.Line");
@@ -214,7 +214,7 @@ static int get_direction(ErlNifEnv *env, ERL_NIF_TERM term, bool *is_output)
     return true;
 }
 
-static int get_resolved_pin_spec(ErlNifEnv *env, ERL_NIF_TERM term, char *gpiochip_path, int *offset)
+static int get_resolved_location(ErlNifEnv *env, ERL_NIF_TERM term, char *gpiochip_path, int *offset)
 {
     int arity;
     const ERL_NIF_TERM *tuple;
@@ -363,13 +363,13 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     char gpiochip_path[MAX_GPIOCHIP_PATH_LEN];
 
     if (argc != 5 ||
-            !get_resolved_pin_spec(env, argv[1], gpiochip_path, &offset) ||
+            !get_resolved_location(env, argv[1], gpiochip_path, &offset) ||
             !get_direction(env, argv[2], &is_output) ||
             !get_value(env, argv[3], &initial_value) ||
             !get_pull_mode(env, argv[4], &pull))
         return enif_make_badarg(env);
 
-    debug("gpio_spec = .{.gpiochip = %s, .offset = %d}", gpiochip_path, offset);
+    debug("open {%s, %d}", gpiochip_path, offset);
 
     struct gpio_pin *pin = enif_alloc_resource(priv->gpio_pin_rt, sizeof(struct gpio_pin));
     pin->fd = -1;

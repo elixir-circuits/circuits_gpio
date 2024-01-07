@@ -79,7 +79,7 @@ extern ERL_NIF_TERM atom_ok;
 extern ERL_NIF_TERM atom_error;
 extern ERL_NIF_TERM atom_name;
 extern ERL_NIF_TERM atom_label;
-extern ERL_NIF_TERM atom_gpio_spec;
+extern ERL_NIF_TERM atom_location;
 extern ERL_NIF_TERM atom_struct;
 extern ERL_NIF_TERM atom_circuits_gpio_line;
 extern ERL_NIF_TERM atom_controller;

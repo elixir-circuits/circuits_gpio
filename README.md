@@ -205,15 +205,33 @@ GPIOs](https://elixir.bootlin.com/linux/v6.6.6/source/Documentation/devicetree/b
 for more information on how to configure the fields of this struct for your own
 system.
 
+Here's an example:
+
 ```elixir
 iex> Circuits.GPIO.enumerate()
 [
-  %Circuits.GPIO.Line{gpio_spec: {"gpiochip0", 0}, label: "special-name-for-pin-0", controller: "gpiochip0"},
-  %Circuits.GPIO.Line{gpio_spec: {"gpiochip0", 1}, label: "special-name-for-pin-1", controller: "gpiochip0"},
-  %Circuits.GPIO.Line{gpio_spec: {"gpiochip1", 0}, label: "", controller: "gpiochip1"},
+  %Circuits.GPIO.Line{
+    location: {"gpiochip0", 0},
+    label: "ID_SDA",
+    controller: "pinctrl-bcm2835"
+  },
+  %Circuits.GPIO.Line{
+    location: {"gpiochip0", 1},
+    label: "ID_SCL",
+    controller: "pinctrl-bcm2835"
+  },
+  %Circuits.GPIO.Line{
+    location: {"gpiochip0", 2},
+    label: "SDA1",
+    controller: "pinctrl-bcm2835"
+  },
   ...
 ]
 ```
+
+The `:location` can always be passed as the first parameter to
+`Circuits.GPIO.open/3`. You may find the `:label` field more descriptive to
+use, though.
 
 ## Testing
 

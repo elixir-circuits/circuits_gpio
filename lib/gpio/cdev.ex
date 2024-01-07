@@ -47,10 +47,10 @@ defmodule Circuits.GPIO.CDev do
 
   defp find_by_tuple(gpios, {controller, label_or_index}) do
     Enum.find(gpios, fn
-      %Line{gpio_spec: {^controller, _}, label: ^label_or_index} -> true
+      %Line{location: {^controller, _}, label: ^label_or_index} -> true
       %Line{controller: ^controller, label: ^label_or_index} -> true
-      %Line{gpio_spec: {^controller, ^label_or_index}} -> true
-      %Line{controller: ^controller, gpio_spec: {_, ^label_or_index}} -> true
+      %Line{location: {^controller, ^label_or_index}} -> true
+      %Line{controller: ^controller, location: {_, ^label_or_index}} -> true
       _ -> false
     end)
   end
@@ -88,14 +88,14 @@ defmodule Circuits.GPIO.CDev do
     {:error, :not_found}
   end
 
-  defp normalize_gpio_spec({controller, line}, _options)
+  defp find_location({controller, line}, _options)
        when is_binary(controller) and is_integer(line) do
     {:ok, {controller, line}}
   end
 
-  defp normalize_gpio_spec(gpio_spec, options) do
+  defp find_location(gpio_spec, options) do
     with {:ok, line_info} <- line_info(gpio_spec, options) do
-      {:ok, line_info.gpio_spec}
+      {:ok, line_info.location}
     end
   end
 
@@ -112,9 +112,9 @@ defmodule Circuits.GPIO.CDev do
     value = Keyword.fetch!(options, :initial_value)
     pull_mode = Keyword.fetch!(options, :pull_mode)
 
-    with {:ok, normalized_spec} <- normalize_gpio_spec(gpio_spec, options),
-         resolved_spec = resolve_gpiochip(normalized_spec),
-         {:ok, ref} <- Nif.open(gpio_spec, resolved_spec, direction, value, pull_mode) do
+    with {:ok, location} <- find_location(gpio_spec, options),
+         resolved_location = resolve_gpiochip(location),
+         {:ok, ref} <- Nif.open(gpio_spec, resolved_location, direction, value, pull_mode) do
       {:ok, %__MODULE__{ref: ref}}
     end
   end
