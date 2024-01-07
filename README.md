@@ -13,9 +13,11 @@ to follow the [maint-v1.x branch](https://github.com/elixir-circuits/circuits_gp
 `Circuits.GPIO` v2.0  is an almost backwards compatible update to `Circuits.GPIO`
 v1.x. Here's what's new:
 
-* **GPIOs are may only be opened once**. This means that multiple processes, or even the same process may **NOT**
-  access the same gpio at the same time. If `open/2` or `open/3` is called on a pin, that is the **ONLY** way that
-  pin may be accessed until either `close/1` is called, or the handle is garbage collected due to no longer being used.
+* **GPIOs are may only be opened once**. This means that multiple processes, or
+  even the same process may **NOT** access the same gpio at the same time. If
+  `open/2` or `open/3` is called on a pin, that is the **ONLY** way that pin may
+  be accessed until either `close/1` is called, or the handle is garbage
+  collected due to no longer being used.
 * Linux or Nerves are no longer required. In fact, the NIF supporting them won't
   be compiled if you don't want it.
 * GPIOs can be enumerated to see what's available (See `Circuits.GPIO.enumerate/0`)
@@ -75,11 +77,11 @@ To turn on the LED that's connected to the net (or wire) labeled `GPIO18`, you
 need to open it first. The first parameter to `Circuits.GPIO.open/2` is called a
 GPIO spec and identifies the GPIO. The Raspberry Pis are nice and provide string
 names for GPIOs. Other boards are not as nice so you always have to check. The
-string name for this GPIO is `"PIN12"` since that's what GPIO 18's physical pin.
+string name for this GPIO is `"GPIO18"` (use `"PIN12"` on a Raspberry Pi 5).
 
 ```elixir
-iex> {:ok, gpio} = Circuits.GPIO.open("PIN12", :output)
-{:ok, #Reference<...>}
+iex> {:ok, gpio} = Circuits.GPIO.open("GPIO12", :output)
+{:ok, %Circuits.GPIO.CDev{...}
 
 iex> Circuits.GPIO.write(gpio, 1)
 :ok
@@ -107,8 +109,8 @@ pull-up/pull-down resistors](#internal-pull-uppull-down).
 The code looks like this in `Circuits.GPIO`:
 
 ```elixir
-iex> {:ok, gpio} = Circuits.GPIO.open("PIN11", :input)
-{:ok, #Reference<...>}
+iex> {:ok, gpio} = Circuits.GPIO.open("GPIO17", :input)
+{:ok, %Circuits.GPIO.CDev{...}
 
 iex> Circuits.GPIO.read(gpio)
 0
@@ -120,16 +122,16 @@ iex> Circuits.GPIO.read(gpio)
 ```
 
 If you'd like to get a message when the button is pressed or released, call the
-`set_interrupts` function. You can trigger on the `:rising` edge, `:falling` edge
-or `:both`.
+`set_interrupts` function. You can trigger on the `:rising` edge, `:falling`
+edge or `:both`.
 
 ```elixir
 iex> Circuits.GPIO.set_interrupts(gpio, :both)
 :ok
 
 iex> flush
-{:circuits_gpio, 17, 1233456, 1}
-{:circuits_gpio, 17, 1234567, 0}
+{:circuits_gpio, "GPIO17", 1233456, 1}
+{:circuits_gpio, "GPIO17", 1234567, 0}
 :ok
 ```
 
@@ -161,38 +163,41 @@ maintained, even when the CPU is powered down.
 
 ## GPIO Specs
 
-`Circuits.GPIO` V2.0 supports a new form of specifying how to open a pin called
-a `Spec`. These specs are based on the *newer* gpio-cdev subsystem in Linux.
-Notably, they include the concept of `gpiochips` and `lines`, both of which are
-used internally to provide pin numbers for the *older* pin numbering scheme.
+`Circuits.GPIO` v2.0 supports a new form of specifying how to open a GPIO called
+a `gpio_spec`. These specs are very flexible and allow for GPIOs to be opened
+by number, a string label, or a tuple that includes both the GPIO controller
+hardware name and a line offset.
 
-Specs are a tuple of a `gpiochip` and a `line`. The gpiochip may be provided as
-either a label for a chip if configured by your platform, or as it's name as
-listed in `/dev`.
+The contents of a `gpio_spec` depend on the backend. When running on Nerves or
+a Linux machine, `Circuits.GPIO` uses the Linux gpio-cdev backend. This backend
+perfers the use of GPIO controller/line offset tuples and labels. For backwards
+compatibility, it somewhat supports use of the *older* pin numbering scheme.
+
+The GPIO controller part of the tuple is usually some variation on `"gpiochip0"`
+that depends on what controllers are available under `/dev`. The line offset is
+a the line offset of the GPIO on that controller.
 
 ```elixir
 iex> {:ok, ref} = Circuits.GPIO.open({"gpiochip0", 1}, :input)
-{:ok, #Reference<...>}
+{:ok, %Circuits.GPIO.CDev{...}
 ```
 
-The spec `line` may also be provided as a label if configured for your platform:
+When the Linux device tree is configured with GPIO labels, you can use those instead:
 
 ```elixir
-iex> {:ok, ref} = Circuits.GPIO.open("special-name-for-pin-0"})
-{:ok, #Reference<...>}
+iex> {:ok, ref} = Circuits.GPIO.open("special-name-for-pin-1"})
+{:ok, %Circuits.GPIO.CDev{...}
 ```
 
-Additionally, if the label for a pin is unique, that label may be provided
-without a gpiochip in the spec.  If the label is *not* unique, the first line
-matching that name will be opened.
+If you're deploying to multiple types of devices and you can set labels in the
+device tree, labels make it really easy for code using `Circuits.GPIO` to just
+use the right GPIO.
 
-```elixir
-iex> {:ok, ref} = Circuits.GPIO.open("special-name-for-pin-0")
-{:ok, #Reference<...>}
-```
+Labels are not guaranteed to be unique, so if your device defines one twice,
+`Circuits.GPIO` will use the first GPIO it finds that has the specified label.
 
-See [Enumeration](#enumeration) for listing out all available pin specs for your
-device.
+See [Enumeration](#enumeration) for listing out all available `gpio_specs` for
+your device.
 
 ## Enumeration
 
@@ -210,17 +215,17 @@ Here's an example:
 ```elixir
 iex> Circuits.GPIO.enumerate()
 [
-  %Circuits.GPIO.Line{
+  %{
     location: {"gpiochip0", 0},
     label: "ID_SDA",
     controller: "pinctrl-bcm2835"
   },
-  %Circuits.GPIO.Line{
+  %{
     location: {"gpiochip0", 1},
     label: "ID_SCL",
     controller: "pinctrl-bcm2835"
   },
-  %Circuits.GPIO.Line{
+  %{
     location: {"gpiochip0", 2},
     label: "SDA1",
     controller: "pinctrl-bcm2835"
@@ -230,8 +235,8 @@ iex> Circuits.GPIO.enumerate()
 ```
 
 The `:location` can always be passed as the first parameter to
-`Circuits.GPIO.open/3`. You may find the `:label` field more descriptive to
-use, though.
+`Circuits.GPIO.open/3`. You may find the `:label` field more descriptive to use,
+though.
 
 ## Testing
 
@@ -252,9 +257,9 @@ you can write to GPIO 0 and see the result on GPIO 1. Here's an example:
 
 ```elixir
 iex> {:ok, gpio0} = Circuits.GPIO.open({"gpiochip0", 0}, :output)
-{:ok, #Reference<0.801050056.3201171470.249048>}
+{:ok, %Circuits.GPIO.CDev{...}
 iex> {:ok, gpio1} = Circuits.GPIO.open({"gpiochip0", 1}, :input)
-{:ok, #Reference<0.801050056.3201171470.249052>}
+{:ok, %Circuits.GPIO.CDev{...}
 iex> Circuits.GPIO.read(gpio1)
 0
 iex> Circuits.GPIO.write(gpio0, 1)

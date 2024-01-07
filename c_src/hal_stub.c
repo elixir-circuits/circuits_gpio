@@ -198,11 +198,8 @@ int hal_apply_pull_mode(struct gpio_pin *pin)
 
 ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
 {
-    struct stub_priv *stub_priv = hal_priv;
     ERL_NIF_TERM gpio_list = enif_make_list(env, 0);
 
-    ERL_NIF_TERM in_use_consumer = make_string_binary(env, "stub");
-    ERL_NIF_TERM not_in_use_consumer = make_string_binary(env, "");
     ERL_NIF_TERM chip_name0 = make_string_binary(env, "gpiochip0");
     ERL_NIF_TERM chip_name1 = make_string_binary(env, "gpiochip1");
     ERL_NIF_TERM chip_label0 = make_string_binary(env, "stub0");
@@ -218,13 +215,10 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
         ERL_NIF_TERM line_map = enif_make_new_map(env);
         ERL_NIF_TERM line_label = make_string_binary(env, line_name);
         ERL_NIF_TERM line_offset = enif_make_int(env, j % 32);
-        ERL_NIF_TERM consumer = stub_priv->in_use[j] > 0 ? in_use_consumer : not_in_use_consumer;
 
-        enif_make_map_put(env, line_map, atom_struct, atom_circuits_gpio_line, &line_map);
         enif_make_map_put(env, line_map, atom_controller, chip_label, &line_map);
         enif_make_map_put(env, line_map, atom_label, line_label, &line_map);
         enif_make_map_put(env, line_map, atom_location, enif_make_tuple2(env, chip_name, line_offset), &line_map);
-        enif_make_map_put(env, line_map, atom_consumer, consumer, &line_map);
 
         gpio_list = enif_make_list_cell(env, line_map, gpio_list);
     }

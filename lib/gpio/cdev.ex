@@ -25,7 +25,6 @@ defmodule Circuits.GPIO.CDev do
 
   alias Circuits.GPIO.Backend
   alias Circuits.GPIO.Handle
-  alias Circuits.GPIO.Line
   alias Circuits.GPIO.Nif
 
   defstruct [:ref]
@@ -47,17 +46,17 @@ defmodule Circuits.GPIO.CDev do
 
   defp find_by_tuple(gpios, {controller, label_or_index}) do
     Enum.find(gpios, fn
-      %Line{location: {^controller, _}, label: ^label_or_index} -> true
-      %Line{controller: ^controller, label: ^label_or_index} -> true
-      %Line{location: {^controller, ^label_or_index}} -> true
-      %Line{controller: ^controller, location: {_, ^label_or_index}} -> true
+      %{location: {^controller, _}, label: ^label_or_index} -> true
+      %{controller: ^controller, label: ^label_or_index} -> true
+      %{location: {^controller, ^label_or_index}} -> true
+      %{controller: ^controller, location: {_, ^label_or_index}} -> true
       _ -> false
     end)
   end
 
   defp find_by_label(gpios, label) do
     Enum.find(gpios, fn
-      %Line{label: ^label} -> true
+      %{label: ^label} -> true
       _ -> false
     end)
   end
@@ -71,20 +70,20 @@ defmodule Circuits.GPIO.CDev do
   end
 
   @impl Backend
-  def line_info(number, options) when is_integer(number) and number >= 0 do
+  def gpio_info(number, options) when is_integer(number) and number >= 0 do
     retry_find(options, &find_by_index(&1, number))
   end
 
-  def line_info(line_label, options) when is_binary(line_label) do
+  def gpio_info(line_label, options) when is_binary(line_label) do
     retry_find(options, &find_by_label(&1, line_label))
   end
 
-  def line_info(tuple_spec, options)
+  def gpio_info(tuple_spec, options)
       when is_tuple(tuple_spec) and tuple_size(tuple_spec) == 2 do
     retry_find(options, &find_by_tuple(&1, tuple_spec))
   end
 
-  def line_info(_gpio_spec, _options) do
+  def gpio_info(_gpio_spec, _options) do
     {:error, :not_found}
   end
 
@@ -94,8 +93,8 @@ defmodule Circuits.GPIO.CDev do
   end
 
   defp find_location(gpio_spec, options) do
-    with {:ok, line_info} <- line_info(gpio_spec, options) do
-      {:ok, line_info.location}
+    with {:ok, gpio_info} <- gpio_info(gpio_spec, options) do
+      {:ok, gpio_info.location}
     end
   end
 

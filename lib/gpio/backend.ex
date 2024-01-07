@@ -8,28 +8,27 @@ defmodule Circuits.GPIO.Backend do
   """
   alias Circuits.GPIO
   alias Circuits.GPIO.Handle
-  alias Circuits.GPIO.Line
 
   @doc """
   Return a list of GPIOs
 
-  See the `Line` struct for the information that is returned. The `options` contain
+  See `t:GPIO.gpio_info/0` for the information that is returned. The `options` contain
   backend-specific options to help with enumeration.
   """
-  @callback enumerate(options :: GPIO.open_options()) :: [Line.t()]
+  @callback enumerate(options :: GPIO.open_options()) :: [GPIO.gpio_info()]
 
   @doc """
-  Return information about a GPIO line
+  Return information about a GPIO
 
   See `t:gpio_spec/0` for the ways of referring to GPIOs. The `options` contain
   backend-specific options to help enumerating GPIOs.
 
   If the GPIO is found, this function returns information about the GPIO.
   """
-  @callback line_info(
+  @callback gpio_info(
               gpio_spec :: GPIO.gpio_spec(),
               options :: GPIO.open_options()
-            ) :: {:ok, Line.t()} | {:error, atom()}
+            ) :: {:ok, GPIO.gpio_info()} | {:error, atom()}
 
   @doc """
   Open a GPIO

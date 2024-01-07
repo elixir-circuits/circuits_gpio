@@ -24,7 +24,6 @@ defmodule Circuits.GPIO do
   ```
   """
   alias Circuits.GPIO.Handle
-  alias Circuits.GPIO.Line
 
   require Logger
 
@@ -40,8 +39,9 @@ defmodule Circuits.GPIO do
   GPIO controller
 
   GPIO controllers manage one or more GPIO lines. They're referred to by
-  strings. For example, you'll mostly see `"gpiochip0"`, etc. but they could be
-  anything or even an empty string if there's only one controller.
+  strings. For example, controllers are named `"gpiochip0"`, etc. for the
+  Linux cdev backend. Other backends may have similar conventions or use
+  the empty string if there's only one controller.
   """
   @type controller() :: String.t()
 
@@ -55,7 +55,7 @@ defmodule Circuits.GPIO do
   @type line_offset() :: non_neg_integer()
 
   @typedoc """
-  A GPIO controller or line label
+  A GPIO controller label or GPIO label
 
   Labels provide aliases for GPIO lines and controllers. They're
   system-specific. On Linux, labels are provided in device tree files.
@@ -79,11 +79,11 @@ defmodule Circuits.GPIO do
      able to change code.
   2. `{controller_name, line_offset}` - Specify a line on a specific GPIO
      controller. E.g., `{"gpiochip0", 10}`
-  3. `label` - Specify a GPIO line label. The first controller that has a
-     matching line is used. This lets you move the mapping of GPIOs to
+  3. `label` - Specify a GPIO label. The first controller that has a
+     matching GPIO is used. This lets you move the mapping of GPIOs to
      peripheral connections to a device tree file or other central place. E.g.,
      `"LED_ENABLE"`
-  4. `{controller_name, label}` - Specify both GPIO controller and line labels.
+  4. `{controller_name, label}` - Specify both GPIO controller and GPIO labels.
      E.g., `{"gpiochip4", "PIO4"}`
   """
   @type gpio_spec() ::
@@ -100,6 +100,29 @@ defmodule Circuits.GPIO do
 
   @typedoc "Pull mode for platforms that support controllable pullups and pulldowns"
   @type pull_mode() :: :not_set | :none | :pullup | :pulldown
+
+  @typedoc """
+  GPIO information
+
+  Location and other static information about a GPIO that is returned by
+  `enumerate/1`.  Backends must provide `:location` which is an unambiguous
+  `t:gpio_spec/0` for use with `open/3`.  As described in `open/3`, there are
+  many ways to refer to GPIOs and those may be exposed here as well. Since GPIO
+  information can be cached, this map does not contain mode settings or current
+  values. See other functions for getting that information.
+
+  Fields:
+
+  * `:location` - this is the canonical gpio_spec for a GPIO.
+  * `:label` - an optional label for the GPIO that may indicate what the GPIO is connected to
+    or be more helpful that the `:location`. It may be passed to `GPIO.open/3`.
+  * `:controller` - the name or an alias for the GPIO controller. Empty string if unused
+  """
+  @type gpio_info() :: %{
+          location: {controller(), non_neg_integer()},
+          controller: controller(),
+          label: label()
+        }
 
   @typedoc """
   Options for `open/3`
@@ -121,19 +144,37 @@ defmodule Circuits.GPIO do
   """
   @type interrupt_options() :: [suppress_glitches: boolean(), receiver: pid() | atom()]
 
-  # Public API
+  @doc """
+  Guard version of gpio_spec?/1
+
+  Add `require Circuits.GPIO` to your source file to use this guard.
+  """
+  defguard is_gpio_spec(x)
+           when (is_tuple(x) and is_binary(elem(x, 0)) and
+                   (is_binary(elem(x, 1)) or is_integer(elem(x, 1)))) or is_binary(x) or
+                  is_integer(x)
 
   @doc """
-  Return information about a GPIO line
+  Return if a term looks like a gpio_spec
+
+  This function only verifies that the term has the right shape to be a
+  gpio_spec. Whether or not it refers to a usable GPIO is checked by
+  `Circuits.GPIO.open/3`.
+  """
+  @spec gpio_spec?(any) :: boolean()
+  def gpio_spec?(x), do: is_gpio_spec(x)
+
+  @doc """
+  Return information about a GPIO
 
   See `t:gpio_spec/0` for the ways of referring to GPIOs. If the GPIO is found,
   this function returns information about the GPIO.
   """
-  @spec line_info(gpio_spec()) :: {:ok, Line.t()} | {:error, atom()}
-  def line_info(gpio_spec) do
+  @spec gpio_info(gpio_spec()) :: {:ok, gpio_info()} | {:error, atom()}
+  def gpio_info(gpio_spec) do
     {backend, backend_defaults} = default_backend()
 
-    backend.line_info(gpio_spec, backend_defaults)
+    backend.gpio_info(gpio_spec, backend_defaults)
   end
 
   @doc """
@@ -144,8 +185,8 @@ defmodule Circuits.GPIO do
   the `:initial_value` option to minimize the time the GPIO is in the default
   state.
 
-  If you're having trouble, see `enumerate/0` for available `gpio_spec`'s.
-  `Circuits.GPIO.Diagnostics` might also be helpful.
+  If you're having trouble, see `enumerate/0` for available GPIOs. If you
+  suspect a hardware or driver issue, see `Circuits.GPIO.Diagnostics`.
 
   Options:
 
@@ -155,8 +196,16 @@ defmodule Circuits.GPIO do
 
   Returns `{:ok, handle}` on success.
   """
-  @spec open(gpio_spec(), direction(), open_options()) :: {:ok, Handle.t()} | {:error, atom()}
-  def open(gpio_spec, direction, options \\ []) do
+  @spec open(gpio_spec() | gpio_info(), direction(), open_options()) ::
+          {:ok, Handle.t()} | {:error, atom()}
+  def open(gpio_spec_or_line_info, direction, options \\ [])
+
+  def open(%{location: gpio_spec}, direction, options) do
+    open(gpio_spec, direction, options)
+  end
+
+  def open(gpio_spec, direction, options)
+      when is_gpio_spec(gpio_spec) and direction in [:input, :output] do
     check_options!(options)
 
     {backend, backend_defaults} = default_backend()
@@ -300,25 +349,6 @@ defmodule Circuits.GPIO do
   def enumerate(backend \\ nil)
   def enumerate(nil), do: enumerate(default_backend())
   def enumerate({backend, options}), do: backend.enumerate(options)
-
-  @doc """
-  Guard version of gpio_spec?/1
-
-  Add `require Circuits.GPIO` to your source file to use this guard.
-  """
-  defguard is_gpio_spec(x)
-           when (is_tuple(x) and is_binary(elem(x, 0)) and
-                   (is_binary(elem(x, 1)) or is_integer(elem(x, 1)))) or is_binary(x) or
-                  is_integer(x)
-
-  @doc """
-  Return if a term looks like a gpio_spec
-
-  This function only verifies that the term has the right shape to be a gpio_spec. Whether or not
-  it refers to a usable GPIO is checked by `Circuits.GPIO.open/3`.
-  """
-  @spec gpio_spec?(any) :: boolean()
-  def gpio_spec?(x), do: is_gpio_spec(x)
 
   defp default_backend() do
     case Application.get_env(:circuits_gpio, :default_backend) do

@@ -18,8 +18,6 @@ ERL_NIF_TERM atom_error;
 ERL_NIF_TERM atom_name;
 ERL_NIF_TERM atom_label;
 ERL_NIF_TERM atom_location;
-ERL_NIF_TERM atom_struct;
-ERL_NIF_TERM atom_circuits_gpio_line;
 ERL_NIF_TERM atom_controller;
 ERL_NIF_TERM atom_circuits_gpio;
 ERL_NIF_TERM atom_consumer;
@@ -115,8 +113,6 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
     atom_label = enif_make_atom(env, "label");
     atom_location = enif_make_atom(env, "location");
     atom_controller = enif_make_atom(env, "controller");
-    atom_struct = enif_make_atom(env, "__struct__");
-    atom_circuits_gpio_line = enif_make_atom(env, "Elixir.Circuits.GPIO.Line");
     atom_circuits_gpio = enif_make_atom(env, "circuits_gpio");
     atom_consumer = enif_make_atom(env, "consumer");
 
