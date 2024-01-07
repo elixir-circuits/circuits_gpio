@@ -13,11 +13,6 @@ to follow the [maint-v1.x branch](https://github.com/elixir-circuits/circuits_gp
 `Circuits.GPIO` v2.0  is an almost backwards compatible update to `Circuits.GPIO`
 v1.x. Here's what's new:
 
-* **GPIOs are may only be opened once**. This means that multiple processes, or
-  even the same process may **NOT** access the same gpio at the same time. If
-  `open/2` or `open/3` is called on a pin, that is the **ONLY** way that pin may
-  be accessed until either `close/1` is called, or the handle is garbage
-  collected due to no longer being used.
 * Linux or Nerves are no longer required. In fact, the NIF supporting them won't
   be compiled if you don't want it.
 * GPIOs can be enumerated to see what's available (See `Circuits.GPIO.enumerate/0`)
@@ -90,9 +85,10 @@ iex> Circuits.GPIO.close(gpio)
 :ok
 ```
 
-_Note that the call to `Circuits.GPIO.close/1` is not necessary, as the garbage
-collector will free up any unreferenced GPIOs. It can be used to explicitly
-de-allocate connections you know you will not need anymore._
+The call to `Circuits.GPIO.close/1` is not necessary, since the garbage
+collector will free up unreferenced GPIOs. It's a good practice, though,
+since backends can enforce exclusivity and prevent future opens from
+working until the GC occurs.
 
 Input works similarly. Here's an example of a button with a pull down resistor
 connected.
