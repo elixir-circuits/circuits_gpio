@@ -145,7 +145,7 @@ defmodule Circuits.GPIO do
   @type interrupt_options() :: [suppress_glitches: boolean(), receiver: pid() | atom()]
 
   @doc """
-  Guard version of gpio_spec?/1
+  Guard version of `gpio_spec?/1`
 
   Add `require Circuits.GPIO` to your source file to use this guard.
   """
@@ -155,10 +155,10 @@ defmodule Circuits.GPIO do
                   is_integer(x)
 
   @doc """
-  Return if a term looks like a gpio_spec
+  Return if a term looks like a `gpio_spec`
 
   This function only verifies that the term has the right shape to be a
-  gpio_spec. Whether or not it refers to a usable GPIO is checked by
+  `t:gpio_spec/0`. Whether or not it refers to a usable GPIO is checked by
   `Circuits.GPIO.open/3`.
   """
   @spec gpio_spec?(any) :: boolean()
@@ -275,10 +275,10 @@ defmodule Circuits.GPIO do
 
   Notifications are sent based on the trigger:
 
-  * :none - No notifications are sent
-  * :rising - Send a notification when the pin changes from 0 to 1
-  * :falling - Send a notification when the pin changes from 1 to 0
-  * :both - Send a notification on all changes
+  * `:none` - No notifications are sent
+  * `:rising` - Send a notification when the pin changes from 0 to 1
+  * `:falling` - Send a notification when the pin changes from 1 to 0
+  * `:both` - Send a notification on all changes
 
   Available Options:
   * `:suppress_glitches` - Not supported in Circuits.GPIO v2
@@ -291,7 +291,7 @@ defmodule Circuits.GPIO do
   {:circuits_gpio, gpio_spec, timestamp, value}
   ```
 
-  Where `gpio_spec` is the gpio_spec passed to `open/3`, `timestamp` is an OS
+  Where `gpio_spec` is the `t:gpio_spec/0` passed to `open/3`, `timestamp` is an OS
   monotonic timestamp in nanoseconds, and `value` is the new value.
 
   Timestamps are not necessarily the same as from `System.monotonic_time/0`.
@@ -299,8 +299,6 @@ defmodule Circuits.GPIO do
   can be come from a hardware timer. Erlang's monotonic time is adjusted so
   it's not the same as OS monotonic time. The result is that these timestamps
   can be compared with each other, but not with anything else.
-
-  Notifications only get
 
   NOTE: You will need to store the `Circuits.GPIO` reference somewhere (like
   your `GenServer`'s state) so that it doesn't get garbage collected. Event
@@ -326,7 +324,7 @@ defmodule Circuits.GPIO do
   Get the GPIO pin number
 
   This function is for Circuits.GPIO v1.0 compatibility. It is recommended to
-  use other ways of identifying GPIOs going forward. See `gpio_spec/0`.
+  use other ways of identifying GPIOs going forward. See `t:gpio_spec/0`.
   """
   @spec pin(Handle.t()) :: non_neg_integer()
   def pin(handle) do
@@ -345,7 +343,15 @@ defmodule Circuits.GPIO do
   def info(nil), do: info(default_backend())
   def info({backend, _options}), do: backend.info()
 
-  @spec enumerate(backend() | nil) :: map()
+  @doc """
+  Return a list of accessible GPIOs
+
+  Each GPIO is described in a `t:gpio_info/0` map. Some fields in the map like
+  `:location` and `:label` may be passed to `open/3` to use the GPIO. The map
+  itself can also be passed to `open/3` and the function will figure out how to
+  access the GPIO.
+  """
+  @spec enumerate(backend() | nil) :: [gpio_info()]
   def enumerate(backend \\ nil)
   def enumerate(nil), do: enumerate(default_backend())
   def enumerate({backend, options}), do: backend.enumerate(options)

@@ -164,13 +164,13 @@ maintained, even when the CPU is powered down.
 ## GPIO Specs
 
 `Circuits.GPIO` v2.0 supports a new form of specifying how to open a GPIO called
-a `gpio_spec`. These specs are very flexible and allow for GPIOs to be opened
-by number, a string label, or a tuple that includes both the GPIO controller
-hardware name and a line offset.
+a `t:gpio_spec/0`. These specs are very flexible and allow for GPIOs to be
+opened by number, a string label, or a tuple that includes both the GPIO
+controller hardware name and a line offset.
 
 The contents of a `gpio_spec` depend on the backend. When running on Nerves or
 a Linux machine, `Circuits.GPIO` uses the Linux gpio-cdev backend. This backend
-perfers the use of GPIO controller/line offset tuples and labels. For backwards
+prefers the use of GPIO controller/line offset tuples and labels. For backwards
 compatibility, it somewhat supports use of the *older* pin numbering scheme.
 
 The GPIO controller part of the tuple is usually some variation on `"gpiochip0"`
