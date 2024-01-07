@@ -32,7 +32,6 @@ defmodule Circuits.GPIO.Nif do
   def set_direction(_gpio, _direction), do: :erlang.nif_error(:nif_not_loaded)
   def set_pull_mode(_gpio, _pull_mode), do: :erlang.nif_error(:nif_not_loaded)
   def gpio_spec(_gpio), do: :erlang.nif_error(:nif_not_loaded)
-  def pin_number(_gpio), do: :erlang.nif_error(:nif_not_loaded)
 
   def info() do
     :ok = load_nif()

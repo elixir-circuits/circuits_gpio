@@ -165,7 +165,7 @@ defmodule Circuits.GPIO.CDev do
 
     @impl Handle
     def info(%Circuits.GPIO.CDev{ref: ref}) do
-      %{gpio_spec: Nif.gpio_spec(ref), pin_number: Nif.pin_number(ref)}
+      %{gpio_spec: Nif.gpio_spec(ref)}
     end
   end
 end

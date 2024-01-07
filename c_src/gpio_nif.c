@@ -338,17 +338,6 @@ static ERL_NIF_TERM get_gpio_spec(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
     return pin->gpio_spec;
 }
 
-static ERL_NIF_TERM get_pin_number(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
-{
-    struct gpio_priv *priv = enif_priv_data(env);
-    struct gpio_pin *pin;
-    if (argc != 1 ||
-            !enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin))
-        return enif_make_badarg(env);
-
-    return enif_make_int(env, pin->pin_number);
-}
-
 static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
@@ -373,7 +362,6 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     pin->offset = offset;
     pin->env = enif_alloc_env();
     pin->gpio_spec = enif_make_copy(pin->env, argv[0]);
-    pin->pin_number = -1; // Filled in by lower level
     pin->hal_priv = priv->hal_priv;
     pin->config.is_output = is_output;
     pin->config.trigger = TRIGGER_NONE;
@@ -440,7 +428,6 @@ static ErlNifFunc nif_funcs[] = {
     {"set_direction", 2, set_direction, 0},
     {"set_pull_mode", 2, set_pull_mode, 0},
     {"gpio_spec", 1, get_gpio_spec, 0},
-    {"pin_number", 1, get_pin_number, 0},
     {"info", 0, gpio_info, 0},
     {"enumerate", 0, gpio_enumerate, 0},
 };

@@ -36,6 +36,7 @@ The following breaking changes were made:
    interface. It's possible to have alternative GPIO backends now. If you have
    simple needs, the `stub` is convenient since it provides pairs of connected
    GPIOs (e.g., 0 and 1, 2 and 3, etc.).
+7. `Circuits.GPIO.pin/1` is no longer available.
 
 You should hopefully find that the semantics of API are more explicit now or at
 least the function documentation is more clear. This was necessary to support

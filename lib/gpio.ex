@@ -321,18 +321,6 @@ defmodule Circuits.GPIO do
   defdelegate set_pull_mode(gpio, pull_mode), to: Handle
 
   @doc """
-  Get the GPIO pin number
-
-  This function is for Circuits.GPIO v1.0 compatibility. It is recommended to
-  use other ways of identifying GPIOs going forward. See `t:gpio_spec/0`.
-  """
-  @spec pin(Handle.t()) :: non_neg_integer()
-  def pin(handle) do
-    info = Handle.info(handle)
-    info.pin_number
-  end
-
-  @doc """
   Return info about the low level GPIO interface
 
   This may be helpful when debugging issues.

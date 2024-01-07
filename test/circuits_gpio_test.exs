@@ -93,18 +93,6 @@ defmodule Circuits.GPIO2Test do
     assert GPIO.info().pins_open == 0
   end
 
-  test "can get the pin number" do
-    {:ok, gpio} = GPIO.open({@gpiochip, 10}, :output)
-    assert GPIO.pin(gpio) == 10
-    GPIO.close(gpio)
-  end
-
-  test "open by pin number returns expected pin number" do
-    {:ok, gpio} = GPIO.open(12, :output)
-    assert GPIO.pin(gpio) == 12
-    GPIO.close(gpio)
-  end
-
   test "open returns errors on invalid pins" do
     # The stub returns error on any pin numbers >= 64
     assert GPIO.open({@gpiochip, 100}, :input) == {:error, :not_found}

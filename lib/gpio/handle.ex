@@ -14,10 +14,7 @@ defprotocol Circuits.GPIO.Handle do
   # Information about the GPIO
   #
   # * `:gpio_spec` - the spec that was used to open the GPIO
-  # * `:pin_number` - the legacy pin number for the GPIO. This is for backwards
-  #   compatibility and could be set to `0` if there's no easy way to assign a
-  #   unique number to it.
-  @typep info() :: %{gpio_spec: GPIO.gpio_spec(), pin_number: non_neg_integer()}
+  @typep info() :: %{gpio_spec: GPIO.gpio_spec()}
 
   # Return the current GPIO state
   @doc false
