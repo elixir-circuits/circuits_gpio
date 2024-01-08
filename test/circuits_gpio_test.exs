@@ -424,4 +424,10 @@ defmodule Circuits.GPIO2Test do
     # The bogus GPIO doesn't come back
     assert GPIO.gpio_info("not_a_gpio") == {:error, :not_found}
   end
+
+  test "write_one/2 + read_one/1" do
+    assert GPIO.read_one({@gpiochip, 0}) == 0
+    assert GPIO.write_one({@gpiochip, 1}, 1) == :ok
+    assert GPIO.read_one({@gpiochip, 0}) == 1
+  end
 end

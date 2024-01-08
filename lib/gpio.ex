@@ -263,12 +263,45 @@ defmodule Circuits.GPIO do
   defdelegate read(handle), to: Handle
 
   @doc """
+  One line GPIO read
+
+  This is a convenience function that opens, reads, and closes a GPIO. It's
+  intended to simplify one-off reads in code and for IEx prompt use.
+
+  Prefer using handles in other situations.
+  """
+  @spec read_one(gpio_spec(), open_options()) :: value() | {:error, atom()}
+  def read_one(gpio_spec, options \\ []) do
+    with {:ok, handle} <- open(gpio_spec, :input, options),
+         value <- read(handle) do
+      :ok = close(handle)
+      value
+    end
+  end
+
+  @doc """
   Set the value of a GPIO
 
   The GPIO must be configured as an output.
   """
   @spec write(Handle.t(), value()) :: :ok
   defdelegate write(handle, value), to: Handle
+
+  @doc """
+  One line GPIO write
+
+  This is a convenience function that opens, writes, and closes a GPIO. It's
+  intended to simplify one-off writes in code and for IEx prompt use.
+
+  Prefer using handles in other situations.
+  """
+  @spec write_one(gpio_spec(), value(), open_options()) :: :ok | {:error, atom()}
+  def write_one(gpio_spec, value, options \\ []) do
+    with {:ok, handle} <- open(gpio_spec, :output, options),
+         :ok <- write(handle, value) do
+      :ok = close(handle)
+    end
+  end
 
   @doc """
   Enable or disable GPIO value change notifications

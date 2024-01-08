@@ -234,6 +234,29 @@ The `:location` can always be passed as the first parameter to
 `Circuits.GPIO.open/3`. You may find the `:label` field more descriptive to use,
 though.
 
+## Convenience functions
+
+Having to `open` *then* `read` and `write` can be a cumbersome for one-off GPIO
+access in code and when working at the IEx prompt. Circuits v2.0 has a pair of
+new functions to help:
+
+```elixir
+iex> alias Circuits.GPIO
+iex> GPIO.write_one("special-name-for-pin-1", 1)
+:ok
+iex> GPIO.read_one("special-name-for-pin-2")
+1
+```
+
+These functions get passed a `t:gpio_spec/0` just like `open/3` and internally
+open the GPIO and read or write it. Importantly, they `close` the GPIO when done
+to avoid reserving the GPIO any longer than necessary.
+
+Please note that this is not a performant way of reading or writing the same
+GPIO more than once. Opening a GPIO takes much longer than reading or writing an
+already opened one, so if these are used in tight loops, the open overhead will
+dominate (>99% of the time taken in a trivial benchmark.)
+
 ## Testing
 
 `Circuits.GPIO` supports a "stub" hardware abstraction layer on platforms
