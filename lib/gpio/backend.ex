@@ -31,6 +31,24 @@ defmodule Circuits.GPIO.Backend do
             ) :: {:ok, GPIO.gpio_info()} | {:error, atom()}
 
   @doc """
+  Return a GPIO's current status
+
+  This function returns how a GPIO is configured. The GPIO doesn't need to be
+  opened. It's different from `gpio_info/2` since it returns dynamic information
+  whereas `gpio_info/2` only returns information about how to refer to a GPIO
+  and where it exists in the system.
+
+  See `t:gpio_spec/0` for the ways of referring to GPIOs. The `options` contain
+  backend-specific options to help enumerating GPIOs.
+
+  If the GPIO is found, this function returns its status.
+  """
+  @callback gpio_status(
+              gpio_spec :: GPIO.gpio_spec(),
+              options :: GPIO.open_options()
+            ) :: {:ok, GPIO.gpio_status()} | {:error, atom()}
+
+  @doc """
   Open a GPIO
 
   See `t:gpio_spec/0` for the ways of referring to GPIOs. Set `direction` to

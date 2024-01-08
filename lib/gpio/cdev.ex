@@ -87,9 +87,17 @@ defmodule Circuits.GPIO.CDev do
     {:error, :not_found}
   end
 
-  defp find_location({controller, line}, _options)
-       when is_binary(controller) and is_integer(line) do
-    {:ok, {controller, line}}
+  @impl Backend
+  def gpio_status(gpio_spec, options \\ []) do
+    with {:ok, location} <- find_location(gpio_spec, options) do
+      resolved_location = resolve_gpiochip(location)
+      Nif.status(resolved_location)
+    end
+  end
+
+  # Handle special case that doesn't require a lookup
+  defp find_location({"gpiochip" <> _, line} = gpio_spec, _options) when is_integer(line) do
+    {:ok, gpio_spec}
   end
 
   defp find_location(gpio_spec, options) do
@@ -120,7 +128,7 @@ defmodule Circuits.GPIO.CDev do
 
   @impl Backend
   def info() do
-    Nif.info() |> Map.put(:name, __MODULE__)
+    Nif.backend_info() |> Map.put(:name, __MODULE__)
   end
 
   defimpl Handle do
@@ -161,11 +169,6 @@ defmodule Circuits.GPIO.CDev do
     @impl Handle
     def close(%Circuits.GPIO.CDev{ref: ref}) do
       Nif.close(ref)
-    end
-
-    @impl Handle
-    def info(%Circuits.GPIO.CDev{ref: ref}) do
-      %{gpio_spec: Nif.gpio_spec(ref)}
     end
   end
 end

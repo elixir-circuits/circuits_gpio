@@ -83,6 +83,55 @@ defmodule Circuits.GPIO2Test do
     end
   end
 
+  describe "gpio_status/2" do
+    test "all gpio_spec examples" do
+      expected = %{consumer: "", direction: :input, pull_mode: :none}
+
+      assert GPIO.gpio_status(5) == {:ok, expected}
+      assert GPIO.gpio_status("pair_2_1") == {:ok, expected}
+      assert GPIO.gpio_status({"gpiochip0", 5}) == {:ok, expected}
+      assert GPIO.gpio_status({"stub0", 5}) == {:ok, expected}
+      assert GPIO.gpio_status({"gpiochip0", "pair_2_1"}) == {:ok, expected}
+      assert GPIO.gpio_status({"stub0", "pair_2_1"}) == {:ok, expected}
+
+      assert GPIO.gpio_status(-1) == {:error, :not_found}
+      assert GPIO.gpio_status(64) == {:error, :not_found}
+      assert GPIO.gpio_status("something") == {:error, :not_found}
+      assert GPIO.gpio_status({"gpiochip0", 64}) == {:error, :not_found}
+      assert GPIO.gpio_status({"stub0", 64}) == {:error, :not_found}
+      assert GPIO.gpio_status({"gpiochip0", "something"}) == {:error, :not_found}
+      assert GPIO.gpio_status({"stub0", "something"}) == {:error, :not_found}
+    end
+
+    test "status reports output gpio" do
+      {:ok, gpio} = GPIO.open({@gpiochip, 1}, :output)
+
+      assert GPIO.gpio_status({@gpiochip, 1}) ==
+               {:ok,
+                %{
+                  consumer: "stub",
+                  direction: :output,
+                  pull_mode: :none
+                }}
+
+      GPIO.close(gpio)
+    end
+
+    test "status reports input gpio" do
+      {:ok, gpio} = GPIO.open({@gpiochip, 1}, :input, pull_mode: :pullup)
+
+      assert GPIO.gpio_status({@gpiochip, 1}) ==
+               {:ok,
+                %{
+                  consumer: "stub",
+                  direction: :input,
+                  pull_mode: :pullup
+                }}
+
+      GPIO.close(gpio)
+    end
+  end
+
   test "opening and closing a pin gets counted" do
     {:ok, gpio} = GPIO.open({@gpiochip, 1}, :input)
     assert is_struct(gpio, Circuits.GPIO.CDev)

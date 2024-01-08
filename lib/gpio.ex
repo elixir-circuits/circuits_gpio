@@ -102,7 +102,7 @@ defmodule Circuits.GPIO do
   @type pull_mode() :: :not_set | :none | :pullup | :pulldown
 
   @typedoc """
-  GPIO information
+  Static GPIO information
 
   Location and other static information about a GPIO that is returned by
   `enumerate/1`.  Backends must provide `:location` which is an unambiguous
@@ -122,6 +122,22 @@ defmodule Circuits.GPIO do
           location: {controller(), non_neg_integer()},
           controller: controller(),
           label: label()
+        }
+
+  @typedoc """
+  Dynamic GPIO configuration and status
+
+  Fields:
+
+  * `:consumer` - if this GPIO is in use, this optional string gives a hint as to who is
+    using it.
+  * `:direction` - whether this GPIO is an input or output
+  * `:pull_mode` - if this GPIO is an input, then this is the pull mode
+  """
+  @type gpio_status() :: %{
+          consumer: String.t(),
+          direction: direction(),
+          pull_mode: pull_mode()
         }
 
   @typedoc """
@@ -165,7 +181,7 @@ defmodule Circuits.GPIO do
   def gpio_spec?(x), do: is_gpio_spec(x)
 
   @doc """
-  Return information about a GPIO
+  Return static information about a GPIO
 
   See `t:gpio_spec/0` for the ways of referring to GPIOs. If the GPIO is found,
   this function returns information about the GPIO.
@@ -175,6 +191,19 @@ defmodule Circuits.GPIO do
     {backend, backend_defaults} = default_backend()
 
     backend.gpio_info(gpio_spec, backend_defaults)
+  end
+
+  @doc """
+  Return dynamic configuration and status information about a GPIO
+
+  See `t:gpio_spec/0` for the ways of referring to GPIOs. If the GPIO is found,
+  this function returns information about the GPIO.
+  """
+  @spec gpio_status(gpio_spec()) :: {:ok, gpio_status()} | {:error, atom()}
+  def gpio_status(gpio_spec) do
+    {backend, backend_defaults} = default_backend()
+
+    backend.gpio_status(gpio_spec, backend_defaults)
   end
 
   @doc """

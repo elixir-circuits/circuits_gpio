@@ -332,7 +332,6 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
                 ERL_NIF_TERM line_map = enif_make_new_map(env);
                 ERL_NIF_TERM line_offset = enif_make_int(env, j);
                 ERL_NIF_TERM line_label = make_string_binary(env, line.name);
-                ERL_NIF_TERM consumer = make_string_binary(env, line.consumer);
 
                 enif_make_map_put(env, line_map, atom_controller, chip_label, &line_map);
                 enif_make_map_put(env, line_map, atom_label, line_label, &line_map);
@@ -344,4 +343,39 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
         close(fd);
     }
     return gpio_list;
+}
+
+int hal_get_gpio_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int offset, ERL_NIF_TERM *result)
+{
+    int gpiochip_fd = open(gpiochip, O_RDWR|O_CLOEXEC);
+    if (gpiochip_fd < 0)
+        return -errno;
+
+    struct gpio_v2_line_info line;
+    memset(&line, 0, sizeof(struct gpio_v2_line_info));
+    line.offset = offset;
+    if (ioctl(gpiochip_fd, GPIO_V2_GET_LINEINFO_IOCTL, &line) < 0) {
+        int errno_value = errno;
+        close(gpiochip_fd);
+        return -errno_value;
+    }
+    close(gpiochip_fd);
+
+    int is_output = line.flags & GPIO_V2_LINE_FLAG_OUTPUT;
+    const char *pull_mode_str;
+    if (line.flags & GPIO_V2_LINE_FLAG_BIAS_PULL_UP)
+        pull_mode_str = "pullup";
+    else if (line.flags & GPIO_V2_LINE_FLAG_BIAS_PULL_DOWN)
+        pull_mode_str = "pulldown";
+    else
+        pull_mode_str = "none";
+
+    ERL_NIF_TERM map = enif_make_new_map(env);
+    ERL_NIF_TERM consumer = make_string_binary(env, line.consumer);
+    enif_make_map_put(env, map, atom_consumer, consumer, &map);
+    enif_make_map_put(env, map, enif_make_atom(env, "direction"), enif_make_atom(env, is_output ? "output" : "input"), &map);
+    enif_make_map_put(env, map, enif_make_atom(env, "pull_mode"), enif_make_atom(env, pull_mode_str), &map);
+
+    *result = map;
+    return 0;
 }

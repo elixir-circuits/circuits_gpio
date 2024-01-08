@@ -327,15 +327,21 @@ static ERL_NIF_TERM set_pull_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
     return atom_ok;
 }
 
-static ERL_NIF_TERM get_gpio_spec(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM get_gpio_status(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
-    struct gpio_pin *pin;
-    if (argc != 1 ||
-            !enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin))
+    char gpiochip_path[MAX_GPIOCHIP_PATH_LEN];
+    int offset;
+
+    if (argc != 1 || !get_resolved_location(env, argv[0], gpiochip_path, &offset))
         return enif_make_badarg(env);
 
-    return pin->gpio_spec;
+    ERL_NIF_TERM result;
+    int rc = hal_get_gpio_status(priv->hal_priv, env, gpiochip_path, offset, &result);
+    if (rc >= 0)
+        return make_ok_tuple(env, result);
+    else
+        return make_errno_error(env, rc);
 }
 
 static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -396,7 +402,8 @@ static ERL_NIF_TERM close_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
 
     return atom_ok;
 }
-static ERL_NIF_TERM gpio_info(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+
+static ERL_NIF_TERM backend_info(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     (void) argc;
     (void) argv;
@@ -427,9 +434,9 @@ static ErlNifFunc nif_funcs[] = {
     {"set_interrupts", 4, set_interrupts, 0},
     {"set_direction", 2, set_direction, 0},
     {"set_pull_mode", 2, set_pull_mode, 0},
-    {"gpio_spec", 1, get_gpio_spec, 0},
-    {"info", 0, gpio_info, 0},
-    {"enumerate", 0, gpio_enumerate, 0},
+    {"status", 1, get_gpio_status, 0},
+    {"backend_info", 0, backend_info, 0},
+    {"enumerate", 0, gpio_enumerate, 0}
 };
 
 ERL_NIF_INIT(Elixir.Circuits.GPIO.Nif, nif_funcs, load, NULL, NULL, unload)

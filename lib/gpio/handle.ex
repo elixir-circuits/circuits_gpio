@@ -11,11 +11,6 @@ defprotocol Circuits.GPIO.Handle do
 
   alias Circuits.GPIO
 
-  # Information about the GPIO
-  #
-  # * `:gpio_spec` - the spec that was used to open the GPIO
-  @typep info() :: %{gpio_spec: GPIO.gpio_spec()}
-
   # Return the current GPIO state
   @doc false
   @spec read(t()) :: GPIO.value()
@@ -49,8 +44,4 @@ defprotocol Circuits.GPIO.Handle do
   @doc false
   @spec set_interrupts(t(), GPIO.trigger(), GPIO.interrupt_options()) :: :ok | {:error, atom()}
   def set_interrupts(handle, trigger, options)
-
-  @doc false
-  @spec info(t()) :: info()
-  def info(handle)
 end

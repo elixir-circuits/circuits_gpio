@@ -5,21 +5,22 @@
 defmodule Circuits.GPIO.Nif do
   @moduledoc false
 
-  defp load_nif() do
+  defp load_nif_and_apply(fun, args) do
     nif_binary = Application.app_dir(:circuits_gpio, "priv/gpio_nif")
-    :erlang.load_nif(to_charlist(nif_binary), 0)
+
+    with :ok <- :erlang.load_nif(to_charlist(nif_binary), 0) do
+      apply(__MODULE__, fun, args)
+    end
   end
 
   def open(gpio_spec, resolved_gpio_spec, direction, initial_value, pull_mode) do
-    with :ok <- load_nif() do
-      apply(__MODULE__, :open, [
-        gpio_spec,
-        resolved_gpio_spec,
-        direction,
-        initial_value,
-        pull_mode
-      ])
-    end
+    load_nif_and_apply(:open, [
+      gpio_spec,
+      resolved_gpio_spec,
+      direction,
+      initial_value,
+      pull_mode
+    ])
   end
 
   def close(_gpio), do: :erlang.nif_error(:nif_not_loaded)
@@ -31,15 +32,17 @@ defmodule Circuits.GPIO.Nif do
 
   def set_direction(_gpio, _direction), do: :erlang.nif_error(:nif_not_loaded)
   def set_pull_mode(_gpio, _pull_mode), do: :erlang.nif_error(:nif_not_loaded)
-  def gpio_spec(_gpio), do: :erlang.nif_error(:nif_not_loaded)
+  def info(_gpio), do: :erlang.nif_error(:nif_not_loaded)
 
-  def info() do
-    :ok = load_nif()
-    apply(__MODULE__, :info, [])
+  def status(resolved_gpio_spec) do
+    load_nif_and_apply(:status, [resolved_gpio_spec])
+  end
+
+  def backend_info() do
+    load_nif_and_apply(:backend_info, [])
   end
 
   def enumerate() do
-    :ok = load_nif()
-    apply(__MODULE__, :enumerate, [])
+    load_nif_and_apply(:enumerate, [])
   end
 end

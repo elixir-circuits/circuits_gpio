@@ -224,3 +224,50 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
 
     return gpio_list;
 }
+
+int hal_get_gpio_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int offset, ERL_NIF_TERM *result)
+{
+    struct stub_priv *stub_priv = hal_priv;
+    int pin_base;
+
+    if (strcmp(gpiochip, "gpiochip0") == 0 ||
+            strcmp(gpiochip, "/dev/gpiochip0") == 0) {
+        pin_base = 0;
+    } else if (strcmp(gpiochip, "gpiochip1") == 0 ||
+               strcmp(gpiochip, "/dev/gpiochip1") == 0) {
+        pin_base = 32;
+    } else {
+        return -ENOENT;
+    }
+
+    if (offset < 0 || offset >= 32)
+        return -ENOENT;
+    int pin_index = pin_base + offset;
+
+    ERL_NIF_TERM map = enif_make_new_map(env);
+
+    int in_use = stub_priv->in_use[pin_index];
+    ERL_NIF_TERM consumer = make_string_binary(env, in_use > 0 ? "stub" : "");
+
+    struct gpio_pin *pin = stub_priv->gpio_pins[pin_index];
+    const char *pull_mode_str;
+    int is_output;
+    if (pin) {
+        switch (pin->config.pull) {
+        case PULL_DOWN: pull_mode_str = "pulldown"; break;
+        case PULL_UP: pull_mode_str = "pullup"; break;
+        default: pull_mode_str = "none"; break;
+        }
+        is_output = pin->config.is_output;
+    } else {
+        is_output = 0;
+        pull_mode_str = "none";
+    }
+
+    enif_make_map_put(env, map, atom_consumer, consumer, &map);
+    enif_make_map_put(env, map, enif_make_atom(env, "direction"), enif_make_atom(env, is_output ? "output" : "input"), &map);
+    enif_make_map_put(env, map, enif_make_atom(env, "pull_mode"), enif_make_atom(env, pull_mode_str), &map);
+
+    *result = map;
+    return 0;
+}

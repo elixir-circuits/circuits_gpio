@@ -186,6 +186,17 @@ int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env);
  */
 int hal_apply_pull_mode(struct gpio_pin *pin);
 
+/**
+ * Return a map that has runtime information about a GPIO
+ *
+ * @param env a NIF environment for making the map
+ * @param gpiochip which controller
+ * @param offset the offset on the controller
+ * @param result where to store the result when successful
+ * @return 0 on success, -errno on failure
+ */
+int hal_get_gpio_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int offset, ERL_NIF_TERM *result);
+
 // nif_utils.c
 ERL_NIF_TERM make_ok_tuple(ErlNifEnv *env, ERL_NIF_TERM value);
 ERL_NIF_TERM make_errno_error(ErlNifEnv *env, int errno_value);
