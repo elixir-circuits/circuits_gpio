@@ -181,7 +181,7 @@ iex> {:ok, ref} = Circuits.GPIO.open({"gpiochip0", 1}, :input)
 When the Linux device tree is configured with GPIO labels, you can use those instead:
 
 ```elixir
-iex> {:ok, ref} = Circuits.GPIO.open("special-name-for-pin-1"})
+iex> {:ok, ref} = Circuits.GPIO.open("special-name-for-pin-1")
 {:ok, %Circuits.GPIO.CDev{...}
 ```
 
