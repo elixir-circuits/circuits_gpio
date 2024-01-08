@@ -1,5 +1,24 @@
 # Changelog
 
+## v2.0.0-pre.5 - 2024-1-8
+
+* Changes
+  * `t:gpio_info/0` now only contains static information so that it's easier to
+    cache. Caching reduces open time from 2-3ms to 100us on an RPi Zero, so it's
+    a decent improvement for apps that set a lot of GPIOs on boot.
+  * Add `t:gpio_status/0` and `gpio_status/1` to get runtime information about
+    GPIOs. It's currently populated with GPIO consumer info, direction and pull
+    mode. It could certainly have more added in the future.
+  * Add `write_one/3` and `read_one/2` convenience methods to simplify one-off
+    and IEx prompt usage. These open and close GPIO references behind the scenes
+    and reduce the code that you need to write to avoid exclusively holding on
+    to references.
+  * Make all error returns consistent. If an unknown errno is caught, its value
+    is returned so that a better error message can be added.
+  * Demote the `Circuits.GPIO.Info` struct to just a map so that backends can
+    add additional informational fields. The type to use is `t:gpio_info/0`.
+  * Various bug fixes and code cleanup
+
 ## v2.0.0-pre.4 - 2024-1-5
 
 This release is looking really close to the final prerelease. Please provide
