@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.0.0-pre.6 - 2024-1-9
+
+This release only has naming changes and documentation updates.
+
+* Changes
+  * Rename `t:gpio_info/0` to `t:identifiers/0`, `t:gpio_status/0` to `t:status/0`
+    and `info/1` to `backend_info/1`. This hopefully removes confusion between
+    the 3 informational types and functions.
+
 ## v2.0.0-pre.5 - 2024-1-8
 
 * Changes
