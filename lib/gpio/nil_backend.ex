@@ -16,7 +16,7 @@ defmodule Circuits.GPIO.NilBackend do
   end
 
   @impl Backend
-  def gpio_info(_gpio_spec, _options) do
+  def gpio_identifiers(_gpio_spec, _options) do
     {:error, :not_found}
   end
 
