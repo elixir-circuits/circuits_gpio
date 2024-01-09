@@ -76,7 +76,7 @@ string name for this GPIO is `"GPIO18"` (use `"PIN12"` on a Raspberry Pi 5).
 
 ```elixir
 iex> {:ok, gpio} = Circuits.GPIO.open("GPIO12", :output)
-{:ok, %Circuits.GPIO.CDev{...}
+{:ok, %Circuits.GPIO.CDev{...}}
 
 iex> Circuits.GPIO.write(gpio, 1)
 :ok
@@ -106,7 +106,7 @@ The code looks like this in `Circuits.GPIO`:
 
 ```elixir
 iex> {:ok, gpio} = Circuits.GPIO.open("GPIO17", :input)
-{:ok, %Circuits.GPIO.CDev{...}
+{:ok, %Circuits.GPIO.CDev{...}}
 
 iex> Circuits.GPIO.read(gpio)
 0
@@ -174,15 +174,15 @@ that depends on what controllers are available under `/dev`. The line offset is
 a the line offset of the GPIO on that controller.
 
 ```elixir
-iex> {:ok, ref} = Circuits.GPIO.open({"gpiochip0", 1}, :input)
-{:ok, %Circuits.GPIO.CDev{...}
+iex> {:ok, gpio} = Circuits.GPIO.open({"gpiochip0", 1}, :input)
+{:ok, %Circuits.GPIO.CDev{...}}
 ```
 
 When the Linux device tree is configured with GPIO labels, you can use those instead:
 
 ```elixir
-iex> {:ok, ref} = Circuits.GPIO.open("special-name-for-pin-1")
-{:ok, %Circuits.GPIO.CDev{...}
+iex> {:ok, gpio} = Circuits.GPIO.open("special-name-for-pin-1")
+{:ok, %Circuits.GPIO.CDev{...}}
 ```
 
 If you're deploying to multiple types of devices and you can set labels in the
@@ -266,7 +266,7 @@ unit testing without real hardware.
 To use it, first check that you're using the "stub" HAL:
 
 ```elixir
-iex> Circuits.GPIO.info
+iex> Circuits.GPIO.backend_info()
 %{name: :stub, pins_open: 0}
 ```
 
@@ -276,9 +276,9 @@ you can write to GPIO 0 and see the result on GPIO 1. Here's an example:
 
 ```elixir
 iex> {:ok, gpio0} = Circuits.GPIO.open({"gpiochip0", 0}, :output)
-{:ok, %Circuits.GPIO.CDev{...}
+{:ok, %Circuits.GPIO.CDev{...}}
 iex> {:ok, gpio1} = Circuits.GPIO.open({"gpiochip0", 1}, :input)
-{:ok, %Circuits.GPIO.CDev{...}
+{:ok, %Circuits.GPIO.CDev{...}}
 iex> Circuits.GPIO.read(gpio1)
 0
 iex> Circuits.GPIO.write(gpio0, 1)
