@@ -11,10 +11,13 @@ defmodule Circuits.GPIO2Test do
 
   setup do
     # Verify the test is being run with a clean environment
-    assert GPIO.info().pins_open == 0, "Some other test didn't stop cleanly"
+    assert GPIO.backend_info().pins_open == 0, "Some other test didn't stop cleanly"
 
     # Verify that the test leaves the environment clean
-    on_exit(fn -> assert GPIO.info().pins_open == 0, "Test didn't close all opened GPIOs" end)
+    on_exit(fn ->
+      assert GPIO.backend_info().pins_open == 0, "Test didn't close all opened GPIOs"
+    end)
+
     :ok
   end
 
@@ -27,7 +30,7 @@ defmodule Circuits.GPIO2Test do
   # real hardware.
 
   test "info returns a map" do
-    info = GPIO.info()
+    info = GPIO.backend_info()
 
     assert is_map(info)
     assert info.name == Circuits.GPIO.CDev
@@ -136,10 +139,10 @@ defmodule Circuits.GPIO2Test do
     {:ok, gpio} = GPIO.open({@gpiochip, 1}, :input)
     assert is_struct(gpio, Circuits.GPIO.CDev)
 
-    assert GPIO.info().pins_open == 1
+    assert GPIO.backend_info().pins_open == 1
 
     GPIO.close(gpio)
-    assert GPIO.info().pins_open == 0
+    assert GPIO.backend_info().pins_open == 0
   end
 
   test "open returns errors on invalid pins" do
@@ -148,7 +151,7 @@ defmodule Circuits.GPIO2Test do
   end
 
   test "gpio refs get garbage collected" do
-    assert GPIO.info().pins_open == 0
+    assert GPIO.backend_info().pins_open == 0
 
     # Expect that the process dying will free up the pin
     me = self()
@@ -164,11 +167,11 @@ defmodule Circuits.GPIO2Test do
     # a race between the send and the GC actually running.
     Process.sleep(10)
 
-    assert GPIO.info().pins_open == 0
+    assert GPIO.backend_info().pins_open == 0
   end
 
   test "lots of gpio refs can be created" do
-    assert GPIO.info().pins_open == 0
+    assert GPIO.backend_info().pins_open == 0
 
     # Expect that the process dying will free up all of the pins
     me = self()
@@ -177,7 +180,7 @@ defmodule Circuits.GPIO2Test do
     {pid, ref} =
       spawn_monitor(fn ->
         x = Enum.map(1..count, fn _ -> {:ok, _ref} = GPIO.open({@gpiochip, 1}, :input) end)
-        ^count = GPIO.info().pins_open
+        ^count = GPIO.backend_info().pins_open
         send(me, {:done, length(x)})
       end)
 
@@ -193,7 +196,7 @@ defmodule Circuits.GPIO2Test do
     # a race between the send and the GC actually running.
     Process.sleep(100)
 
-    assert GPIO.info().pins_open == 0
+    assert GPIO.backend_info().pins_open == 0
   end
 
   test "can read and write gpio" do
@@ -415,10 +418,10 @@ defmodule Circuits.GPIO2Test do
       {:ok, gpio} = GPIO.open({@gpiochip, 1}, :input)
       assert is_struct(gpio, Circuits.GPIO.CDev)
 
-      assert GPIO.info().pins_open == 1
+      assert GPIO.backend_info().pins_open == 1
 
       GPIO.close(gpio)
-      assert GPIO.info().pins_open == 0
+      assert GPIO.backend_info().pins_open == 0
 
       assert true == :code.delete(Circuits.GPIO.Nif)
       assert true == :code.delete(Circuits.GPIO)
