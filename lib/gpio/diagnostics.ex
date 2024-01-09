@@ -37,8 +37,8 @@ defmodule Circuits.GPIO.Diagnostics do
   """
   @spec report(GPIO.gpio_spec(), GPIO.gpio_spec()) :: boolean
   def report(out_gpio_spec, in_gpio_spec) do
-    {:ok, out_gpio_identifiers} = GPIO.identifiers(out_gpio_spec)
-    {:ok, in_gpio_identifiers} = GPIO.identifiers(in_gpio_spec)
+    {:ok, out_identifiers} = GPIO.identifiers(out_gpio_spec)
+    {:ok, in_identifiers} = GPIO.identifiers(in_gpio_spec)
     results = run(out_gpio_spec, in_gpio_spec)
     passed = Enum.all?(results, fn {_, result} -> result == :ok end)
     check_connections? = hd(results) != {"Simple writes and reads work", :ok}
@@ -51,8 +51,8 @@ defmodule Circuits.GPIO.Diagnostics do
       Output GPIO: #{inspect(out_gpio_spec)}
       Input GPIO:  #{inspect(in_gpio_spec)}
 
-      Output info: #{inspect(out_gpio_identifiers)}
-      Input info:  #{inspect(in_gpio_identifiers)}
+      Output ids:  #{inspect(out_identifiers)}
+      Input ids:   #{inspect(in_identifiers)}
       Backend: #{inspect(Circuits.GPIO.backend_info()[:name])}
 
       """,

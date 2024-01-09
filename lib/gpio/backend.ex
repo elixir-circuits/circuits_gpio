@@ -23,9 +23,9 @@ defmodule Circuits.GPIO.Backend do
   See `t:gpio_spec/0` for the ways of referring to GPIOs. The `options` contain
   backend-specific options to help enumerating GPIOs.
 
-  If the GPIO is found, this function returns information about the GPIO.
+  If the GPIO is found, this function returns identifying information about the GPIO.
   """
-  @callback gpio_identifiers(
+  @callback identifiers(
               gpio_spec :: GPIO.gpio_spec(),
               options :: GPIO.open_options()
             ) :: {:ok, GPIO.identifiers()} | {:error, atom()}
@@ -43,7 +43,7 @@ defmodule Circuits.GPIO.Backend do
 
   If the GPIO is found, this function returns its status.
   """
-  @callback gpio_status(
+  @callback status(
               gpio_spec :: GPIO.gpio_spec(),
               options :: GPIO.open_options()
             ) :: {:ok, GPIO.status()} | {:error, atom()}
@@ -74,5 +74,5 @@ defmodule Circuits.GPIO.Backend do
   @doc """
   Return information about this backend
   """
-  @callback info() :: map()
+  @callback backend_info() :: map()
 end

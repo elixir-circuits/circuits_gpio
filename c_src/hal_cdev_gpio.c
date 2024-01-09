@@ -345,7 +345,7 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
     return gpio_list;
 }
 
-int hal_get_gpio_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int offset, ERL_NIF_TERM *result)
+int hal_get_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int offset, ERL_NIF_TERM *result)
 {
     int gpiochip_fd = open(gpiochip, O_RDWR|O_CLOEXEC);
     if (gpiochip_fd < 0)

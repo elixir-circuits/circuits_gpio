@@ -96,7 +96,7 @@ ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info);
 /**
  * Enumerate all GPIO pins
  *
- * Returns a list of Circuits.GPIO.gpio_info maps
+ * Returns a list of Circuits.GPIO.identifiers maps
  */
 ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv);
 
@@ -195,7 +195,7 @@ int hal_apply_pull_mode(struct gpio_pin *pin);
  * @param result where to store the result when successful
  * @return 0 on success, -errno on failure
  */
-int hal_get_gpio_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int offset, ERL_NIF_TERM *result);
+int hal_get_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int offset, ERL_NIF_TERM *result);
 
 // nif_utils.c
 ERL_NIF_TERM make_ok_tuple(ErlNifEnv *env, ERL_NIF_TERM value);

@@ -70,25 +70,25 @@ defmodule Circuits.GPIO.CDev do
   end
 
   @impl Backend
-  def gpio_identifiers(number, options) when is_integer(number) and number >= 0 do
+  def identifiers(number, options) when is_integer(number) and number >= 0 do
     retry_find(options, &find_by_index(&1, number))
   end
 
-  def gpio_identifiers(line_label, options) when is_binary(line_label) do
+  def identifiers(line_label, options) when is_binary(line_label) do
     retry_find(options, &find_by_label(&1, line_label))
   end
 
-  def gpio_identifiers(tuple_spec, options)
+  def identifiers(tuple_spec, options)
       when is_tuple(tuple_spec) and tuple_size(tuple_spec) == 2 do
     retry_find(options, &find_by_tuple(&1, tuple_spec))
   end
 
-  def gpio_identifiers(_gpio_spec, _options) do
+  def identifiers(_gpio_spec, _options) do
     {:error, :not_found}
   end
 
   @impl Backend
-  def gpio_status(gpio_spec, options \\ []) do
+  def status(gpio_spec, options \\ []) do
     with {:ok, location} <- find_location(gpio_spec, options) do
       resolved_location = resolve_gpiochip(location)
       Nif.status(resolved_location)
@@ -101,8 +101,8 @@ defmodule Circuits.GPIO.CDev do
   end
 
   defp find_location(gpio_spec, options) do
-    with {:ok, identifiers} <- gpio_identifiers(gpio_spec, options) do
-      {:ok, identifiers.location}
+    with {:ok, ids} <- identifiers(gpio_spec, options) do
+      {:ok, ids.location}
     end
   end
 
@@ -127,7 +127,7 @@ defmodule Circuits.GPIO.CDev do
   end
 
   @impl Backend
-  def info() do
+  def backend_info() do
     Nif.backend_info() |> Map.put(:name, __MODULE__)
   end
 

@@ -327,7 +327,7 @@ static ERL_NIF_TERM set_pull_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
     return atom_ok;
 }
 
-static ERL_NIF_TERM get_gpio_status(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM get_status(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
     char gpiochip_path[MAX_GPIOCHIP_PATH_LEN];
@@ -337,7 +337,7 @@ static ERL_NIF_TERM get_gpio_status(ErlNifEnv *env, int argc, const ERL_NIF_TERM
         return enif_make_badarg(env);
 
     ERL_NIF_TERM result;
-    int rc = hal_get_gpio_status(priv->hal_priv, env, gpiochip_path, offset, &result);
+    int rc = hal_get_status(priv->hal_priv, env, gpiochip_path, offset, &result);
     if (rc >= 0)
         return make_ok_tuple(env, result);
     else
@@ -434,7 +434,7 @@ static ErlNifFunc nif_funcs[] = {
     {"set_interrupts", 4, set_interrupts, 0},
     {"set_direction", 2, set_direction, 0},
     {"set_pull_mode", 2, set_pull_mode, 0},
-    {"status", 1, get_gpio_status, 0},
+    {"status", 1, get_status, 0},
     {"backend_info", 0, backend_info, 0},
     {"enumerate", 0, gpio_enumerate, 0}
 };

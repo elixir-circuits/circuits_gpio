@@ -6,7 +6,7 @@
   * `t:gpio_info/0` now only contains static information so that it's easier to
     cache. Caching reduces open time from 2-3ms to 100us on an RPi Zero, so it's
     a decent improvement for apps that set a lot of GPIOs on boot.
-  * Add `t:gpio_status/0` and `gpio_status/1` to get runtime information about
+  * Add `t:status/0` and `status/1` to get runtime information about
     GPIOs. It's currently populated with GPIO consumer info, direction and pull
     mode. It could certainly have more added in the future.
   * Add `write_one/3` and `read_one/2` convenience methods to simplify one-off

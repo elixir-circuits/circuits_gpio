@@ -225,7 +225,7 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
     return gpio_list;
 }
 
-int hal_get_gpio_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int offset, ERL_NIF_TERM *result)
+int hal_get_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int offset, ERL_NIF_TERM *result)
 {
     struct stub_priv *stub_priv = hal_priv;
     int pin_base;

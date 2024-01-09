@@ -102,14 +102,20 @@ defmodule Circuits.GPIO do
   @type pull_mode() :: :not_set | :none | :pullup | :pulldown
 
   @typedoc """
-  Static GPIO information
+  Ways of referring to a GPIO
 
-  Location and other static information about a GPIO that is returned by
-  `enumerate/1`.  Backends must provide `:location` which is an unambiguous
-  `t:gpio_spec/0` for use with `open/3`.  As described in `open/3`, there are
-  many ways to refer to GPIOs and those may be exposed here as well. Since GPIO
-  information can be cached, this map does not contain mode settings or current
-  values. See other functions for getting that information.
+  It's possible to refer to a GPIOs in many ways and this map contains
+  information for doing that.  See `enumerate/1` and `identifiers/1` for
+  querying `Circuits.GPIO` for these maps.
+
+  The information in this map is backend specific. At a minimum, all backends
+  provide the `:location` field which is an unambiguous `t:gpio_spec/0` for use
+  with `open/3`.
+
+  When provided, the `:label` field is a string name for the GPIO that should
+  be unique to the system but this isn't guaranteed. A common convention is to
+  label GPIOs by their pin names in documentation or net names in schematics.
+  The Linux cdev backend uses labels from the device tree file.
 
   Fields:
 
@@ -181,7 +187,7 @@ defmodule Circuits.GPIO do
   def gpio_spec?(x), do: is_gpio_spec(x)
 
   @doc """
-  Return static information about a GPIO
+  Return indentifying information about a GPIO
 
   See `t:gpio_spec/0` for the ways of referring to GPIOs. If the GPIO is found,
   this function returns information about the GPIO.
@@ -190,7 +196,7 @@ defmodule Circuits.GPIO do
   def identifiers(gpio_spec) do
     {backend, backend_defaults} = default_backend()
 
-    backend.gpio_identifiers(gpio_spec, backend_defaults)
+    backend.identifiers(gpio_spec, backend_defaults)
   end
 
   @doc """
@@ -203,7 +209,7 @@ defmodule Circuits.GPIO do
   def status(gpio_spec) do
     {backend, backend_defaults} = default_backend()
 
-    backend.gpio_status(gpio_spec, backend_defaults)
+    backend.status(gpio_spec, backend_defaults)
   end
 
   @doc """
@@ -391,12 +397,12 @@ defmodule Circuits.GPIO do
   def backend_info(backend \\ nil)
 
   def backend_info(nil), do: backend_info(default_backend())
-  def backend_info({backend, _options}), do: backend.info()
+  def backend_info({backend, _options}), do: backend.backend_info()
 
   @doc """
   Return a list of accessible GPIOs
 
-  Each GPIO is described in a `t:gpio_info/0` map. Some fields in the map like
+  Each GPIO is described in a `t:identifiers/0` map. Some fields in the map like
   `:location` and `:label` may be passed to `open/3` to use the GPIO. The map
   itself can also be passed to `open/3` and the function will figure out how to
   access the GPIO.

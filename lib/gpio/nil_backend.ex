@@ -16,12 +16,12 @@ defmodule Circuits.GPIO.NilBackend do
   end
 
   @impl Backend
-  def gpio_identifiers(_gpio_spec, _options) do
+  def identifiers(_gpio_spec, _options) do
     {:error, :not_found}
   end
 
   @impl Backend
-  def gpio_status(_gpio_spec, _options) do
+  def status(_gpio_spec, _options) do
     {:error, :not_found}
   end
 
@@ -31,7 +31,7 @@ defmodule Circuits.GPIO.NilBackend do
   end
 
   @impl Backend
-  def info() do
+  def backend_info() do
     %{name: __MODULE__}
   end
 end

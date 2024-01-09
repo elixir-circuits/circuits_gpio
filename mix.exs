@@ -76,6 +76,7 @@ defmodule Circuits.GPIO.MixProject do
       assets: "assets",
       extras: ["README.md", "PORTING.md", "CHANGELOG.md"],
       main: "readme",
+      skip_code_autolink_to: ["Circuits.GPIO.pin/1"],
       source_ref: "v#{@version}",
       source_url: @source_url
     ]
