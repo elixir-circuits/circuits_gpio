@@ -15,7 +15,7 @@ defmodule Circuits.GPIO.Backend do
   See `t:GPIO.gpio_info/0` for the information that is returned. The `options` contain
   backend-specific options to help with enumeration.
   """
-  @callback enumerate(options :: GPIO.open_options()) :: [GPIO.gpio_info()]
+  @callback enumerate(options :: GPIO.open_options()) :: [GPIO.info()]
 
   @doc """
   Return information about a GPIO
@@ -28,7 +28,7 @@ defmodule Circuits.GPIO.Backend do
   @callback gpio_info(
               gpio_spec :: GPIO.gpio_spec(),
               options :: GPIO.open_options()
-            ) :: {:ok, GPIO.gpio_info()} | {:error, atom()}
+            ) :: {:ok, GPIO.info()} | {:error, atom()}
 
   @doc """
   Return a GPIO's current status
@@ -46,7 +46,7 @@ defmodule Circuits.GPIO.Backend do
   @callback gpio_status(
               gpio_spec :: GPIO.gpio_spec(),
               options :: GPIO.open_options()
-            ) :: {:ok, GPIO.gpio_status()} | {:error, atom()}
+            ) :: {:ok, GPIO.status()} | {:error, atom()}
 
   @doc """
   Open a GPIO

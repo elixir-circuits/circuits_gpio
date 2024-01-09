@@ -37,7 +37,7 @@ defmodule Circuits.GPIO2Test do
     assert info.pins_open == 0
   end
 
-  describe "gpio_info/2" do
+  describe "info/2" do
     test "all gpio_spec examples" do
       expected = %{
         location: {"gpiochip0", 5},
@@ -45,25 +45,25 @@ defmodule Circuits.GPIO2Test do
         controller: "stub0"
       }
 
-      assert GPIO.gpio_info(5) == {:ok, expected}
-      assert GPIO.gpio_info("pair_2_1") == {:ok, expected}
-      assert GPIO.gpio_info({"gpiochip0", 5}) == {:ok, expected}
-      assert GPIO.gpio_info({"stub0", 5}) == {:ok, expected}
-      assert GPIO.gpio_info({"gpiochip0", "pair_2_1"}) == {:ok, expected}
-      assert GPIO.gpio_info({"stub0", "pair_2_1"}) == {:ok, expected}
+      assert GPIO.info(5) == {:ok, expected}
+      assert GPIO.info("pair_2_1") == {:ok, expected}
+      assert GPIO.info({"gpiochip0", 5}) == {:ok, expected}
+      assert GPIO.info({"stub0", 5}) == {:ok, expected}
+      assert GPIO.info({"gpiochip0", "pair_2_1"}) == {:ok, expected}
+      assert GPIO.info({"stub0", "pair_2_1"}) == {:ok, expected}
 
-      assert GPIO.gpio_info(-1) == {:error, :not_found}
-      assert GPIO.gpio_info(64) == {:error, :not_found}
-      assert GPIO.gpio_info("something") == {:error, :not_found}
-      assert GPIO.gpio_info({"gpiochip0", 64}) == {:error, :not_found}
-      assert GPIO.gpio_info({"stub0", 64}) == {:error, :not_found}
-      assert GPIO.gpio_info({"gpiochip0", "something"}) == {:error, :not_found}
-      assert GPIO.gpio_info({"stub0", "something"}) == {:error, :not_found}
+      assert GPIO.info(-1) == {:error, :not_found}
+      assert GPIO.info(64) == {:error, :not_found}
+      assert GPIO.info("something") == {:error, :not_found}
+      assert GPIO.info({"gpiochip0", 64}) == {:error, :not_found}
+      assert GPIO.info({"stub0", 64}) == {:error, :not_found}
+      assert GPIO.info({"gpiochip0", "something"}) == {:error, :not_found}
+      assert GPIO.info({"stub0", "something"}) == {:error, :not_found}
     end
 
     test "lines in stub1" do
       for spec <- [33, "pair_16_1", {"stub1", "pair_16_1"}] do
-        gpio_info = GPIO.gpio_info(spec)
+        info = GPIO.info(spec)
 
         expected_line_info = %{
           location: {"gpiochip1", 1},
@@ -71,45 +71,45 @@ defmodule Circuits.GPIO2Test do
           controller: "stub1"
         }
 
-        assert gpio_info == {:ok, expected_line_info},
-               "Unexpected info for #{inspect(spec)} -> #{inspect(gpio_info)}"
+        assert info == {:ok, expected_line_info},
+               "Unexpected info for #{inspect(spec)} -> #{inspect(info)}"
       end
     end
 
     test "nonexistent lines" do
       for spec <- [-1, 65, "pair_100_0", {"stub10", "pair_2_0"}] do
-        gpio_info = GPIO.gpio_info(spec)
+        info = GPIO.info(spec)
 
-        assert gpio_info == {:error, :not_found},
-               "Unexpected info for #{inspect(spec)} -> #{inspect(gpio_info)}"
+        assert info == {:error, :not_found},
+               "Unexpected info for #{inspect(spec)} -> #{inspect(info)}"
       end
     end
   end
 
-  describe "gpio_status/2" do
+  describe "status/2" do
     test "all gpio_spec examples" do
       expected = %{consumer: "", direction: :input, pull_mode: :none}
 
-      assert GPIO.gpio_status(5) == {:ok, expected}
-      assert GPIO.gpio_status("pair_2_1") == {:ok, expected}
-      assert GPIO.gpio_status({"gpiochip0", 5}) == {:ok, expected}
-      assert GPIO.gpio_status({"stub0", 5}) == {:ok, expected}
-      assert GPIO.gpio_status({"gpiochip0", "pair_2_1"}) == {:ok, expected}
-      assert GPIO.gpio_status({"stub0", "pair_2_1"}) == {:ok, expected}
+      assert GPIO.status(5) == {:ok, expected}
+      assert GPIO.status("pair_2_1") == {:ok, expected}
+      assert GPIO.status({"gpiochip0", 5}) == {:ok, expected}
+      assert GPIO.status({"stub0", 5}) == {:ok, expected}
+      assert GPIO.status({"gpiochip0", "pair_2_1"}) == {:ok, expected}
+      assert GPIO.status({"stub0", "pair_2_1"}) == {:ok, expected}
 
-      assert GPIO.gpio_status(-1) == {:error, :not_found}
-      assert GPIO.gpio_status(64) == {:error, :not_found}
-      assert GPIO.gpio_status("something") == {:error, :not_found}
-      assert GPIO.gpio_status({"gpiochip0", 64}) == {:error, :not_found}
-      assert GPIO.gpio_status({"stub0", 64}) == {:error, :not_found}
-      assert GPIO.gpio_status({"gpiochip0", "something"}) == {:error, :not_found}
-      assert GPIO.gpio_status({"stub0", "something"}) == {:error, :not_found}
+      assert GPIO.status(-1) == {:error, :not_found}
+      assert GPIO.status(64) == {:error, :not_found}
+      assert GPIO.status("something") == {:error, :not_found}
+      assert GPIO.status({"gpiochip0", 64}) == {:error, :not_found}
+      assert GPIO.status({"stub0", 64}) == {:error, :not_found}
+      assert GPIO.status({"gpiochip0", "something"}) == {:error, :not_found}
+      assert GPIO.status({"stub0", "something"}) == {:error, :not_found}
     end
 
     test "status reports output gpio" do
       {:ok, gpio} = GPIO.open({@gpiochip, 1}, :output)
 
-      assert GPIO.gpio_status({@gpiochip, 1}) ==
+      assert GPIO.status({@gpiochip, 1}) ==
                {:ok,
                 %{
                   consumer: "stub",
@@ -123,7 +123,7 @@ defmodule Circuits.GPIO2Test do
     test "status reports input gpio" do
       {:ok, gpio} = GPIO.open({@gpiochip, 1}, :input, pull_mode: :pullup)
 
-      assert GPIO.gpio_status({@gpiochip, 1}) ==
+      assert GPIO.status({@gpiochip, 1}) ==
                {:ok,
                 %{
                   consumer: "stub",
@@ -400,9 +400,9 @@ defmodule Circuits.GPIO2Test do
   test "can open all enumerated GPIOs" do
     result = GPIO.enumerate()
 
-    Enum.each(result, fn gpio_info ->
-      # This also tests opening by gpio_info
-      {:ok, ref} = GPIO.open(gpio_info, :input)
+    Enum.each(result, fn info ->
+      # This also tests opening by info
+      {:ok, ref} = GPIO.open(info, :input)
       GPIO.close(ref)
     end)
   end
@@ -468,13 +468,13 @@ defmodule Circuits.GPIO2Test do
 
     # Set the cache to something bogus and check that it's comes back
     :persistent_term.put(Circuits.GPIO.CDev, [bogus_gpio])
-    assert GPIO.gpio_info("not_a_gpio") == {:ok, bogus_gpio}
+    assert GPIO.info("not_a_gpio") == {:ok, bogus_gpio}
 
     # Now check that the cache gets refreshed when a gpio isn't found
-    assert GPIO.gpio_info("pair_18_1") == {:ok, good_gpio}
+    assert GPIO.info("pair_18_1") == {:ok, good_gpio}
 
     # The bogus GPIO doesn't come back
-    assert GPIO.gpio_info("not_a_gpio") == {:error, :not_found}
+    assert GPIO.info("not_a_gpio") == {:error, :not_found}
   end
 
   test "write_one/2 + read_one/1" do
