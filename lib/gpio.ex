@@ -118,7 +118,7 @@ defmodule Circuits.GPIO do
     or be more helpful that the `:location`. It may be passed to `GPIO.open/3`.
   * `:controller` - the name or an alias for the GPIO controller. Empty string if unused
   """
-  @type info() :: %{
+  @type identifiers() :: %{
           location: {controller(), non_neg_integer()},
           controller: controller(),
           label: label()
@@ -186,11 +186,11 @@ defmodule Circuits.GPIO do
   See `t:gpio_spec/0` for the ways of referring to GPIOs. If the GPIO is found,
   this function returns information about the GPIO.
   """
-  @spec info(gpio_spec()) :: {:ok, info()} | {:error, atom()}
-  def info(gpio_spec) do
+  @spec identifiers(gpio_spec()) :: {:ok, identifiers()} | {:error, atom()}
+  def identifiers(gpio_spec) do
     {backend, backend_defaults} = default_backend()
 
-    backend.gpio_info(gpio_spec, backend_defaults)
+    backend.gpio_identifiers(gpio_spec, backend_defaults)
   end
 
   @doc """
@@ -225,7 +225,7 @@ defmodule Circuits.GPIO do
 
   Returns `{:ok, handle}` on success.
   """
-  @spec open(gpio_spec() | info(), direction(), open_options()) ::
+  @spec open(gpio_spec() | identifiers(), direction(), open_options()) ::
           {:ok, Handle.t()} | {:error, atom()}
   def open(gpio_spec_or_line_info, direction, options \\ [])
 
@@ -401,7 +401,7 @@ defmodule Circuits.GPIO do
   itself can also be passed to `open/3` and the function will figure out how to
   access the GPIO.
   """
-  @spec enumerate(backend() | nil) :: [info()]
+  @spec enumerate(backend() | nil) :: [identifiers()]
   def enumerate(backend \\ nil)
   def enumerate(nil), do: enumerate(default_backend())
   def enumerate({backend, options}), do: backend.enumerate(options)

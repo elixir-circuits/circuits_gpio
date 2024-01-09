@@ -12,30 +12,30 @@ defmodule Circuits.GPIO.Backend do
   @doc """
   Return a list of GPIOs
 
-  See `t:GPIO.gpio_info/0` for the information that is returned. The `options` contain
+  See `t:GPIO.identifiers/0` for the information that is returned. The `options` contain
   backend-specific options to help with enumeration.
   """
-  @callback enumerate(options :: GPIO.open_options()) :: [GPIO.info()]
+  @callback enumerate(options :: GPIO.open_options()) :: [GPIO.identifiers()]
 
   @doc """
-  Return information about a GPIO
+  Return identifying information about a GPIO
 
   See `t:gpio_spec/0` for the ways of referring to GPIOs. The `options` contain
   backend-specific options to help enumerating GPIOs.
 
   If the GPIO is found, this function returns information about the GPIO.
   """
-  @callback gpio_info(
+  @callback gpio_identifiers(
               gpio_spec :: GPIO.gpio_spec(),
               options :: GPIO.open_options()
-            ) :: {:ok, GPIO.info()} | {:error, atom()}
+            ) :: {:ok, GPIO.identifiers()} | {:error, atom()}
 
   @doc """
   Return a GPIO's current status
 
   This function returns how a GPIO is configured. The GPIO doesn't need to be
-  opened. It's different from `gpio_info/2` since it returns dynamic information
-  whereas `gpio_info/2` only returns information about how to refer to a GPIO
+  opened. It's different from `gpio_identifiers/2` since it returns dynamic information
+  whereas `gpio_identifiers/2` only returns information about how to refer to a GPIO
   and where it exists in the system.
 
   See `t:gpio_spec/0` for the ways of referring to GPIOs. The `options` contain

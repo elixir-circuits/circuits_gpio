@@ -37,7 +37,7 @@ defmodule Circuits.GPIO2Test do
     assert info.pins_open == 0
   end
 
-  describe "info/2" do
+  describe "identifiers/2" do
     test "all gpio_spec examples" do
       expected = %{
         location: {"gpiochip0", 5},
@@ -45,25 +45,25 @@ defmodule Circuits.GPIO2Test do
         controller: "stub0"
       }
 
-      assert GPIO.info(5) == {:ok, expected}
-      assert GPIO.info("pair_2_1") == {:ok, expected}
-      assert GPIO.info({"gpiochip0", 5}) == {:ok, expected}
-      assert GPIO.info({"stub0", 5}) == {:ok, expected}
-      assert GPIO.info({"gpiochip0", "pair_2_1"}) == {:ok, expected}
-      assert GPIO.info({"stub0", "pair_2_1"}) == {:ok, expected}
+      assert GPIO.identifiers(5) == {:ok, expected}
+      assert GPIO.identifiers("pair_2_1") == {:ok, expected}
+      assert GPIO.identifiers({"gpiochip0", 5}) == {:ok, expected}
+      assert GPIO.identifiers({"stub0", 5}) == {:ok, expected}
+      assert GPIO.identifiers({"gpiochip0", "pair_2_1"}) == {:ok, expected}
+      assert GPIO.identifiers({"stub0", "pair_2_1"}) == {:ok, expected}
 
-      assert GPIO.info(-1) == {:error, :not_found}
-      assert GPIO.info(64) == {:error, :not_found}
-      assert GPIO.info("something") == {:error, :not_found}
-      assert GPIO.info({"gpiochip0", 64}) == {:error, :not_found}
-      assert GPIO.info({"stub0", 64}) == {:error, :not_found}
-      assert GPIO.info({"gpiochip0", "something"}) == {:error, :not_found}
-      assert GPIO.info({"stub0", "something"}) == {:error, :not_found}
+      assert GPIO.identifiers(-1) == {:error, :not_found}
+      assert GPIO.identifiers(64) == {:error, :not_found}
+      assert GPIO.identifiers("something") == {:error, :not_found}
+      assert GPIO.identifiers({"gpiochip0", 64}) == {:error, :not_found}
+      assert GPIO.identifiers({"stub0", 64}) == {:error, :not_found}
+      assert GPIO.identifiers({"gpiochip0", "something"}) == {:error, :not_found}
+      assert GPIO.identifiers({"stub0", "something"}) == {:error, :not_found}
     end
 
     test "lines in stub1" do
       for spec <- [33, "pair_16_1", {"stub1", "pair_16_1"}] do
-        info = GPIO.info(spec)
+        info = GPIO.identifiers(spec)
 
         expected_line_info = %{
           location: {"gpiochip1", 1},
@@ -78,7 +78,7 @@ defmodule Circuits.GPIO2Test do
 
     test "nonexistent lines" do
       for spec <- [-1, 65, "pair_100_0", {"stub10", "pair_2_0"}] do
-        info = GPIO.info(spec)
+        info = GPIO.identifiers(spec)
 
         assert info == {:error, :not_found},
                "Unexpected info for #{inspect(spec)} -> #{inspect(info)}"
@@ -468,13 +468,13 @@ defmodule Circuits.GPIO2Test do
 
     # Set the cache to something bogus and check that it's comes back
     :persistent_term.put(Circuits.GPIO.CDev, [bogus_gpio])
-    assert GPIO.info("not_a_gpio") == {:ok, bogus_gpio}
+    assert GPIO.identifiers("not_a_gpio") == {:ok, bogus_gpio}
 
     # Now check that the cache gets refreshed when a gpio isn't found
-    assert GPIO.info("pair_18_1") == {:ok, good_gpio}
+    assert GPIO.identifiers("pair_18_1") == {:ok, good_gpio}
 
     # The bogus GPIO doesn't come back
-    assert GPIO.info("not_a_gpio") == {:error, :not_found}
+    assert GPIO.identifiers("not_a_gpio") == {:error, :not_found}
   end
 
   test "write_one/2 + read_one/1" do
