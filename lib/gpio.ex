@@ -387,11 +387,11 @@ defmodule Circuits.GPIO do
 
   This may be helpful when debugging issues.
   """
-  @spec info(backend() | nil) :: map()
-  def info(backend \\ nil)
+  @spec backend_info(backend() | nil) :: map()
+  def backend_info(backend \\ nil)
 
-  def info(nil), do: info(default_backend())
-  def info({backend, _options}), do: backend.info()
+  def backend_info(nil), do: backend_info(default_backend())
+  def backend_info({backend, _options}), do: backend.info()
 
   @doc """
   Return a list of accessible GPIOs

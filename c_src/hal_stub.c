@@ -254,9 +254,15 @@ int hal_get_gpio_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, in
     int is_output;
     if (pin) {
         switch (pin->config.pull) {
-        case PULL_DOWN: pull_mode_str = "pulldown"; break;
-        case PULL_UP: pull_mode_str = "pullup"; break;
-        default: pull_mode_str = "none"; break;
+        case PULL_DOWN:
+            pull_mode_str = "pulldown";
+            break;
+        case PULL_UP:
+            pull_mode_str = "pullup";
+            break;
+        default:
+            pull_mode_str = "none";
+            break;
         }
         is_output = pin->config.is_output;
     } else {

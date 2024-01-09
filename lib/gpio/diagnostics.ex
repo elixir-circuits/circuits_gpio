@@ -53,7 +53,7 @@ defmodule Circuits.GPIO.Diagnostics do
 
       Output info: #{inspect(out_gpio_info)}
       Input info:  #{inspect(in_gpio_info)}
-      Backend: #{inspect(Circuits.GPIO.info()[:name])}
+      Backend: #{inspect(Circuits.GPIO.backend_info()[:name])}
 
       """,
       Enum.map(results, &pass_text/1),
