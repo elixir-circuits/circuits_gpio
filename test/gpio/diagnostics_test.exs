@@ -23,7 +23,9 @@ defmodule Circuits.GPIO.DiagnosticsTest do
     results = Diagnostics.speed_test(10)
 
     # Just check that the result is not completely bogus
-    assert results.writes_per_sec > 1000
-    assert results.reads_per_sec > 1000
+    assert results.write_cps > 1000
+    assert results.read_cps > 1000
+    assert results.write_one_cps > ceil(results.write_cps / 10000)
+    assert results.read_one_cps > ceil(results.read_cps / 10000)
   end
 end

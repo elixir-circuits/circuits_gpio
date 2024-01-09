@@ -59,8 +59,10 @@ defmodule Circuits.GPIO.Diagnostics do
       Enum.map(results, &pass_text/1),
       """
 
-      Writes/second: #{round(speed_results.writes_per_sec)}
-      Reads/second: #{round(speed_results.reads_per_sec)}
+      write/2:     #{round(speed_results.write_cps)} calls/s
+      read/1:      #{round(speed_results.read_cps)} calls/s
+      write_one/3: #{round(speed_results.write_one_cps)} calls/s
+      read_one/2:  #{round(speed_results.read_one_cps)} calls/s
 
       """,
       if(check_connections?,
@@ -110,38 +112,62 @@ defmodule Circuits.GPIO.Diagnostics do
   write performance on nearly every device. Write performance shouldn't be
   terrible, though.
   """
-  @spec speed_test(GPIO.gpio_spec()) :: %{writes_per_sec: float(), reads_per_sec: float()}
+  @spec speed_test(GPIO.gpio_spec()) :: %{
+          write_cps: float(),
+          read_cps: float(),
+          write_one_cps: float(),
+          read_one_cps: float()
+        }
   def speed_test(gpio_spec) do
     times = 1000
+    one_times = ceil(times / 100)
 
     {:ok, gpio} = GPIO.open(gpio_spec, :output)
-    toggle_write(gpio, 10)
-    {write_micros, :ok} = :timer.tc(fn -> toggle_read(gpio, times) end)
+    write_cps = time_fun2(times, &write2/1, gpio)
     GPIO.close(gpio)
 
     {:ok, gpio} = GPIO.open(gpio_spec, :input)
-    toggle_read(gpio, 10)
-    {read_micros, :ok} = :timer.tc(fn -> toggle_read(gpio, times) end)
+    read_cps = time_fun2(times, &read2/1, gpio)
+    GPIO.close(gpio)
 
-    # 2 ops/toggle
+    write_one_cps = time_fun2(one_times, &write_one2/1, gpio_spec)
+    read_one_cps = time_fun2(one_times, &read_one2/1, gpio_spec)
+
     %{
-      writes_per_sec: times / write_micros * 1_000_000 * 2,
-      reads_per_sec: times / read_micros * 1_000_000 * 2
+      write_cps: write_cps,
+      read_cps: read_cps,
+      write_one_cps: write_one_cps,
+      read_one_cps: read_one_cps
     }
   end
 
-  defp toggle_write(gpio, times) do
-    Enum.each(1..times, fn _ ->
-      GPIO.write(gpio, 0)
-      GPIO.write(gpio, 1)
-    end)
+  defp time_fun2(times, fun, arg) do
+    # Check that it works
+    _ = fun.(arg)
+
+    # Benchmark it
+    {micros, :ok} = :timer.tc(fn -> Enum.each(1..times, fn _ -> fun.(arg) end) end)
+    times / micros * 1_000_000 * 2
   end
 
-  defp toggle_read(gpio, times) do
-    Enum.each(1..times, fn _ ->
-      GPIO.read(gpio)
-      GPIO.read(gpio)
-    end)
+  defp write2(gpio) do
+    GPIO.write(gpio, 0)
+    GPIO.write(gpio, 1)
+  end
+
+  defp read2(gpio) do
+    GPIO.read(gpio)
+    GPIO.read(gpio)
+  end
+
+  defp write_one2(gpio_spec) do
+    _ = GPIO.write_one(gpio_spec, 0)
+    _ = GPIO.write_one(gpio_spec, 1)
+  end
+
+  defp read_one2(gpio_spec) do
+    _ = GPIO.read_one(gpio_spec)
+    _ = GPIO.read_one(gpio_spec)
   end
 
   defmacrop assert(expr) do
