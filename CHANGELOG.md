@@ -1,85 +1,42 @@
 # Changelog
 
-## v2.0.0-pre.6 - 2024-1-9
+## v2.0.0 - 2024-01-11
 
-This release only has naming changes and documentation updates.
+This is a major update to Circuits.GPIO that modernizes the API, restricts usage
+to Nerves and Linux, and updates the Linux/Nerves backend to the Linux GPIO cdev
+interface.
 
-* Changes
-  * Rename `t:gpio_info/0` to `t:identifiers/0`, `t:gpio_status/0` to `t:status/0`
-    and `info/1` to `backend_info/1`. This hopefully removes confusion between
-    the 3 informational types and functions.
+It is mostly backwards compatible with Circuits.GPIO v1. Please see `PORTING.md`
+for upgrade instructions.
 
-## v2.0.0-pre.5 - 2024-1-8
-
-* Changes
-  * `t:gpio_info/0` now only contains static information so that it's easier to
-    cache. Caching reduces open time from 2-3ms to 100us on an RPi Zero, so it's
-    a decent improvement for apps that set a lot of GPIOs on boot.
-  * Add `t:status/0` and `status/1` to get runtime information about
-    GPIOs. It's currently populated with GPIO consumer info, direction and pull
-    mode. It could certainly have more added in the future.
-  * Add `write_one/3` and `read_one/2` convenience methods to simplify one-off
-    and IEx prompt usage. These open and close GPIO references behind the scenes
-    and reduce the code that you need to write to avoid exclusively holding on
-    to references.
-  * Make all error returns consistent. If an unknown errno is caught, its value
-    is returned so that a better error message can be added.
-  * Demote the `Circuits.GPIO.Info` struct to just a map so that backends can
-    add additional informational fields. The type to use is `t:gpio_info/0`.
-  * Various bug fixes and code cleanup
-
-## v2.0.0-pre.4 - 2024-1-5
-
-This release is looking really close to the final prerelease. Please provide
-feedback soon if there are issues.
-
-* Changes
-  * Add `Circuits.GPIO.gpio_spec?/1` and `Circuits.GPIO.is_gpio_spec/1` to
-    support sanity checking GPIOs when parsing config options in user code.
-  * Documentation updates
-
-## v2.0.0-pre.3 - 2024-1-1
-
-* Changes
-  * Add Circuits.GPIO.line_info/2 to simplify getting information about a GPIO
-  * Add consumer information to the line information and change the label to
-    just be the label rather than a tuple that contains the controller. This
-    matches better to what would normally be passed to `Circuits.GPIO.open/3`
-  * Add more information to the diagnostics report to simplify debugging
-  * Add a read performance measurement to the diagnostics report
-
-## v2.0.0-pre.2 - 2023-12-30
-
-* Changes
-  * Fix Beaglebone workaround issues
-  * Add Circuits.GPIO version to diagnostics and simplify
-
-## v2.0.0-pre.1 - 2023-12-29
-
-This is a major update over pre.0 that has a significant upgrade to the backend
-for Nerves and Linux users.
-
-* Changes
-  * Replace the Linux sysfs backend with one that uses the Linux cdev interface
-  * Add workaround for reordering of GPIO controllers on Beaglebones with Linux
-    5.15 and later.
-  * Add `Circuits.GPIO.Diagnostics` to simplify testing runtime capabilities
-  * Support pull modes on all targets that support them instead of only
-    Raspberry Pis
-  * Many documentation updates
-
-## v2.0.0-pre.0 - 2023-05-30
-
-This is a major update to Circuits.GPIO that removes the requirement to use
-Nerves or Linux. The API is almost the same and the default is to compile and
-use the Linux backend, so changes may not be needed.
-
-This is a prerelease so APIs may still change before the v2.0.0 release.
-
-* Changes
+* New features
   * Support alternative backends for different operating systems or for
-    simulated hardware
-  * Defer loading the Linux NIF until `Circuits.GPIO.open/2` is called
+    simulated hardware. The Linux cdev backend can be compiled out.
+
+  * `Circuits.GPIO.open/3` is much more flexible in how GPIOs are identified.
+    Specifying GPIOs by number still works, but it's now possible to specify
+    GPIOs by string labels and by tuples that contain the GPIO controller name
+    and index. See `t:gpio_spec/0` and the `README.md` for details.
+
+  * List out available GPIOs with `Circuits.GPIO.enumerate/0`. Other helper
+    functions are available for getting more information about each GPIO too.
+
+  * Specify pull modes in general rather than only Raspberry Pis on Linux and
+    Nerves
+
+  * Easily do one-off reads and writes with `Circuits.GPIO.read_one/2` and
+    `Circuits.GPIO.write_one/3`
+
+  * Improved performance on Nerves and Linux; kernel-applied timestamping of
+    GPIO input events
+
+  * Add `Circuits.GPIO.Diagnostics` to automate runtime testing
+
+* Changes
+  * More consistent error returns. Unexpected errors return `{:errno, value}`
+    tuples to help correlate errors to low level docs
+  * Deferred loading of the NIF to simplify debugging of GPIO backends.
+    Segfaults crash on first use of `Circuits.GPIO` rather than on load.
 
 ## v1.1.0 - 2022-12-31
 
