@@ -7,27 +7,6 @@
 
 `Circuits.GPIO` lets you use GPIOs in Elixir.
 
-*This is the v2.0 development branch. If you're still using v1, please see the [maint-v1.x branch](https://github.com/elixir-circuits/circuits_gpio/tree/maint-v1.x).*
-
-`Circuits.GPIO` v2.0  is an almost backwards compatible update to `Circuits.GPIO`
-v1.x. Here's what's new:
-
-* Linux or Nerves are no longer required. In fact, the NIF supporting them won't
-  be compiled if you don't want it.
-* GPIOs can be enumerated to see what's available (See `Circuits.GPIO.enumerate/0`)
-* Linux and Nerves now use the Linux GPIO cdev subsystem rather than sysfs
-* GPIO pull mode setting for all platforms that support it rather than only Raspberry Pi
-* Develop using simulated GPIOs to work with LEDs and buttons with
-  [CircuitsSim](https://github.com/elixir-circuits/circuits_sim)
-
-If you've used `Circuits.GPIO` v1.x, nearly all of your code will be the
-same.`Circuits.GPIO` offers a substantial improvement by more descriptive GPIO
-specs for identifying GPIOs. You can still refer to GPIOs by number. However,
-you can also refer to GPIOs by labels and by which GPIO controller handles them.
-The new `enumerate/0` can help with this.
-
-Please review the [porting guide](PORTING.md) when upgrading from v1.x.
-
 ## Getting started on Nerves and Linux
 
 If you're natively compiling `circuits_gpio` using Nerves or using a Linux-based
@@ -307,6 +286,31 @@ iex> Circuits.GPIO.read(gpio1)
 ```
 
 Test mode is fairly limited, but it does support interrupts.
+
+## Migration from v1.x
+
+v2.x is the current version of `Circuits.GPIO`.
+
+`Circuits.GPIO` v2.0 is an almost backwards compatible update to `Circuits.GPIO`
+v1.x. Here's what's new:
+
+* Linux or Nerves are no longer required. In fact, the NIF supporting them won't
+  be compiled if you don't want it.
+* GPIOs can be enumerated to see what's available (See `Circuits.GPIO.enumerate/0`)
+* Linux and Nerves now use the Linux GPIO cdev subsystem rather than sysfs
+* GPIO pull mode setting for all platforms that support it rather than only Raspberry Pi
+* Develop using simulated GPIOs to work with LEDs and buttons with
+  [CircuitsSim](https://github.com/elixir-circuits/circuits_sim)
+
+If you've used `Circuits.GPIO` v1.x, nearly all of your code will be the
+same.`Circuits.GPIO` offers a substantial improvement by more descriptive GPIO
+specs for identifying GPIOs. You can still refer to GPIOs by number. However,
+you can also refer to GPIOs by labels and by which GPIO controller handles them.
+The new `enumerate/0` can help with this.
+
+If you are using a previous version and wish to update, review the [porting
+guide](PORTING.md). Also see [circuits_gpio v1.x maintenance
+branch](https://github.com/elixir-circuits/circuits_gpio/tree/maint-v1.x).
 
 ## FAQ
 
