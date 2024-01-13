@@ -272,4 +272,21 @@ defmodule Circuits.GPIOTest do
       assert false == :code.purge(Circuits.GPIO)
     end
   end
+
+  test "racing to load the NIF" do
+    # Make sure the NIF isn't loaded
+    assert true == :code.delete(Circuits.GPIO.Nif)
+    assert false == :code.purge(Circuits.GPIO.Nif)
+
+    # Try to hit the race by having 32 processes race to load the NIF
+    tasks =
+      for index <- 0..31 do
+        Task.async(fn ->
+          {:ok, gpio} = GPIO.open(index, :input)
+          GPIO.close(gpio)
+        end)
+      end
+
+    Enum.each(tasks, &Task.await/1)
+  end
 end
