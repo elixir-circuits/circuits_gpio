@@ -39,7 +39,6 @@
 #define RPI4_ENABLE_PULLDOWN     2
 #define RPI4_ENABLE_PULLUP       1
 
-
 ERL_NIF_TERM rpi_info(ErlNifEnv *env, struct sysfs_priv *priv, ERL_NIF_TERM info)
 {
     enif_make_map_put(env, info, enif_make_atom(env, "rpi_using_gpiomem"), priv->gpio_mem ? enif_make_atom(env, "true") : enif_make_atom(env, "false"), &info);
