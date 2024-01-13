@@ -8,8 +8,11 @@ defmodule Circuits.GPIO.Nif do
   defp load_nif_and_apply(fun, args) do
     nif_binary = Application.app_dir(:circuits_gpio, "priv/gpio_nif")
 
-    with :ok <- :erlang.load_nif(to_charlist(nif_binary), 0) do
-      apply(__MODULE__, fun, args)
+    # Optimistically load the NIF. Handle the possible race.
+    case :erlang.load_nif(to_charlist(nif_binary), 0) do
+      :ok -> apply(__MODULE__, fun, args)
+      {:error, {:reload, _}} -> apply(__MODULE__, fun, args)
+      error -> error
     end
   end
 
