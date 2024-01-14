@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.2.1 - 2024-01-13
+
+* Bug fixes
+  * Fix race condition when loading NIF. If two processes caused the NIF to be
+    loaded at the same time, one might return an error. This issue was
+    introduced in v1.2.0.
+
 ## v1.2.0 - 2023-12-14
 
 * Changes
