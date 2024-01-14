@@ -47,8 +47,6 @@ enum pull_mode {
 struct gpio_priv {
     ErlNifResourceType *gpio_pin_rt;
 
-    int pins_open;
-
     uint32_t hal_priv[1];
 };
 
