@@ -8,9 +8,9 @@
 `Circuits.GPIO` lets you control or read from GPIOs on Nerves or other Linux-based
 devices.
 
-*This is the v1 maintenance branch. This is the version you want for production
-use now.  To follow v2.0 development, see the [circuits_gpio v2.0
-branch](https://github.com/elixir-circuits/circuits_gpio/tree/v2.0)*
+*This is the v1 maintenance branch. It is still maintained, but the v2 releases
+have many improvements. See [circuits_gpio main
+branch](https://github.com/elixir-circuits/circuits_gpio/)*
 
 If you're coming from Elixir/ALE, check out our [porting guide](PORTING.md).
 
