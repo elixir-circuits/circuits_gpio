@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "gpio_nif.h"
+
+#include <stdatomic.h>
 #include <string.h>
 
 #define NUM_GPIOS 64
@@ -13,6 +15,7 @@
  */
 
 struct stub_priv {
+    atomic_int pins_open;
     int value[NUM_GPIOS / 2];
     ErlNifPid pid[NUM_GPIOS];
     enum trigger_mode mode[NUM_GPIOS];
@@ -20,9 +23,11 @@ struct stub_priv {
 
 ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info)
 {
-    (void) hal_priv;
+    struct stub_priv *stub_priv = (struct stub_priv *) hal_priv;
+    int pins_open = atomic_load(&stub_priv->pins_open);
 
     enif_make_map_put(env, info, enif_make_atom(env, "name"), enif_make_atom(env, "stub"), &info);
+    enif_make_map_put(env, info, enif_make_atom(env, "pins_open"), enif_make_int(env, pins_open), &info);
     return info;
 }
 
@@ -33,7 +38,11 @@ size_t hal_priv_size(void)
 
 int hal_load(void *hal_priv)
 {
-    memset(hal_priv, 0, sizeof(struct stub_priv));
+    struct stub_priv *stub_priv = (struct stub_priv *) hal_priv;
+
+    memset(stub_priv, 0, sizeof(struct stub_priv));
+    stub_priv->pins_open = 0;
+
     return 0;
 }
 
@@ -49,7 +58,10 @@ int hal_open_gpio(struct gpio_pin *pin,
     (void) env;
     // For test purposes, pins 0-63 work and everything else fails
     if (pin->pin_number >= 0 && pin->pin_number < NUM_GPIOS) {
+        struct stub_priv *stub_priv = pin->hal_priv;
+
         pin->fd = pin->pin_number;
+        atomic_fetch_add(&stub_priv->pins_open, 1);
 
         if (pin->config.is_output && pin->config.initial_value != -1)
             hal_write_gpio(pin, pin->config.initial_value, env);
@@ -67,6 +79,7 @@ void hal_close_gpio(struct gpio_pin *pin)
     if (pin->fd >= 0) {
         struct stub_priv *hal_priv = pin->hal_priv;
         hal_priv->mode[pin->pin_number] = TRIGGER_NONE;
+        atomic_fetch_sub(&hal_priv->pins_open, 1);
         pin->fd = -1;
     }
 }

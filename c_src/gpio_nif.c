@@ -20,7 +20,6 @@ static void release_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
 {
     if (pin->fd >= 0) {
         hal_close_gpio(pin);
-        priv->pins_open--;
         pin->fd = -1;
     }
 }
@@ -104,7 +103,6 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
         return 1;
     }
 
-    priv->pins_open = 0;
     priv->gpio_pin_rt = enif_open_resource_type_x(env, "gpio_pin", &gpio_pin_init, ERL_NIF_RT_CREATE, NULL);
 
     if (hal_load(&priv->hal_priv) < 0) {
@@ -331,8 +329,6 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     ERL_NIF_TERM pin_resource = enif_make_resource(env, pin);
     enif_release_resource(pin);
 
-    priv->pins_open++;
-
     return make_ok_tuple(env, pin_resource);
 }
 
@@ -355,8 +351,6 @@ static ERL_NIF_TERM gpio_info(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
 
     struct gpio_priv *priv = enif_priv_data(env);
     ERL_NIF_TERM info = enif_make_new_map(env);
-
-    enif_make_map_put(env, info, enif_make_atom(env, "pins_open"), enif_make_int(env, priv->pins_open), &info);
 
     return hal_info(env, priv->hal_priv, info);
 }
