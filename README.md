@@ -7,8 +7,7 @@
 
 `Circuits.GPIO` lets you use GPIOs in Elixir.
 
-*This is the v2.0 development branch. It's not ready yet. Most users will want
-to follow the [maint-v1.x branch](https://github.com/elixir-circuits/circuits_gpio/tree/maint-v1.x).*
+*This is the v2.0 development branch. If you're still using v1, please see the [maint-v1.x branch](https://github.com/elixir-circuits/circuits_gpio/tree/maint-v1.x).*
 
 `Circuits.GPIO` v2.0  is an almost backwards compatible update to `Circuits.GPIO`
 v1.x. Here's what's new:
