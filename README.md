@@ -55,6 +55,18 @@ The following examples were tested on a Raspberry Pi that was connected to an
 [Erlang Embedded Demo Board](http://solderpad.com/omerk/erlhwdemo/). There's
 nothing special about either the demo board or the Raspberry Pi.
 
+## Nerves + Livebook
+
+[Nerves Livebook project](https://github.com/nerves-livebook/nerves_livebook)
+allows you to try out the Nerves project on real hardware without needing
+to build a project from scratch.
+
+Within minutes, you'll have a Raspberry Pi or Beaglebone running Nerves. You'll
+be able to run code in [Livebook](https://livebook.dev/) and work through
+Nerves tutorials from the comfort of your browser.
+
+[![Run in Nerves Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Felixir-circuits%2Fcircuits_gpio%2Fblob%2Fmain%2Fnotebooks%2Fbasics.livemd)
+
 ## GPIO
 
 A [General Purpose
