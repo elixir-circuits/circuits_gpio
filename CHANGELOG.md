@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.0.1 - 2024-01-13
+
+* Bug fixes
+  * Fix race condition when loading NIF. If two processes caused the NIF to be
+    loaded at the same time, then it was possible for one to return an error.
+  * Remove tracking of the number of open pins from the cdev backend to not need
+    to synchronize access to the count. This feature really was only used for
+    the unit tests.
+
 ## v2.0.0 - 2024-01-11
 
 This is a major update to Circuits.GPIO that modernizes the API, restricts usage
