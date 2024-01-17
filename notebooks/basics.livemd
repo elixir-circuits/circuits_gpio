@@ -45,19 +45,19 @@ compatibility, it somewhat supports use of the *older* pin numbering scheme.
 
 ```elixir
 # label only
-{:ok, gpio} = Circuits.GPIO.open("ID_SCL", :input)
+{:ok, gpio} = Circuits.GPIO.open("GPIO18", :input)
 Circuits.GPIO.close(gpio)
 
 # location (controller_name and line_offset)
-{:ok, gpio} = Circuits.GPIO.open({"gpiochip0", 1}, :input)
+{:ok, gpio} = Circuits.GPIO.open({"gpiochip0", 18}, :input)
 Circuits.GPIO.close(gpio)
 
 # controller_name and label
-{:ok, gpio} = Circuits.GPIO.open({"gpiochip0", "ID_SCL"}, :input)
+{:ok, gpio} = Circuits.GPIO.open({"gpiochip0", "GPIO18"}, :input)
 Circuits.GPIO.close(gpio)
 
 # index only (the older pin numbering scheme)
-{:ok, gpio} = Circuits.GPIO.open(1, :input)
+{:ok, gpio} = Circuits.GPIO.open(18, :input)
 Circuits.GPIO.close(gpio)
 ```
 
