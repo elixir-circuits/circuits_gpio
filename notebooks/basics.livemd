@@ -72,11 +72,7 @@ that depends on what controllers are available under `/dev`. The line offset is
 a the line offset of the GPIO on that controller.
 
 ```elixir
-{dev_list_str, 0} = System.shell("ls /dev")
-
-dev_list_str
-|> String.split("\n", trim: true)
-|> Enum.sort()
+Path.wildcard("/dev/gpiochip*")
 |> Enum.map(&%{dev: &1})
 |> Kino.DataTable.new()
 ```
