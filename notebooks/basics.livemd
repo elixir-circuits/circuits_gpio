@@ -19,6 +19,9 @@ While `Circuits.GPIO` can support non-Nerves and non-Linux systems, the examples
 below were made using Nerves. Operation on other devices mostly differs on how
 to refer to GPIOs.
 
+This Livebook only works on Raspberry Pi (1, 2, 3, 4, 400 and Zero families)
+without modification.
+
 The following examples were tested on a Raspberry Pi that was connected to an
 [Erlang Embedded Demo Board](http://solderpad.com/omerk/erlhwdemo/). There's
 nothing special about either the demo board or the Raspberry Pi.
