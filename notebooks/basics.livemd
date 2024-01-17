@@ -41,7 +41,7 @@ controller hardware name and a line offset.
 The contents of a `gpio_spec` depend on the backend. When running on Nerves or
 a Linux machine, `Circuits.GPIO` uses the Linux gpio-cdev backend. This backend
 prefers the use of GPIO controller/line offset tuples and labels. For backwards
-compatibility, it somewhat supports use of the *older* pin numbering scheme.
+compatibility, it somewhat supports use of the _older_ pin numbering scheme.
 
 See [Enumeration](#enumeration) for listing out all available `gpio_specs` for
 your device.
@@ -63,6 +63,12 @@ Here's an example:
 Circuits.GPIO.enumerate() |> Kino.DataTable.new()
 ```
 
+<!-- livebook:{"output":true} -->
+
+```text
+[%{label: "ID_SDA", location: {"gpiochip0", 0}, controller: "pinctrl-bcm2835"}, {label: "ID_SCL", location: {"gpiochip0", 1}, controller: "pinctrl-bcm2835"}, {label: "SDA1", location: {"gpiochip0", 2}, controller: "pinctrl-bcm2835"}, {label: "SCL1", location: {"gpiochip0", 3}, controller: "pinctrl-bcm2835"}, { label: "GPIO_GCLK", location: {"gpiochip0", 4}, controller: "pinctrl-bcm2835" }, {label: "GPIO5", location: {"gpiochip0", 5}, controller: "pinctrl-bcm2835"}, {label: "GPIO6", location: {"gpiochip0", 6}, controller: "pinctrl-bcm2835"}, { label: "SPI_CE1_N", location: {"gpiochip0", 7}, controller: "pinctrl-bcm2835" }, { label: "SPI_CE0_N", location: {"gpiochip0", 8}, controller: "pinctrl-bcm2835" }, { label: "SPI_MISO", location: {"gpiochip0", 9}, controller: "pinctrl-bcm2835" }, { label: "SPI_MOSI", location: {"gpiochip0", 10}, controller: "pinctrl-bcm2835" }, { label: "SPI_SCLK", location: {"gpiochip0", 11}, controller: "pinctrl-bcm2835" }, {label: "GPIO12", location: {"gpiochip0", 12}, controller: "pinctrl-bcm2835"}, {label: "GPIO13", location: {"gpiochip0", 13}, controller: "pinctrl-bcm2835"}, {label: "TXD1", location: {"gpiochip0", 14}, controller: "pinctrl-bcm2835"}, {label: "RXD1", location: {"gpiochip0", 15}, controller: "pinctrl-bcm2835"}, {label: "GPIO16", location: {"gpiochip0", 16}, controller: "pinctrl-bcm2835"}, {label: "GPIO17", location: {"gpiochip0", 17}, controller: "pinctrl-bcm2835"}, {label: "GPIO18", location: {"gpiochip0", 18}, controller: "pinctrl-bcm2835"}, {label: "GPIO19", location: {"gpiochip0", 19}, controller: "pinctrl-bcm2835"}, {label: "GPIO20", location: {"gpiochip0", 20}, controller: "pinctrl-bcm2835"}, {label: "GPIO21", location: {"gpiochip0", 21}, controller: "pinctrl-bcm2835"}, {label: "GPIO22", location: {"gpiochip0", 22}, controller: "pinctrl-bcm2835"}, {label: "GPIO23", location: {"gpiochip0", 23}, controller: "pinctrl-bcm2835"}, {label: "GPIO24", location: {"gpiochip0", 24}, controller: "pinctrl-bcm2835"}, {label: "GPIO25", location: {"gpiochip0", 25}, controller: "pinctrl-bcm2835"}, {label: "GPIO26", location: {"gpiochip0", 26}, controller: "pinctrl-bcm2835"}, {label: "GPIO27", location: {"gpiochip0", 27}, controller: "pinctrl-bcm2835"}, {label: "SDA0", location: {"gpiochip0", 28}, controller: "pinctrl-bcm2835"}, {label: "SCL0", location: {"gpiochip0", 29}, controller: "pinctrl-bcm2835"}, {label: "CTS0", location: {"gpiochip0", 30}, controller: "pinctrl-bcm2835"}, {label: "RTS0", location: {"gpiochip0", 31}, controller: "pinctrl-bcm2835"}, {label: "TXD0", location: {"gpiochip0", 32}, controller: "pinctrl-bcm2835"}, {label: "RXD0", location: {"gpiochip0", 33}, controller: "pinctrl-bcm2835"}, { label: "SD1_CLK", location: {"gpiochip0", 34}, controller: "pinctrl-bcm2835" }, { label: "SD1_CMD", location: {"gpiochip0", 35}, controller: "pinctrl-bcm2835" }, { label: "SD1_DATA0", location: {"gpiochip0", 36}, controller: "pinctrl-bcm2835" }, { label: "SD1_DATA1", location: {"gpiochip0", 37}, controller: "pinctrl-bcm2835" }, { label: "SD1_DATA2", location: {"gpiochip0", 38}, controller: "pinctrl-bcm2835" }, { label: "SD1_DATA3", location: {"gpiochip0", 39}, controller: "pinctrl-bcm2835" }, { label: "CAM_GPIO1", location: {"gpiochip0", 40}, controller: "pinctrl-bcm2835" }, {label: "WL_ON", location: {"gpiochip0", 41}, controller: "pinctrl-bcm2835"}, {label: "NC", location: {"gpiochip0", 42}, controller: "pinctrl-bcm2835"}, { label: "WIFI_CLK", location: {"gpiochip0", 43}, controller: "pinctrl-bcm2835" }, { label: "CAM_GPIO0", location: {"gpiochip0", 44}, controller: "pinctrl-bcm2835" }, {label: "BT_ON", location: {"gpiochip0", 45}, controller: "pinctrl-bcm2835"}, { label: "HDMI_HPD_N", location: {"gpiochip0", 46}, controller: "pinctrl-bcm2835" }, { label: "STATUS_LED_N", location: {"gpiochip0", 47}, controller: "pinctrl-bcm2835" }, { label: "SD_CLK_R", location: {"gpiochip0", 48}, controller: "pinctrl-bcm2835" }, { label: "SD_CMD_R", location: {"gpiochip0", 49}, controller: "pinctrl-bcm2835" }, { label: "SD_DATA0_R", location: {"gpiochip0", 50}, controller: "pinctrl-bcm2835" }, { label: "SD_DATA1_R", location: {"gpiochip0", 51}, controller: "pinctrl-bcm2835" }, { label: "SD_DATA2_R", location: {"gpiochip0", 52}, controller: "pinctrl-bcm2835" }, { label: "SD_DATA3_R", location: {"gpiochip0", 53}, controller: "pinctrl-bcm2835"}]
+```
+
 The `:location` can always be passed as the first parameter to
 `Circuits.GPIO.open/3`. You may find the `:label` field more descriptive to use,
 though.
@@ -73,8 +79,12 @@ line offset is a the line offset of the GPIO on that controller.
 
 ```elixir
 Path.wildcard("/dev/gpiochip*")
-|> Enum.map(&%{dev: &1})
-|> Kino.DataTable.new()
+```
+
+<!-- livebook:{"output":true} -->
+
+```text
+["/dev/gpiochip0"]
 ```
 
 If you're deploying to multiple types of devices and you can set labels in the
@@ -102,10 +112,22 @@ Circuits.GPIO.close(gpio)
 Circuits.GPIO.close(gpio)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
 When the Linux device tree is configured with GPIO labels, you can use those instead:
 
 ```elixir
 # {:ok, gpio} = Circuits.GPIO.open("special-name-for-pin-1")
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+nil
 ```
 
 ## Turning an LED on or off
@@ -126,6 +148,12 @@ string name for this GPIO is `"GPIO18"` (use `"PIN12"` on a Raspberry Pi 5).
 Circuits.GPIO.write(gpio, 1)
 
 Circuits.GPIO.close(gpio)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
 ```
 
 The call to `Circuits.GPIO.close/1` is not necessary, since the garbage
@@ -151,10 +179,23 @@ The code looks like this in `Circuits.GPIO`:
 {:ok, gpio} = Circuits.GPIO.open("GPIO17", :input)
 
 Circuits.GPIO.read(gpio)
+```
 
-# Push the button down
+<!-- livebook:{"output":true} -->
 
+```
+0
+```
+Push the button down.
+
+```elixir
 Circuits.GPIO.read(gpio)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+1
 ```
 
 If you'd like to get a message when the button is pressed or released, call the
@@ -165,6 +206,12 @@ edge or `:both`.
 Circuits.GPIO.set_interrupts(gpio, :both)
 
 IEx.Helpers.flush()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
 ```
 
 Note that after calling `set_interrupts`, the calling process will receive an
@@ -183,25 +230,46 @@ pin, call the `set_pull_mode` function.
 Circuits.GPIO.set_pull_mode(gpio, :pullup)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
 Valid `pull_mode` values are `:none` `:pullup`, or `:pulldown`
 
 Note that `set_pull_mode` is platform dependent, and currently only works for
-Raspberry Pi hardware.  Calls to `set_pull_mode` on other platforms will have no
-effect.  The internal pull-up resistor value is between 50K and 65K, and the
-pull-down is between 50K and 60K.  It is not possible to read back the current
+Raspberry Pi hardware. Calls to `set_pull_mode` on other platforms will have no
+effect. The internal pull-up resistor value is between 50K and 65K, and the
+pull-down is between 50K and 60K. It is not possible to read back the current
 Pull-up/down settings, and GPIO pull-up pull-down resistor connections are
 maintained, even when the CPU is powered down.
 
 ## Convenience functions
 
-Having to `open` *then* `read` and `write` can be a cumbersome for one-off GPIO
+Having to `open` _then_ `read` and `write` can be a cumbersome for one-off GPIO
 access in code and when working at the IEx prompt. Circuits v2.0 has a pair of
 new functions to help:
 
+
 ```elixir
 Circuits.GPIO.write_one("special-name-for-pin-1", 1)
+```
 
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+```elixir
 Circuits.GPIO.read_one("special-name-for-pin-2")
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+1
 ```
 
 These functions get passed a `t:gpio_spec/0` just like `open/3` and internally
