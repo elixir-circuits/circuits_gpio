@@ -31,17 +31,6 @@ is just a wire that you can use as an input or an output. It can only be one of
 two values, 0 or 1. A 1 corresponds to a logic high voltage like 3.3 V and a 0
 corresponds to 0 V. The actual voltage depends on the hardware.
 
-## Getting started
-
-We can print information about modules or functions, by using the
-`IEx.Helpers.h/1` helper as needed.
-
-```elixir
-import IEx.Helpers
-
-h(Circuits.GPIO)
-```
-
 ## GPIO Specs
 
 `Circuits.GPIO` v2.0 supports a new form of specifying how to open a GPIO called
