@@ -1,0 +1,285 @@
+# Hello Circuits GPIO v2
+
+```elixir
+Mix.install([
+  {:circuits_gpio, "~> 2.0.1"},
+  {:kino, "~> 0.12.2"}
+])
+```
+
+## Introduction
+
+`Circuits.GPIO` lets you use GPIOs in Elixir. In this exercise, we will
+familiarize ourselves with `Circuits.GPIO` v2.0. For details, see
+[documentation](https://hexdocs.pm/circuits_gpio).
+
+## Supported systems
+
+While `Circuits.GPIO` can support non-Nerves and non-Linux systems, the examples
+below were made using Nerves. Operation on other devices mostly differs on how
+to refer to GPIOs.
+
+This Livebook only works on Raspberry Pi (1, 2, 3, 4, 400 and Zero families)
+without modification.
+
+The following examples were tested on a Raspberry Pi that was connected to an
+[Erlang Embedded Demo Board](http://solderpad.com/omerk/erlhwdemo/). There's
+nothing special about either the demo board or the Raspberry Pi.
+
+## GPIO
+
+A [General Purpose
+Input/Output](https://en.wikipedia.org/wiki/General-purpose_input/output) (GPIO)
+is just a wire that you can use as an input or an output. It can only be one of
+two values, 0 or 1. A 1 corresponds to a logic high voltage like 3.3 V and a 0
+corresponds to 0 V. The actual voltage depends on the hardware.
+
+## GPIO Specs
+
+`Circuits.GPIO` v2.0 supports a new form of specifying how to open a GPIO called
+a `t:gpio_spec/0`. These specs are very flexible and allow for GPIOs to be
+opened by number, a string label, or a tuple that includes both the GPIO
+controller hardware name and a line offset.
+
+The contents of a `gpio_spec` depend on the backend. When running on Nerves or
+a Linux machine, `Circuits.GPIO` uses the Linux gpio-cdev backend. This backend
+prefers the use of GPIO controller/line offset tuples and labels. For backwards
+compatibility, it somewhat supports use of the _older_ pin numbering scheme.
+
+See [Enumeration](#enumeration) for listing out all available `gpio_specs` for
+your device.
+
+## Enumeration
+
+`Circuits.GPIO` v2.0 supports a new function, `enumerate/0`, which lists every
+known GPIO pin.
+
+For Nerves and Linux users, the `gpio-cdev` subsystem maintains the official
+list. See the [Official DeviceTree documentation for
+GPIOs](https://elixir.bootlin.com/linux/v6.6.6/source/Documentation/devicetree/bindings/gpio/gpio.txt)
+for more information on how to configure the fields of this struct for your own
+system.
+
+Here's an example:
+
+```elixir
+Circuits.GPIO.enumerate() |> Kino.DataTable.new()
+```
+
+<!-- livebook:{"output":true} -->
+
+```text
+[%{label: "ID_SDA", location: {"gpiochip0", 0}, controller: "pinctrl-bcm2835"}, {label: "ID_SCL", location: {"gpiochip0", 1}, controller: "pinctrl-bcm2835"}, {label: "SDA1", location: {"gpiochip0", 2}, controller: "pinctrl-bcm2835"}, {label: "SCL1", location: {"gpiochip0", 3}, controller: "pinctrl-bcm2835"}, { label: "GPIO_GCLK", location: {"gpiochip0", 4}, controller: "pinctrl-bcm2835" }, {label: "GPIO5", location: {"gpiochip0", 5}, controller: "pinctrl-bcm2835"}, {label: "GPIO6", location: {"gpiochip0", 6}, controller: "pinctrl-bcm2835"}, { label: "SPI_CE1_N", location: {"gpiochip0", 7}, controller: "pinctrl-bcm2835" }, { label: "SPI_CE0_N", location: {"gpiochip0", 8}, controller: "pinctrl-bcm2835" }, { label: "SPI_MISO", location: {"gpiochip0", 9}, controller: "pinctrl-bcm2835" }, { label: "SPI_MOSI", location: {"gpiochip0", 10}, controller: "pinctrl-bcm2835" }, { label: "SPI_SCLK", location: {"gpiochip0", 11}, controller: "pinctrl-bcm2835" }, {label: "GPIO12", location: {"gpiochip0", 12}, controller: "pinctrl-bcm2835"}, {label: "GPIO13", location: {"gpiochip0", 13}, controller: "pinctrl-bcm2835"}, {label: "TXD1", location: {"gpiochip0", 14}, controller: "pinctrl-bcm2835"}, {label: "RXD1", location: {"gpiochip0", 15}, controller: "pinctrl-bcm2835"}, {label: "GPIO16", location: {"gpiochip0", 16}, controller: "pinctrl-bcm2835"}, {label: "GPIO17", location: {"gpiochip0", 17}, controller: "pinctrl-bcm2835"}, {label: "GPIO18", location: {"gpiochip0", 18}, controller: "pinctrl-bcm2835"}, {label: "GPIO19", location: {"gpiochip0", 19}, controller: "pinctrl-bcm2835"}, {label: "GPIO20", location: {"gpiochip0", 20}, controller: "pinctrl-bcm2835"}, {label: "GPIO21", location: {"gpiochip0", 21}, controller: "pinctrl-bcm2835"}, {label: "GPIO22", location: {"gpiochip0", 22}, controller: "pinctrl-bcm2835"}, {label: "GPIO23", location: {"gpiochip0", 23}, controller: "pinctrl-bcm2835"}, {label: "GPIO24", location: {"gpiochip0", 24}, controller: "pinctrl-bcm2835"}, {label: "GPIO25", location: {"gpiochip0", 25}, controller: "pinctrl-bcm2835"}, {label: "GPIO26", location: {"gpiochip0", 26}, controller: "pinctrl-bcm2835"}, {label: "GPIO27", location: {"gpiochip0", 27}, controller: "pinctrl-bcm2835"}, {label: "SDA0", location: {"gpiochip0", 28}, controller: "pinctrl-bcm2835"}, {label: "SCL0", location: {"gpiochip0", 29}, controller: "pinctrl-bcm2835"}, {label: "CTS0", location: {"gpiochip0", 30}, controller: "pinctrl-bcm2835"}, {label: "RTS0", location: {"gpiochip0", 31}, controller: "pinctrl-bcm2835"}, {label: "TXD0", location: {"gpiochip0", 32}, controller: "pinctrl-bcm2835"}, {label: "RXD0", location: {"gpiochip0", 33}, controller: "pinctrl-bcm2835"}, { label: "SD1_CLK", location: {"gpiochip0", 34}, controller: "pinctrl-bcm2835" }, { label: "SD1_CMD", location: {"gpiochip0", 35}, controller: "pinctrl-bcm2835" }, { label: "SD1_DATA0", location: {"gpiochip0", 36}, controller: "pinctrl-bcm2835" }, { label: "SD1_DATA1", location: {"gpiochip0", 37}, controller: "pinctrl-bcm2835" }, { label: "SD1_DATA2", location: {"gpiochip0", 38}, controller: "pinctrl-bcm2835" }, { label: "SD1_DATA3", location: {"gpiochip0", 39}, controller: "pinctrl-bcm2835" }, { label: "CAM_GPIO1", location: {"gpiochip0", 40}, controller: "pinctrl-bcm2835" }, {label: "WL_ON", location: {"gpiochip0", 41}, controller: "pinctrl-bcm2835"}, {label: "NC", location: {"gpiochip0", 42}, controller: "pinctrl-bcm2835"}, { label: "WIFI_CLK", location: {"gpiochip0", 43}, controller: "pinctrl-bcm2835" }, { label: "CAM_GPIO0", location: {"gpiochip0", 44}, controller: "pinctrl-bcm2835" }, {label: "BT_ON", location: {"gpiochip0", 45}, controller: "pinctrl-bcm2835"}, { label: "HDMI_HPD_N", location: {"gpiochip0", 46}, controller: "pinctrl-bcm2835" }, { label: "STATUS_LED_N", location: {"gpiochip0", 47}, controller: "pinctrl-bcm2835" }, { label: "SD_CLK_R", location: {"gpiochip0", 48}, controller: "pinctrl-bcm2835" }, { label: "SD_CMD_R", location: {"gpiochip0", 49}, controller: "pinctrl-bcm2835" }, { label: "SD_DATA0_R", location: {"gpiochip0", 50}, controller: "pinctrl-bcm2835" }, { label: "SD_DATA1_R", location: {"gpiochip0", 51}, controller: "pinctrl-bcm2835" }, { label: "SD_DATA2_R", location: {"gpiochip0", 52}, controller: "pinctrl-bcm2835" }, { label: "SD_DATA3_R", location: {"gpiochip0", 53}, controller: "pinctrl-bcm2835"}]
+```
+
+The `:location` can always be passed as the first parameter to
+`Circuits.GPIO.open/3`. You may find the `:label` field more descriptive to use,
+though.
+
+The GPIO controller part of the `:location` tuple is usually some variation on
+`"gpiochip0"` that depends on what controllers are available under `/dev`. The
+line offset is a the line offset of the GPIO on that controller.
+
+```elixir
+Path.wildcard("/dev/gpiochip*")
+```
+
+<!-- livebook:{"output":true} -->
+
+```text
+["/dev/gpiochip0"]
+```
+
+If you're deploying to multiple types of devices and you can set labels in the
+device tree, labels make it really easy for code using `Circuits.GPIO` to just
+use the right GPIO.
+
+Labels are not guaranteed to be unique, so if your device defines one twice,
+`Circuits.GPIO` will use the first GPIO it finds that has the specified label.
+
+```elixir
+# label only
+{:ok, gpio} = Circuits.GPIO.open("GPIO18", :input)
+Circuits.GPIO.close(gpio)
+
+# location (controller_name and line_offset)
+{:ok, gpio} = Circuits.GPIO.open({"gpiochip0", 18}, :input)
+Circuits.GPIO.close(gpio)
+
+# controller_name and label
+{:ok, gpio} = Circuits.GPIO.open({"gpiochip0", "GPIO18"}, :input)
+Circuits.GPIO.close(gpio)
+
+# index only (the older pin numbering scheme)
+{:ok, gpio} = Circuits.GPIO.open(18, :input)
+Circuits.GPIO.close(gpio)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+When the Linux device tree is configured with GPIO labels, you can use those instead:
+
+```elixir
+# {:ok, gpio} = Circuits.GPIO.open("special-name-for-pin-1")
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+nil
+```
+
+## Turning an LED on or off
+
+Here's an example of turning an LED on or off:
+
+![GPIO LED schematic](https://github.com/elixir-circuits/circuits_gpio/raw/v2.0.1/assets/images/schematic-gpio-led.png)
+
+To turn on the LED that's connected to the net (or wire) labeled `GPIO18`, you
+need to open it first. The first parameter to `Circuits.GPIO.open/2` is called a
+GPIO spec and identifies the GPIO. The Raspberry Pis are nice and provide string
+names for GPIOs. Other boards are not as nice so you always have to check. The
+string name for this GPIO is `"GPIO18"` (use `"PIN12"` on a Raspberry Pi 5).
+
+```elixir
+{:ok, gpio} = Circuits.GPIO.open("GPIO12", :output)
+
+Circuits.GPIO.write(gpio, 1)
+
+Circuits.GPIO.close(gpio)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+The call to `Circuits.GPIO.close/1` is not necessary, since the garbage
+collector will free up unreferenced GPIOs. It's a good practice, though,
+since backends can enforce exclusivity and prevent future opens from
+working until the GC occurs.
+
+Input works similarly. Here's an example of a button with a pull down resistor
+connected.
+
+![GPIO Button schematic](https://github.com/elixir-circuits/circuits_gpio/raw/v2.0.1/assets/images/schematic-gpio-button.png)
+
+If you're not familiar with pull up or pull down resistors, they're resistors
+whose purpose is to drive a wire high or low when the button isn't pressed. In
+this case, it drives the wire low. Many processors have ways of configuring
+internal resistors to accomplish the same effect without needing to add an
+external resistor. If you're using a Raspberry Pi, you can use [the built-in
+pull-up/pull-down resistors](#internal-pull-uppull-down).
+
+The code looks like this in `Circuits.GPIO`:
+
+```elixir
+{:ok, gpio} = Circuits.GPIO.open("GPIO17", :input)
+
+Circuits.GPIO.read(gpio)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+0
+```
+Push the button down.
+
+```elixir
+Circuits.GPIO.read(gpio)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+1
+```
+
+If you'd like to get a message when the button is pressed or released, call the
+`set_interrupts` function. You can trigger on the `:rising` edge, `:falling`
+edge or `:both`.
+
+```elixir
+Circuits.GPIO.set_interrupts(gpio, :both)
+
+IEx.Helpers.flush()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+Note that after calling `set_interrupts`, the calling process will receive an
+initial message with the state of the pin. This prevents the race condition
+between getting the initial state of the pin and turning on interrupts. Without
+it, you could get the state of the pin, it could change states, and then you
+could start waiting on it for interrupts. If that happened, you would be out of
+sync.
+
+### Internal pull-up/pull-down
+
+To connect or disconnect an internal [pull-up or pull-down resistor](https://github.com/raspberrypilearning/physical-computing-guide/blob/master/pull_up_down.md) to a GPIO
+pin, call the `set_pull_mode` function.
+
+```elixir
+Circuits.GPIO.set_pull_mode(gpio, :pullup)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+Valid `pull_mode` values are `:none` `:pullup`, or `:pulldown`
+
+Note that `set_pull_mode` is platform dependent, and currently only works for
+Raspberry Pi hardware. Calls to `set_pull_mode` on other platforms will have no
+effect. The internal pull-up resistor value is between 50K and 65K, and the
+pull-down is between 50K and 60K. It is not possible to read back the current
+Pull-up/down settings, and GPIO pull-up pull-down resistor connections are
+maintained, even when the CPU is powered down.
+
+## Convenience functions
+
+Having to `open` _then_ `read` and `write` can be a cumbersome for one-off GPIO
+access in code and when working at the IEx prompt. Circuits v2.0 has a pair of
+new functions to help:
+
+
+```elixir
+Circuits.GPIO.write_one("special-name-for-pin-1", 1)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+```elixir
+Circuits.GPIO.read_one("special-name-for-pin-2")
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+1
+```
+
+These functions get passed a `t:gpio_spec/0` just like `open/3` and internally
+open the GPIO and read or write it. Importantly, they `close` the GPIO when done
+to avoid reserving the GPIO any longer than necessary.
+
+Please note that this is not a performant way of reading or writing the same
+GPIO more than once. Opening a GPIO takes much longer than reading or writing an
+already opened one, so if these are used in tight loops, the open overhead will
+dominate (>99% of the time taken in a trivial benchmark.)
