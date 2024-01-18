@@ -3,7 +3,7 @@ Upstream-Name: circuits_gpio
 Upstream-Contact: Frank Hunleth <fhunleth@troodon-software.com>
 Source: https://github.com/elixir-circuits/circuits_gpio
 
-Files: README.md CHANGELOG.md PORTING.md RELEASE.md
+Files: README.md CHANGELOG.md PORTING.md RELEASE.md notebooks/basics.livemd
 Copyright: 2014 Frank Hunleth
 License: CC-BY-4.0
 
