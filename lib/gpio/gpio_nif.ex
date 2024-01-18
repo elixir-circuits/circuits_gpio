@@ -5,19 +5,15 @@
 defmodule Circuits.GPIO.Nif do
   @moduledoc false
 
-  defp load_nif_and_apply(fun, args) do
-    nif_binary = Application.app_dir(:circuits_gpio, "priv/gpio_nif")
+  @on_load {:load_nif, 0}
+  @compile {:autoload, false}
 
-    # Optimistically load the NIF. Handle the possible race.
-    case :erlang.load_nif(to_charlist(nif_binary), 0) do
-      :ok -> apply(__MODULE__, fun, args)
-      {:error, {:reload, _}} -> apply(__MODULE__, fun, args)
-      error -> error
-    end
+  def load_nif() do
+    :erlang.load_nif(:code.priv_dir(:circuits_gpio) ++ ~c"/gpio_nif", 0)
   end
 
-  def open(pin_number, pin_direction, initial_value, pull_mode) do
-    load_nif_and_apply(:open, [pin_number, pin_direction, initial_value, pull_mode])
+  def open(_pin_number, _pin_direction, _initial_value, _pull_mode) do
+    :erlang.nif_error(:nif_not_loaded)
   end
 
   def close(_gpio) do
@@ -49,6 +45,6 @@ defmodule Circuits.GPIO.Nif do
   end
 
   def info() do
-    load_nif_and_apply(:info, [])
+    :erlang.nif_error(:nif_not_loaded)
   end
 end
