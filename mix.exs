@@ -94,8 +94,16 @@ defmodule Circuits.GPIO.MixProject do
     end
   end
 
-  # Assume Nerves for a default
-  defp default_backend(_env, _not_host), do: Circuits.GPIO.CDev
+  # MIX_TARGET set to something besides host
+  defp default_backend(env, _not_host) do
+    # If CROSSCOMPILE is set, then the Makefile will use the crosscompiler and
+    # assume a Linux/Nerves build If not, then the NIF will be build for the
+    # host, so use the default host backend
+    case System.fetch_env("CROSSCOMPILE") do
+      {:ok, _} -> Circuits.GPIO.CDev
+      :error -> default_backend(env, :host)
+    end
+  end
 
   defp make_env() do
     # Since user configuration hasn't been loaded into the application
