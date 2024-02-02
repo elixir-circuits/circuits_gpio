@@ -32,6 +32,10 @@ defmodule Circuits.GPIO do
 
   The second parameter of the Backend 2-tuple is a list of options. These are
   passed to the behaviour function call implementations.
+
+  > #### Tip {: .tip}
+  >
+  > Here's my tip.
   """
   @type backend() :: {module(), keyword()}
 
