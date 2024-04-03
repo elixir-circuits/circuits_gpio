@@ -33,9 +33,11 @@ The following breaking changes were made:
 5. `Circuits.GPIO.set_interrupts/3` does not send an initial notification.
    Notifications are ONLY sent on GPIO transitions now.
 6. The `stub` implementation still exists and is useful for testing the cdev NIF
-   interface. It's possible to have alternative GPIO backends now. If you have
-   simple needs, the `stub` is convenient since it provides pairs of connected
-   GPIOs (e.g., 0 and 1, 2 and 3, etc.).
+   interface. It's possible to have alternative GPIO backends now so more
+   complicated testing backends can be created. If you have simple needs, it's
+   still available when compiled with `MIX_ENV=test` and when the backend is
+   specified to be `{Circuits.GPIO.CDev, test: true}`. See the `README.md` for
+   more information.
 7. `Circuits.GPIO.pin/1` is no longer available.
 
 You should hopefully find that the semantics of API are more explicit now or at

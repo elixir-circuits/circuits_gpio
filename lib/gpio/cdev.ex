@@ -128,7 +128,7 @@ defmodule Circuits.GPIO.CDev do
 
   @impl Backend
   def backend_info() do
-    Nif.backend_info() |> Map.put(:name, __MODULE__)
+    Nif.backend_info()
   end
 
   defimpl Handle do

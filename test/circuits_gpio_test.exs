@@ -33,7 +33,7 @@ defmodule Circuits.GPIO2Test do
     info = GPIO.backend_info()
 
     assert is_map(info)
-    assert info.name == Circuits.GPIO.CDev
+    assert info.name == {Circuits.GPIO.CDev, [test: true]}
     assert info.pins_open == 0
   end
 

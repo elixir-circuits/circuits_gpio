@@ -180,7 +180,7 @@ size_t hal_priv_size()
 
 ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info)
 {
-    enif_make_map_put(env, info, atom_name, enif_make_atom(env, "cdev"), &info);
+    enif_make_map_put(env, info, atom_name, enif_make_atom(env, "Elixir.Circuits.GPIO.CDev"), &info);
     (void) hal_priv;
     return info;
 }

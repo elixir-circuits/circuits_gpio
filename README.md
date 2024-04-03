@@ -270,20 +270,28 @@ dominate (>99% of the time taken in a trivial benchmark.)
 
 ## Testing
 
-`Circuits.GPIO` supports a "stub" hardware abstraction layer on platforms
-without GPIO support and when `MIX_ENV=test`. The stub allows for some limited
-unit testing without real hardware.
+The `Circuits.GPIO.CDev` backend supports a test mode on platforms without CDev
+GPIO support and when `MIX_ENV=test`. In previous versions of `Circuits.GPIO`,
+this was called the "stub".
 
-To use it, first check that you're using the "stub" HAL:
+There are a couple ways of using it, but you might have it by default especially
+if you're on MacOS. To see, run the following and look for `test: true`:
 
 ```elixir
 iex> Circuits.GPIO.backend_info()
-%{name: :stub, pins_open: 0}
+%{name: {Circuits.GPIO.CDev, test: true}, pins_open: 0}
 ```
 
-The stub HAL has 64 GPIOs. Each pair of GPIOs is connected. For example, GPIO 0
-is connected to GPIO 1. If you open GPIO 0 as an output and GPIO 1 as an input,
-you can write to GPIO 0 and see the result on GPIO 1. Here's an example:
+If you're not running with `test: true`, you can force it by setting the default
+backend:
+
+```elixir
+config :circuits_gpio, default_backend: {Circuits.GPIO.CDev, test: true}
+```
+
+Test mode has 64 GPIOs. Each pair of GPIOs is connected. For example, GPIO 0 is
+connected to GPIO 1. If you open GPIO 0 as an output and GPIO 1 as an input, you
+can write to GPIO 0 and see the result on GPIO 1. Here's an example:
 
 ```elixir
 iex> {:ok, gpio0} = Circuits.GPIO.open({"gpiochip0", 0}, :output)
@@ -298,11 +306,7 @@ iex> Circuits.GPIO.read(gpio1)
 1
 ```
 
-The stub HAL is fairly limited, but it does support interrupts.
-
-If `Circuits.GPIO` is used as a dependency the stub may not be present. To
-manually enable it, set `CIRCUITS_MIX_ENV` to `test` and rebuild
-`circuits_gpio`.
+Test mode is fairly limited, but it does support interrupts.
 
 ## FAQ
 
