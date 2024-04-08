@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.1.0 - 2024-04-08
+
+* Changes
+  * Show backend options via `backend_info/0` so that it's possible to see
+    whether you're using CDev test mode or not.
+
+  ```elixir
+  iex> Circuits.GPIO.backend_info()
+  %{name: {Circuits.GPIO.CDev, [test: true]}, pins_open: 0}
+  ```
+
 ## v2.0.2 - 2024-01-17
 
 * Bug fixes

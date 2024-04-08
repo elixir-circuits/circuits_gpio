@@ -16,7 +16,7 @@ like this:
 
 ```elixir
 def deps do
-  [{:circuits_gpio, "~> 2.0"}]
+  [{:circuits_gpio, "~> 2.1"}]
 end
 ```
 
