@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-defmodule Circuits.GPIO2Test do
+defmodule Circuits.GPIOTest do
   use ExUnit.Case
   require Circuits.GPIO
   alias Circuits.GPIO
