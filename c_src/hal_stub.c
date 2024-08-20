@@ -32,10 +32,10 @@ ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info)
 
     // %{name: {Circuits.GPIO.Cdev, test: true}, pins_open: 123}}
     enif_make_map_put(env, info, atom_name,
-        enif_make_tuple2(env,
-            enif_make_atom(env, "Elixir.Circuits.GPIO.CDev"),
-            enif_make_list1(env, enif_make_tuple2(env, enif_make_atom(env, "test"), enif_make_atom(env, "true")))),
-        &info);
+                      enif_make_tuple2(env,
+                                       enif_make_atom(env, "Elixir.Circuits.GPIO.CDev"),
+                                       enif_make_list1(env, enif_make_tuple2(env, enif_make_atom(env, "test"), enif_make_atom(env, "true")))),
+                      &info);
     enif_make_map_put(env, info, enif_make_atom(env, "pins_open"), enif_make_int(env, pins_open), &info);
 
     return info;
