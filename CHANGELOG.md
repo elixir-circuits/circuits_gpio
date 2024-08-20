@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.1 - 2024-08-19
+
+* Changes
+  * Show if GPIO number remapping is happening for AM335x platforms via
+    `backend_info/0`.
+  * Drop support for Elixir 1.11 and 1.12.
+
 ## v2.1.0 - 2024-04-08
 
 * Changes
