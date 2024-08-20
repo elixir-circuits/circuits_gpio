@@ -73,7 +73,7 @@ defmodule Circuits.GPIO.MixProject do
 
   defp docs do
     [
-      assets: "assets",
+      assets: %{"assets" => "assets"},
       extras: ["README.md", "PORTING.md", "CHANGELOG.md"],
       main: "readme",
       skip_code_autolink_to: ["Circuits.GPIO.pin/1"],
