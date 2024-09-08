@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.2 - 2024-09-08
+
+* Bug fixes
+  * Fix compilation when Erlang has been installed to a directory with spaces
+
 ## v2.1.1 - 2024-08-19
 
 * Changes
