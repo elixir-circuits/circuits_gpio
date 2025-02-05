@@ -27,7 +27,7 @@
 
 * Bug fixes
   * Remove lazy NIF loading. There's an unexplained segfault in a small example
-    program that uses the same strategy. Even though it wasn't reproduceable
+    program that uses the same strategy. Even though it wasn't reproducible
     here, it's not worth the risk. Thanks to @pojiro for investigating.
 
 * Changes
@@ -185,7 +185,7 @@ No more backwards incompatible changes are expected until after 1.0.
 ## v0.3.0
 
 * New features
-  * Support `pull_mode` initializion in `open/3`.
+  * Support `pull_mode` initialization in `open/3`.
 
 ## v0.2.0
 

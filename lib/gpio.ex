@@ -153,7 +153,7 @@ defmodule Circuits.GPIO do
   * `:pull_mode` - the initial pull mode for an input GPIO
   * `:force_enumeration` - Linux cdev-specific option to force a scan of
     available GPIOs rather than using the cache. This is only for test purposes
-    since the GPIO cache should rescan as needed.
+    since the GPIO cache should refresh as needed.
   """
   @type open_options() :: [
           initial_value: value(),
@@ -187,7 +187,7 @@ defmodule Circuits.GPIO do
   def gpio_spec?(x), do: is_gpio_spec(x)
 
   @doc """
-  Return indentifying information about a GPIO
+  Return identifying information about a GPIO
 
   See `t:gpio_spec/0` for the ways of referring to GPIOs. If the GPIO is found,
   this function returns information about the GPIO.
