@@ -233,6 +233,14 @@ defmodule Circuits.GPIOTest do
     GPIO.close(gpio)
   end
 
+  test "raises argument error on invalid gpio_spec" do
+    assert_raise ArgumentError, fn -> GPIO.open(:invalid_gpio_spec, :output) end
+  end
+
+  test "raises argument error on invalid direction" do
+    assert_raise ArgumentError, fn -> GPIO.open({@gpiochip, 0}, :bogus) end
+  end
+
   test "ignores unknown open options" do
     {:ok, gpio} = GPIO.open({@gpiochip, 1}, :input, bogus: true)
     GPIO.close(gpio)

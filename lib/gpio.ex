@@ -239,8 +239,9 @@ defmodule Circuits.GPIO do
     open(gpio_spec, direction, options)
   end
 
-  def open(gpio_spec, direction, options)
-      when is_gpio_spec(gpio_spec) and direction in [:input, :output] do
+  def open(gpio_spec, direction, options) do
+    check_gpio_spec!(gpio_spec)
+    check_direction!(direction)
     check_options!(options)
 
     {backend, backend_defaults} = default_backend()
@@ -254,6 +255,19 @@ defmodule Circuits.GPIO do
     backend.open(gpio_spec, direction, all_options)
   end
 
+  defp check_gpio_spec!(gpio_spec) do
+    if not gpio_spec?(gpio_spec) do
+      raise ArgumentError, "Invalid GPIO spec: #{inspect(gpio_spec)}"
+    end
+  end
+
+  defp check_direction!(direction) do
+    if direction not in [:input, :output] do
+      raise ArgumentError,
+            "Invalid direction: #{inspect(direction)}. Options are :input or :output"
+    end
+  end
+
   defp check_options!([]), do: :ok
 
   defp check_options!([{:initial_value, value} | rest]) do
@@ -261,7 +275,7 @@ defmodule Circuits.GPIO do
       0 -> :ok
       1 -> :ok
       :not_set -> Logger.warning("Circuits.GPIO no longer supports :not_set for :initial_value")
-      _ -> raise(ArgumentError, ":initial_value should be :not_set, 0, or 1")
+      _ -> raise ArgumentError, ":initial_value should be :not_set, 0, or 1"
     end
 
     check_options!(rest)
