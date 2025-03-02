@@ -1,0 +1,40 @@
+version = 1
+
+[[annotations]]
+path = [
+ ".circleci/config.yml",
+ ".credo.exs",
+ ".formatter.exs",
+ ".github/dependabot.yml",
+ ".gitignore",
+ "CHANGELOG.md",
+ "NOTICE",
+ "REUSE.toml",
+ "mix.exs",
+ "mix.lock"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "None"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = [
+ "PORTING.md",
+ "README.md",
+ "RELEASE.md"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2014 Frank Hunleth"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+[[annotations]]
+path = ["assets/images/schematic-gpio-led.png", "assets/images/schematic-gpio-button.png"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2013 Erlang Solutions"
+SPDX-License-Identifier = "SHL-0.51"
+
+[[annotations]]
+path = ["notebooks/basics.livemd"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2024 Masatoshi Nishiguchi"
+SPDX-License-Identifier = "Apache-2.0"

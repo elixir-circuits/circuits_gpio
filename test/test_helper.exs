@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2018 Frank Hunleth, Mark Sebald, Matt Ludwigs
+# SPDX-FileCopyrightText: 2014 Frank Hunleth
 #
 # SPDX-License-Identifier: Apache-2.0
 

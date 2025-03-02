@@ -1,4 +1,12 @@
-# SPDX-FileCopyrightText: 2018 Frank Hunleth, Mark Sebald, Matt Ludwigs
+# SPDX-FileCopyrightText: 2014 Frank Hunleth
+# SPDX-FileCopyrightText: 2016 Justin Schneck
+# SPDX-FileCopyrightText: 2017 Giovanni Visciano
+# SPDX-FileCopyrightText: 2017 Tim Mecklem
+# SPDX-FileCopyrightText: 2018 Jon Carstens
+# SPDX-FileCopyrightText: 2018 Mark Sebald
+# SPDX-FileCopyrightText: 2018 Matt Ludwigs
+# SPDX-FileCopyrightText: 2019 Michael Roach
+# SPDX-FileCopyrightText: 2023 Connor Rigby
 #
 # SPDX-License-Identifier: Apache-2.0
 

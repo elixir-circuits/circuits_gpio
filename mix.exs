@@ -39,18 +39,24 @@ defmodule Circuits.GPIO.MixProject do
   defp package do
     %{
       files: [
-        "lib",
+        "CHANGELOG.md",
         "c_src/*.[ch]",
         "c_src/linux/gpio.h",
-        "mix.exs",
-        "README.md",
-        "PORTING.md",
+        "lib",
         "LICENSES/*",
-        "CHANGELOG.md",
-        "Makefile"
+        "Makefile",
+        "mix.exs",
+        "NOTICE",
+        "PORTING.md",
+        "README.md",
+        "REUSE.toml"
       ],
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => @source_url}
+      links: %{
+        "GitHub" => @source_url,
+        "REUSE Compliance" =>
+          "https://api.reuse.software/info/github.com/elixir-circuits/circuits_gpio"
+      }
     }
   end
 

@@ -1,4 +1,5 @@
-// SPDX-FileCopyrightText: 2023 Frank Hunleth, Connor Rigby
+// SPDX-FileCopyrightText: 2023 Connor Rigby
+// SPDX-FileCopyrightText: 2023 Frank Hunleth
 //
 // SPDX-License-Identifier: Apache-2.0
 

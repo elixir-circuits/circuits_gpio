@@ -1,4 +1,5 @@
-// SPDX-FileCopyrightText: 2018 Frank Hunleth, Mark Sebald, Matt Ludwigs
+// SPDX-FileCopyrightText: 2018 Frank Hunleth
+// SPDX-FileCopyrightText: 2024 Connor Rigby
 //
 // SPDX-License-Identifier: Apache-2.0
 
