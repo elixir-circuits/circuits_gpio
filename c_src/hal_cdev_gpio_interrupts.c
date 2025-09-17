@@ -38,21 +38,20 @@ static void init_listeners(struct gpio_monitor_info *infos)
     memset(infos, 0, MAX_GPIO_LISTENERS * sizeof(struct gpio_monitor_info));
 }
 
-static void compact_listeners(struct gpio_monitor_info *infos, int count)
+static void compact_listeners(struct gpio_monitor_info *infos)
 {
-    int j = -1;
-    for (int i = 0; i < count - 1; i++) {
-        if (infos[i].trigger == TRIGGER_NONE) {
-            if (j >= 0) {
-                memcpy(&infos[j], &infos[i], sizeof(struct gpio_monitor_info));
-                memset(&infos[i], 0, sizeof(struct gpio_monitor_info));
-                j++;
+    int write_pos = 0;
+    int read_pos;
+    for (read_pos = 0; read_pos < MAX_GPIO_LISTENERS; read_pos++) {
+        if (infos[read_pos].trigger != TRIGGER_NONE) {
+            if (write_pos != read_pos) {
+                memcpy(&infos[write_pos], &infos[read_pos], sizeof(struct gpio_monitor_info));
             }
-        } else {
-            if (j < 0)
-                j = i;
+            write_pos++;
         }
     }
+    int remaining = MAX_GPIO_LISTENERS - write_pos;
+    memset(&infos[write_pos], 0, remaining * sizeof(struct gpio_monitor_info));
 }
 
 static int handle_gpio_update(ErlNifEnv *env,
@@ -63,7 +62,11 @@ static int handle_gpio_update(ErlNifEnv *env,
     debug("handle_gpio_update %d", info->offset);
     int value = event_id == GPIO_V2_LINE_EVENT_RISING_EDGE ? 1 : 0;
 
-    return send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, value);
+    // Convert true/false return to the typical 0/negative returns of this file
+    if (send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, value))
+        return 0;
+    else
+        return -1;
 }
 
 static int process_gpio_events(ErlNifEnv *env,
@@ -78,10 +81,10 @@ static int process_gpio_events(ErlNifEnv *env,
 
     int num_events = amount_read / sizeof(struct gpio_v2_line_event);
     for (int i = 0; i < num_events; i++) {
-        if (!handle_gpio_update(env,
-                                info,
-                                events[i].timestamp_ns,
-                                events[i].id)) {
+        if (handle_gpio_update(env,
+                               info,
+                               events[i].timestamp_ns,
+                               events[i].id) < 0) {
             error("send for gpio %d failed, so not listening to it any more", info->offset);
             return -1;
         }
@@ -102,16 +105,16 @@ static void add_listener(ErlNifEnv *env, struct gpio_monitor_info *infos, const 
 
 static void remove_listener(struct gpio_monitor_info *infos, int fd)
 {
+    debug("remove_listener fd=%d", fd);
+    bool cleanup = false;
     for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
-        if (infos[i].trigger == TRIGGER_NONE)
-            return;
-
         if (infos[i].fd == fd) {
             infos[i].trigger = TRIGGER_NONE;
-            compact_listeners(infos, MAX_GPIO_LISTENERS);
-            return;
+            cleanup = true;
         }
     }
+    if (cleanup)
+        compact_listeners(infos);
 }
 
 void *gpio_poller_thread(void *arg)
@@ -161,6 +164,23 @@ void *gpio_poller_thread(void *arg)
             // Socket closed so quit thread. This happens on NIF unload.
             break;
         }
+
+        bool cleanup = false;
+        for (nfds_t i = 0; i < count - 1; i++) {
+            short gpio_revents = fdset[i].revents;
+            if (gpio_revents & POLLIN) {
+                if (process_gpio_events(env, &monitor_info[i]) < 0) {
+                    error("error processing gpio events for %d", monitor_info[i].offset);
+                    monitor_info[i].trigger = TRIGGER_NONE;
+                    cleanup = true;
+                }
+            } else if (gpio_revents & (POLLERR | POLLHUP | POLLNVAL)) {
+                error("error listening on gpio %d", monitor_info[i].offset);
+                monitor_info[i].trigger = TRIGGER_NONE;
+                cleanup = true;
+            }
+        }
+
         if (revents & (POLLIN | POLLHUP)) {
             struct gpio_monitor_info message;
             ssize_t amount_read = read(*pipefd, &message, sizeof(message));
@@ -175,27 +195,9 @@ void *gpio_poller_thread(void *arg)
                 remove_listener(monitor_info, message.fd);
         }
 
-        bool cleanup = false;
-        for (nfds_t i = 0; i < count - 1; i++) {
-            if (fdset[i].revents) {
-                if (fdset[i].revents) {
-                    debug("interrupt on %d", monitor_info[i].offset);
-                    if (process_gpio_events(env, &monitor_info[i]) < 0) {
-                        monitor_info[i].trigger = TRIGGER_NONE;
-                        cleanup = true;
-                    }
-                } else {
-                    error("error listening on gpio %d", monitor_info[i].offset);
-                    monitor_info[i].trigger = TRIGGER_NONE;
-                    cleanup = true;
-                }
-            }
-        }
-
-        if (cleanup) {
-            // Compact the listener list
-            compact_listeners(monitor_info, count);
-        }
+        // Compact the listener list if any failed
+        if (cleanup)
+            compact_listeners(monitor_info);
     }
 
     enif_free_env(env);
