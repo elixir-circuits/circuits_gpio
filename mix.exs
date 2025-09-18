@@ -120,12 +120,8 @@ defmodule Circuits.GPIO.MixProject do
     %{"CIRCUITS_GPIO_BACKEND" => cdev_compile_mode(backend)}
   end
 
-  defp cdev_compile_mode({Circuits.GPIO.CDev, options}) do
-    if Keyword.get(options, :test) do
-      "test"
-    else
-      "cdev"
-    end
+  defp cdev_compile_mode({Circuits.GPIO.CDev, _options}) do
+    "cdev"
   end
 
   defp cdev_compile_mode(Circuits.GPIO.CDev) do
