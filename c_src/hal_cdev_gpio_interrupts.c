@@ -94,6 +94,7 @@ static int process_gpio_events(ErlNifEnv *env,
 
 static void add_listener(ErlNifEnv *env, struct gpio_monitor_info *infos, const struct gpio_monitor_info *to_add)
 {
+    debug("add_listener fd=%d", to_add->fd);
     for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
         if (infos[i].trigger == TRIGGER_NONE || infos[i].fd == to_add->fd) {
             memcpy(&infos[i], to_add, sizeof(struct gpio_monitor_info));
