@@ -16,7 +16,7 @@
 # Variables to override:
 #
 # MIX_APP_PATH  path to the build directory
-# CIRCUITS_GPIO_BACKEND Backend to build - `"cdev"`, `"test"`, or `"disabled"` will build a NIF
+# CIRCUITS_GPIO_BACKEND Backend to build - `"cdev"` or`"disabled"` will build a NIF
 #
 # CC            C compiler
 # CROSSCOMPILE	crosscompiler prefix, if any
@@ -60,13 +60,8 @@ HAL_SRC = c_src/hal_cdev_gpio.c c_src/hal_cdev_gpio_interrupts.c
 # Hide cdev ioctl warnings
 CFLAGS += -Wno-overflow
 else
-ifeq ($(CIRCUITS_GPIO_BACKEND),test)
-# Stub out ioctls and send back test data
-HAL_SRC = c_src/hal_stub.c
-else
 # Don't build NIF
 NIF =
-endif
 endif
 
 # Set Erlang-specific compile and linker flags
