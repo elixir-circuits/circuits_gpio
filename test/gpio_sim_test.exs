@@ -172,6 +172,93 @@ defmodule Circuits.GPIOSimTest do
     end
   end
 
+  describe "open/3" do
+    test "opening as an output with no initial_value defaults to 0" do
+      {:ok, gpio0} = GPIO.open(@gpio0, :output)
+      assert gpio_sim_read(@gpio0) == 0
+      GPIO.close(gpio0)
+    end
+
+    test "can set the output on open" do
+      {:ok, gpio0} = GPIO.open(@gpio0, :output, initial_value: 1)
+      assert gpio_sim_read(@gpio0) == 1
+      GPIO.close(gpio0)
+
+      {:ok, gpio0} = GPIO.open(@gpio0, :output, initial_value: 0)
+      assert gpio_sim_read(@gpio0) == 0
+      GPIO.close(gpio0)
+    end
+
+    test "can set pull mode in open" do
+      {:ok, gpio} = GPIO.open(@gpio1, :input, pull_mode: :pullup)
+      GPIO.close(gpio)
+    end
+
+    test "raises argument error on invalid gpio_spec" do
+      assert_raise ArgumentError, fn -> GPIO.open(:invalid_gpio_spec, :output) end
+    end
+
+    test "raises argument error on invalid direction" do
+      assert_raise ArgumentError, fn -> GPIO.open(@gpio0, :bogus) end
+    end
+
+    test "ignores unknown open options" do
+      {:ok, gpio} = GPIO.open(@gpio1, :input, bogus: true)
+      GPIO.close(gpio)
+    end
+
+    test "gpio refs get garbage collected" do
+      # Expect that the process dying will free up the pin
+      me = self()
+
+      spawn_link(fn ->
+        {:ok, _ref} = GPIO.open(@gpio1, :input)
+        send(me, :done)
+      end)
+
+      assert_receive :done
+
+      # Wait a fraction of a second to allow GC to run since there's
+      # a race between the send and the GC actually running.
+      Process.sleep(10)
+
+      # Check that it's possible to re-open
+      {:ok, ref} = GPIO.open(@gpio1, :input)
+      GPIO.close(ref)
+    end
+  end
+
+  describe "set_direction/2" do
+    test "can set direction" do
+      gpio_sim_write(@gpio0, 0)
+      {:ok, gpio} = GPIO.open(@gpio0, :output)
+      GPIO.write(gpio, 1)
+      assert gpio_sim_read(@gpio0) == 1
+      assert GPIO.set_direction(gpio, :input) == :ok
+      assert gpio_sim_read(@gpio0) == 1
+      assert GPIO.set_direction(gpio, :output) == :ok
+      assert gpio_sim_read(@gpio0) == 0
+      GPIO.close(gpio)
+    end
+  end
+
+  describe "set_pull_mode/2" do
+    test "can set pull mode" do
+      gpio_sim_write(@gpio0, 0)
+      {:ok, gpio} = GPIO.open(@gpio0, :input)
+      assert gpio_sim_read(@gpio0) == 0
+      assert GPIO.set_pull_mode(gpio, :not_set) == :ok
+      assert gpio_sim_read(@gpio0) == 0
+      assert GPIO.set_pull_mode(gpio, :none) == :ok
+      assert gpio_sim_read(@gpio0) == 0
+      assert GPIO.set_pull_mode(gpio, :pullup) == :ok
+      assert gpio_sim_read(@gpio0) == 1
+      assert GPIO.set_pull_mode(gpio, :pulldown) == :ok
+      assert gpio_sim_read(@gpio0) == 0
+      GPIO.close(gpio)
+    end
+  end
+
   describe "basic operations" do
     test "read/1" do
       {:ok, gpio} = GPIO.open(@gpio0, :input)
@@ -338,25 +425,25 @@ defmodule Circuits.GPIOSimTest do
     end
   end
 
-  describe "open/3" do
-    test "gpio refs get garbage collected" do
-      # Expect that the process dying will free up the pin
-      me = self()
+  test "unloading NIF" do
+    # The theory here is that there shouldn't be a crash if this is reloaded a
+    # few times.
+    for _times <- 1..10 do
+      assert {:module, Circuits.GPIO} == :code.ensure_loaded(Circuits.GPIO)
+      assert {:module, Circuits.GPIO.Nif} == :code.ensure_loaded(Circuits.GPIO.Nif)
 
-      spawn_link(fn ->
-        {:ok, _ref} = GPIO.open(@gpio1, :input)
-        send(me, :done)
-      end)
+      # Try running something to verify that it works.
+      {:ok, gpio} = GPIO.open(@gpio1, :input)
+      assert is_struct(gpio, Circuits.GPIO.CDev)
+      GPIO.close(gpio)
 
-      assert_receive :done
+      assert true == :code.delete(Circuits.GPIO.Nif)
+      assert true == :code.delete(Circuits.GPIO)
 
-      # Wait a fraction of a second to allow GC to run since there's
-      # a race between the send and the GC actually running.
-      Process.sleep(10)
-
-      # Check that it's possible to re-open
-      {:ok, ref} = GPIO.open(@gpio1, :input)
-      GPIO.close(ref)
+      # The purge will call the unload which can be verified by turning DEBUG on
+      # in the C code.
+      assert false == :code.purge(Circuits.GPIO.Nif)
+      assert false == :code.purge(Circuits.GPIO)
     end
   end
 end
