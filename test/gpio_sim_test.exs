@@ -101,6 +101,21 @@ defmodule Circuits.GPIOSimTest do
       end)
     end
 
+    test "variations" do
+      {:ok, expected} = GPIO.identifiers(@gpio0)
+      %{location: {gpiochip, 0}, controller: controller, label: @gpio0} = expected
+
+      # Try out the two ways of indexing
+      assert {:ok, ^expected} = GPIO.identifiers({controller, 0})
+      assert {:ok, ^expected} = GPIO.identifiers({gpiochip, 0})
+
+      # Try out the unrecommended lone integer index
+      all_gpios = GPIO.enumerate()
+      index = Enum.find_index(all_gpios, fn info -> info.label == @gpio0 end)
+
+      assert {:ok, ^expected} = GPIO.identifiers(index)
+    end
+
     test "unknown gpio" do
       assert {:error, :not_found} = GPIO.identifiers("non_existent_gpio")
     end
