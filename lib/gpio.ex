@@ -283,7 +283,7 @@ defmodule Circuits.GPIO do
       0 -> :ok
       1 -> :ok
       :not_set -> Logger.warning("Circuits.GPIO no longer supports :not_set for :initial_value")
-      _ -> raise ArgumentError, ":initial_value should be :not_set, 0, or 1"
+      _ -> raise ArgumentError, ":initial_value should be 0 or 1"
     end
 
     check_options!(rest)
