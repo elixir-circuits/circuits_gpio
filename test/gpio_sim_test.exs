@@ -227,4 +227,26 @@ defmodule Circuits.GPIOSimTest do
       refute_receive _
     end
   end
+
+  describe "open/3" do
+    test "gpio refs get garbage collected" do
+      # Expect that the process dying will free up the pin
+      me = self()
+
+      spawn_link(fn ->
+        {:ok, _ref} = GPIO.open(@gpio1, :input)
+        send(me, :done)
+      end)
+
+      assert_receive :done
+
+      # Wait a fraction of a second to allow GC to run since there's
+      # a race between the send and the GC actually running.
+      Process.sleep(10)
+
+      # Check that it's possible to re-open
+      {:ok, ref} = GPIO.open(@gpio1, :input)
+      GPIO.close(ref)
+    end
+  end
 end
