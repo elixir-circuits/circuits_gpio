@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-//#define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
 extern FILE *log_location;
