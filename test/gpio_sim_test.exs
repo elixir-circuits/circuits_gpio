@@ -60,6 +60,103 @@ defmodule Circuits.GPIOSimTest do
     String.trim(value_str) |> String.to_integer()
   end
 
+  test "backend_info/0" do
+    assert GPIO.backend_info()[:name] == Circuits.GPIO.CDev
+  end
+
+  test "enumerate/0" do
+    all_gpios = GPIO.enumerate()
+    assert is_list(all_gpios)
+
+    # Filter out the gpio-sim lines
+    sim_gpios =
+      Enum.filter(all_gpios, fn info -> String.starts_with?(info.label, "gpio_sim_line_") end)
+
+    assert length(sim_gpios) == length(@all_gpios)
+
+    # Check that they all have the same controller
+    %{controller: controller} = hd(sim_gpios)
+    Enum.each(sim_gpios, fn info -> assert info.controller == controller end)
+
+    # Check that they all have the expected location
+    %{location: {gpiochip, _line}} = hd(sim_gpios)
+
+    Enum.each(sim_gpios, fn info ->
+      index = info.label |> String.replace("gpio_sim_line_", "") |> String.to_integer()
+      assert info.location == {gpiochip, index}
+    end)
+  end
+
+  describe "identifiers/1" do
+    test "all known gpios" do
+      {:ok, %{location: {gpiochip, 0}, controller: controller, label: @gpio0}} =
+        GPIO.identifiers(@gpio0)
+
+      Enum.each(@all_gpios, fn gpio_name ->
+        assert {:ok, %{location: {^gpiochip, line}, controller: ^controller, label: label}} =
+                 GPIO.identifiers(gpio_name)
+
+        expected_label = "gpio_sim_line_#{line}"
+        assert label == expected_label
+      end)
+    end
+
+    test "unknown gpio" do
+      assert {:error, :not_found} = GPIO.identifiers("non_existent_gpio")
+    end
+  end
+
+  describe "status/1" do
+    test "unopened gpio" do
+      {:ok, status} = GPIO.status(@gpio0)
+      assert status.direction in [:input, :output]
+      assert status.pull_mode in [:pull_up, :pull_down, :none]
+      assert status.consumer == ""
+    end
+
+    test "output gpio" do
+      {:ok, gpio} = GPIO.open(@gpio0, :output)
+      {:ok, status} = GPIO.status(@gpio0)
+      assert status.direction == :output
+      assert status.pull_mode == :none
+      assert status.consumer == "circuits_gpio"
+      GPIO.close(gpio)
+    end
+
+    test "input gpio" do
+      {:ok, gpio} = GPIO.open(@gpio0, :input)
+      {:ok, status} = GPIO.status(@gpio0)
+      assert status.direction == :input
+      assert status.pull_mode == :none
+      assert status.consumer == "circuits_gpio"
+      GPIO.close(gpio)
+    end
+
+    test "input pullup gpio" do
+      {:ok, gpio} = GPIO.open(@gpio0, :input)
+      :ok = GPIO.set_pull_mode(gpio, :pullup)
+      {:ok, status} = GPIO.status(@gpio0)
+      assert status.direction == :input
+      assert status.pull_mode == :pullup
+      assert status.consumer == "circuits_gpio"
+      GPIO.close(gpio)
+    end
+
+    test "input pulldown gpio" do
+      {:ok, gpio} = GPIO.open(@gpio0, :input)
+      :ok = GPIO.set_pull_mode(gpio, :pulldown)
+      {:ok, status} = GPIO.status(@gpio0)
+      assert status.direction == :input
+      assert status.pull_mode == :pulldown
+      assert status.consumer == "circuits_gpio"
+      GPIO.close(gpio)
+    end
+
+    test "unknown gpio" do
+      assert {:error, :not_found} = GPIO.status("non_existent_gpio")
+    end
+  end
+
   describe "basic operations" do
     test "read/1" do
       {:ok, gpio} = GPIO.open(@gpio0, :input)
