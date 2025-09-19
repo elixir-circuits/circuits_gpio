@@ -211,8 +211,6 @@ defmodule Circuits.GPIOSimTest do
       assert_receive {:circuits_gpio, @gpio0, _, 1}
 
       GPIO.close(gpio0)
-      # Workaround bug where file descriptor cleanup is asynchronous
-      Process.sleep(10)
       {:ok, gpio0} = GPIO.open(@gpio0, :input)
       GPIO.set_interrupts(gpio0, :both)
       gpio_sim_write(@gpio0, 0)
