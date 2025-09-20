@@ -12,6 +12,7 @@
 struct hal_cdev_gpio_priv {
     ErlNifTid poller_tid;
     int pipe_fds[2];
+    int pins_open;
 };
 
 struct gpio_pin;

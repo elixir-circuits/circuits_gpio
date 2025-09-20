@@ -42,6 +42,18 @@ defmodule Circuits.GPIOSimTest do
     :ok
   end
 
+  setup do
+    # Verify the test is being run with a clean environment
+    assert GPIO.backend_info().pins_open == 0, "Some other test didn't stop cleanly"
+
+    # Verify that the test leaves the environment clean
+    on_exit(fn ->
+      assert GPIO.backend_info().pins_open == 0, "Test didn't close all opened GPIOs"
+    end)
+
+    :ok
+  end
+
   defp line_path(gpio_name) do
     {:ok, %{location: {gpiochip, line}, controller: controller}} = GPIO.identifiers(gpio_name)
     base_controller = String.replace(controller, "-node0", "")
@@ -61,7 +73,10 @@ defmodule Circuits.GPIOSimTest do
   end
 
   test "backend_info/0" do
-    assert GPIO.backend_info()[:name] == Circuits.GPIO.CDev
+    info = GPIO.backend_info()
+
+    assert info.name == Circuits.GPIO.CDev
+    assert info.pins_open == 0
   end
 
   test "enumerate/0" do
