@@ -232,21 +232,28 @@ int hal_open_gpio(struct gpio_pin *pin,
     uint64_t flags = config_to_flags(pin);
     int value = pin->config.is_output ? pin->config.initial_value : -1;
 
-    pin->fd = request_line_v2(gpiochip_fd, pin->offset, flags, value);
-    if (pin->fd < 0) {
-        if (pin->fd == -EBUSY) {
+    int rc = request_line_v2(gpiochip_fd, pin->offset, flags, value);
+    if (rc < 0) {
+        if (rc == -EBUSY) {
             // Handle supervision tree restart or any quick close/open restart
             // where the closed file descriptor hasn't been fully released by
             // the call to poll(3) in the interrupt thread.
             usleep(1000);
-            pin->fd = request_line_v2(gpiochip_fd, pin->offset, flags, value);
+            rc = request_line_v2(gpiochip_fd, pin->offset, flags, value);
+        } else if (rc == -EINVAL) {
+            // if the pin offset is out of range, EINVAL is returned, but
+            // normalize this to ENOENT so that the user doesn't have to be
+            // aware of the difference.
+            rc = -ENOENT;
         }
-        if (pin->fd < 0) {
-            error("request_line_v2 failed for %s:%d, errno=%d", pin->gpiochip, pin->offset, -pin->fd);
+
+        if (rc < 0) {
+            error("request_line_v2 failed for %s:%d, errno=%d", pin->gpiochip, pin->offset, -rc);
             close(gpiochip_fd);
-            return pin->fd;
+            return rc;
         }
     }
+    pin->fd = rc;
     close(gpiochip_fd);
     debug("requesting pin %s:%d -> %d", pin->gpiochip, pin->offset, pin->fd);
 
