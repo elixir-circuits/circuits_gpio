@@ -8,6 +8,9 @@ defmodule Circuits.GPIO.DiagnosticsTest do
 
   import ExUnit.CaptureIO
 
+  @gpio0 "gpio_sim_line_0"
+  @gpio1 "gpio_sim_line_1"
+
   test "report/2" do
     output = capture_io(fn -> Diagnostics.report(0, 1) end)
     assert output =~ "All tests passed"
@@ -20,7 +23,7 @@ defmodule Circuits.GPIO.DiagnosticsTest do
   end
 
   test "speed_test/1" do
-    results = Diagnostics.speed_test(10)
+    results = Diagnostics.speed_test(@gpio0)
 
     # Just check that the result is not completely bogus
     assert results.write_cps > 1000

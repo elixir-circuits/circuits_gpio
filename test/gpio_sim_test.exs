@@ -54,24 +54,6 @@ defmodule Circuits.GPIOSimTest do
     :ok
   end
 
-  defp line_path(gpio_name) do
-    {:ok, %{location: {gpiochip, line}, controller: controller}} = GPIO.identifiers(gpio_name)
-    base_controller = String.replace(controller, "-node0", "")
-    "/sys/devices/platform/#{base_controller}/#{gpiochip}/sim_gpio#{line}"
-  end
-
-  defp gpio_sim_write(gpio_name, value) do
-    pull_path = Path.join(line_path(gpio_name), "pull")
-    pull_dir = if value > 0, do: "pull-up", else: "pull-down"
-    File.write!(pull_path, pull_dir)
-  end
-
-  defp gpio_sim_read(gpio_name) do
-    value_path = Path.join(line_path(gpio_name), "value")
-    {value_str, 0} = System.cmd("cat", [value_path])
-    String.trim(value_str) |> String.to_integer()
-  end
-
   test "backend_info/0" do
     info = GPIO.backend_info()
 
@@ -190,17 +172,17 @@ defmodule Circuits.GPIOSimTest do
   describe "open/3" do
     test "opening as an output with no initial_value defaults to 0" do
       {:ok, gpio0} = GPIO.open(@gpio0, :output)
-      assert gpio_sim_read(@gpio0) == 0
+      assert GPIOSim.read(@gpio0) == 0
       GPIO.close(gpio0)
     end
 
     test "can set the output on open" do
       {:ok, gpio0} = GPIO.open(@gpio0, :output, initial_value: 1)
-      assert gpio_sim_read(@gpio0) == 1
+      assert GPIOSim.read(@gpio0) == 1
       GPIO.close(gpio0)
 
       {:ok, gpio0} = GPIO.open(@gpio0, :output, initial_value: 0)
-      assert gpio_sim_read(@gpio0) == 0
+      assert GPIOSim.read(@gpio0) == 0
       GPIO.close(gpio0)
     end
 
@@ -283,31 +265,31 @@ defmodule Circuits.GPIOSimTest do
 
   describe "set_direction/2" do
     test "can set direction" do
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       {:ok, gpio} = GPIO.open(@gpio0, :output)
       GPIO.write(gpio, 1)
-      assert gpio_sim_read(@gpio0) == 1
+      assert GPIOSim.read(@gpio0) == 1
       assert GPIO.set_direction(gpio, :input) == :ok
-      assert gpio_sim_read(@gpio0) == 1
+      assert GPIOSim.read(@gpio0) == 1
       assert GPIO.set_direction(gpio, :output) == :ok
-      assert gpio_sim_read(@gpio0) == 0
+      assert GPIOSim.read(@gpio0) == 0
       GPIO.close(gpio)
     end
   end
 
   describe "set_pull_mode/2" do
     test "can set pull mode" do
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       {:ok, gpio} = GPIO.open(@gpio0, :input)
-      assert gpio_sim_read(@gpio0) == 0
+      assert GPIOSim.read(@gpio0) == 0
       assert GPIO.set_pull_mode(gpio, :not_set) == :ok
-      assert gpio_sim_read(@gpio0) == 0
+      assert GPIOSim.read(@gpio0) == 0
       assert GPIO.set_pull_mode(gpio, :none) == :ok
-      assert gpio_sim_read(@gpio0) == 0
+      assert GPIOSim.read(@gpio0) == 0
       assert GPIO.set_pull_mode(gpio, :pullup) == :ok
-      assert gpio_sim_read(@gpio0) == 1
+      assert GPIOSim.read(@gpio0) == 1
       assert GPIO.set_pull_mode(gpio, :pulldown) == :ok
-      assert gpio_sim_read(@gpio0) == 0
+      assert GPIOSim.read(@gpio0) == 0
       GPIO.close(gpio)
     end
   end
@@ -316,10 +298,10 @@ defmodule Circuits.GPIOSimTest do
     test "read/1" do
       {:ok, gpio} = GPIO.open(@gpio0, :input)
 
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       assert GPIO.read(gpio) == 0
 
-      gpio_sim_write(@gpio0, 1)
+      GPIOSim.write(@gpio0, 1)
       assert GPIO.read(gpio) == 1
 
       GPIO.close(gpio)
@@ -329,18 +311,18 @@ defmodule Circuits.GPIOSimTest do
       {:ok, gpio} = GPIO.open(@gpio0, :output)
 
       :ok = GPIO.write(gpio, 0)
-      assert gpio_sim_read(@gpio0) == 0
+      assert GPIOSim.read(@gpio0) == 0
 
       :ok = GPIO.write(gpio, 1)
-      assert gpio_sim_read(@gpio0) == 1
+      assert GPIOSim.read(@gpio0) == 1
 
       GPIO.close(gpio)
     end
 
     test "read_one/2" do
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       assert GPIO.read_one(@gpio0) == 0
-      gpio_sim_write(@gpio0, 1)
+      GPIOSim.write(@gpio0, 1)
       assert GPIO.read_one(@gpio0) == 1
     end
 
@@ -350,19 +332,19 @@ defmodule Circuits.GPIOSimTest do
       #       a real GPIO line.
 
       # Ensure starting from a known starting state
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
 
       GPIO.write_one(@gpio0, 0)
-      assert gpio_sim_read(@gpio0) == 0
+      assert GPIOSim.read(@gpio0) == 0
 
       GPIO.write_one(@gpio0, 1)
-      assert gpio_sim_read(@gpio0) == 0
+      assert GPIOSim.read(@gpio0) == 0
     end
   end
 
   describe "interrupts" do
     test "basic both-sided interrupts" do
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       {:ok, gpio} = GPIO.open(@gpio0, :input)
 
       assert GPIO.read(gpio) == 0
@@ -370,10 +352,10 @@ defmodule Circuits.GPIOSimTest do
       :ok = GPIO.set_interrupts(gpio, :both)
       refute_receive _
 
-      gpio_sim_write(@gpio0, 1)
+      GPIOSim.write(@gpio0, 1)
       assert_receive {:circuits_gpio, @gpio0, _, 1}
 
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       assert_receive {:circuits_gpio, @gpio0, _, 0}
 
       GPIO.close(gpio)
@@ -381,7 +363,7 @@ defmodule Circuits.GPIOSimTest do
     end
 
     test "basic rising interrupts" do
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       {:ok, gpio} = GPIO.open(@gpio0, :input)
 
       assert GPIO.read(gpio) == 0
@@ -389,13 +371,13 @@ defmodule Circuits.GPIOSimTest do
       :ok = GPIO.set_interrupts(gpio, :rising)
       refute_receive _
 
-      gpio_sim_write(@gpio0, 1)
+      GPIOSim.write(@gpio0, 1)
       assert_receive {:circuits_gpio, @gpio0, _, 1}
 
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       refute_receive _
 
-      gpio_sim_write(@gpio0, 1)
+      GPIOSim.write(@gpio0, 1)
       assert_receive {:circuits_gpio, @gpio0, _, 1}
 
       GPIO.close(gpio)
@@ -403,7 +385,7 @@ defmodule Circuits.GPIOSimTest do
     end
 
     test "basic falling interrupts" do
-      gpio_sim_write(@gpio0, 1)
+      GPIOSim.write(@gpio0, 1)
       {:ok, gpio} = GPIO.open(@gpio0, :input)
 
       assert GPIO.read(gpio) == 1
@@ -411,13 +393,13 @@ defmodule Circuits.GPIOSimTest do
       :ok = GPIO.set_interrupts(gpio, :falling)
       refute_receive _
 
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       assert_receive {:circuits_gpio, @gpio0, _, 0}
 
-      gpio_sim_write(@gpio0, 1)
+      GPIOSim.write(@gpio0, 1)
       refute_receive _
 
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       assert_receive {:circuits_gpio, @gpio0, _, 0}
 
       GPIO.close(gpio)
@@ -425,7 +407,7 @@ defmodule Circuits.GPIOSimTest do
     end
 
     test "can disable interrupts" do
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       {:ok, gpio} = GPIO.open(@gpio0, :input)
 
       assert GPIO.read(gpio) == 0
@@ -433,11 +415,11 @@ defmodule Circuits.GPIOSimTest do
       :ok = GPIO.set_interrupts(gpio, :both)
       refute_receive _
 
-      gpio_sim_write(@gpio0, 1)
+      GPIOSim.write(@gpio0, 1)
       assert_receive {:circuits_gpio, @gpio0, _, 1}
 
       :ok = GPIO.set_interrupts(gpio, :none)
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       refute_receive _
 
       GPIO.close(gpio)
@@ -445,7 +427,7 @@ defmodule Circuits.GPIOSimTest do
     end
 
     test "multiple GPIOs" do
-      Enum.each(@all_gpios, fn gpio_name -> gpio_sim_write(gpio_name, 0) end)
+      Enum.each(@all_gpios, fn gpio_name -> GPIOSim.write(gpio_name, 0) end)
 
       gpios =
         Enum.map(@all_gpios, fn gpio_name ->
@@ -455,13 +437,13 @@ defmodule Circuits.GPIOSimTest do
         end)
 
       Enum.each(@all_gpios, fn gpio_name ->
-        gpio_sim_write(gpio_name, 1)
+        GPIOSim.write(gpio_name, 1)
         assert_receive {:circuits_gpio, ^gpio_name, _, 1}
         refute_received _
       end)
 
       Enum.each(@all_gpios, fn gpio_name ->
-        gpio_sim_write(gpio_name, 0)
+        GPIOSim.write(gpio_name, 0)
         assert_receive {:circuits_gpio, ^gpio_name, _, 0}
       end)
 
@@ -471,25 +453,25 @@ defmodule Circuits.GPIOSimTest do
 
     test "reopen affecting other GPIO interrupts" do
       # This exercises a former bug in interrupt accounting in the cdev backend.
-      gpio_sim_write(@gpio0, 0)
-      gpio_sim_write(@gpio1, 0)
+      GPIOSim.write(@gpio0, 0)
+      GPIOSim.write(@gpio1, 0)
 
       {:ok, gpio0} = GPIO.open(@gpio0, :input)
       GPIO.set_interrupts(gpio0, :both)
       {:ok, gpio1} = GPIO.open(@gpio1, :input)
       GPIO.set_interrupts(gpio1, :both)
 
-      gpio_sim_write(@gpio0, 1)
+      GPIOSim.write(@gpio0, 1)
       assert_receive {:circuits_gpio, @gpio0, _, 1}
 
       GPIO.close(gpio0)
       {:ok, gpio0} = GPIO.open(@gpio0, :input)
       GPIO.set_interrupts(gpio0, :both)
-      gpio_sim_write(@gpio0, 0)
+      GPIOSim.write(@gpio0, 0)
       assert_receive {:circuits_gpio, @gpio0, _, 0}
 
       # Bug was that gpio 1 interrupts were lost after reopening gpio0
-      gpio_sim_write(@gpio1, 1)
+      GPIOSim.write(@gpio1, 1)
       assert_receive {:circuits_gpio, @gpio1, _, 1}
 
       GPIO.close(gpio0)
