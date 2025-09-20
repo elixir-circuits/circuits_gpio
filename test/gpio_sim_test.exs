@@ -424,6 +424,26 @@ defmodule Circuits.GPIOSimTest do
       refute_receive _
     end
 
+    test "can disable interrupts" do
+      gpio_sim_write(@gpio0, 0)
+      {:ok, gpio} = GPIO.open(@gpio0, :input)
+
+      assert GPIO.read(gpio) == 0
+
+      :ok = GPIO.set_interrupts(gpio, :both)
+      refute_receive _
+
+      gpio_sim_write(@gpio0, 1)
+      assert_receive {:circuits_gpio, @gpio0, _, 1}
+
+      :ok = GPIO.set_interrupts(gpio, :none)
+      gpio_sim_write(@gpio0, 0)
+      refute_receive _
+
+      GPIO.close(gpio)
+      refute_receive _
+    end
+
     test "multiple GPIOs" do
       Enum.each(@all_gpios, fn gpio_name -> gpio_sim_write(gpio_name, 0) end)
 
