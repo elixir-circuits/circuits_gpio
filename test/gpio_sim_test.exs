@@ -222,6 +222,15 @@ defmodule Circuits.GPIOSimTest do
       GPIO.close(gpio)
     end
 
+    test "open returns an error on invalid index" do
+      {:ok, %{location: {gpiochip, 0}}} = GPIO.identifiers(@gpio0)
+      assert GPIO.open({gpiochip, 100}, :input) == {:error, :not_found}
+    end
+
+    test "open returns an error on invalid label" do
+      assert GPIO.open("gpio_sim_line_100", :input) == {:error, :not_found}
+    end
+
     test "gpio refs get garbage collected" do
       # Expect that the process dying will free up the pin
       me = self()
@@ -240,6 +249,35 @@ defmodule Circuits.GPIOSimTest do
       # Check that it's possible to re-open
       {:ok, ref} = GPIO.open(@gpio1, :input)
       GPIO.close(ref)
+    end
+
+    test "lots of gpio refs can be created" do
+      assert GPIO.backend_info().pins_open == 0
+
+      # Expect that the process dying will free up all of the pins
+      me = self()
+
+      {pid, ref} =
+        spawn_monitor(fn ->
+          x = Enum.map(@all_gpios, fn label -> {:ok, _ref} = GPIO.open(label, :input) end)
+          count = length(x)
+          assert GPIO.backend_info().pins_open == count
+          send(me, :done)
+        end)
+
+      # Wait to allow spawned task to complete
+      assert_receive {:DOWN, ^ref, :process, ^pid, :normal}, 1000
+
+      refute Process.alive?(pid)
+      assert_receive :done
+
+      :erlang.garbage_collect()
+
+      # Wait a fraction of a second to allow GC to run since there's
+      # a race between the send and the GC actually running.
+      Process.sleep(100)
+
+      assert GPIO.backend_info().pins_open == 0
     end
   end
 
