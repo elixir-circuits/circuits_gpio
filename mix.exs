@@ -13,6 +13,7 @@ defmodule Circuits.GPIO.MixProject do
       description: @description,
       package: package(),
       source_url: @source_url,
+      elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:elixir_make | Mix.compilers()],
       make_targets: ["all"],
       make_clean: ["clean"],
@@ -29,6 +30,9 @@ defmodule Circuits.GPIO.MixProject do
       }
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   def application do
     # IMPORTANT: This provides a default at runtime and at compile-time when

@@ -36,6 +36,7 @@ defmodule Circuits.GPIOTest do
       label: "not_a_gpio",
       controller: "not_a_controller"
     }
+
     bogus_gpio_list = [bogus_gpio]
 
     # Set the cache to something bogus and check that it's comes back
