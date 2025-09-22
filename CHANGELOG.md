@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.1.3 - 2025-09-22
+
+IMPORTANT: Please upgrade to this version or newer since it fixes an issue where
+interrupts stopped getting sent. This bug was triggered when a GenServer owning
+an input GPIO with interrupts enabled was restarted. It could be triggered via
+manual closing and reopening of a GPIO as well.
+
+* Bug fixes
+  * Fix an issue where the Erlang pid that should have received interrupts on
+    GPIO changes was lost.
+
 ## v2.1.2 - 2024-09-08
 
 * Bug fixes
