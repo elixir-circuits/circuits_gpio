@@ -33,15 +33,6 @@ defmodule Circuits.GPIOSimTest do
     "gpio_sim_line_7"
   ]
 
-  setup_all do
-    if not File.exists?("/dev/gpiochip_sim") do
-      IO.puts("GPIO simulator not found. Run ./setup_gpio_sim.sh first")
-      ExUnit.configure(exclude: :gpio_sim)
-    end
-
-    :ok
-  end
-
   setup do
     # Verify the test is being run with a clean environment
     assert GPIO.backend_info().pins_open == 0, "Some other test didn't stop cleanly"
