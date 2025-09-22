@@ -132,40 +132,6 @@ done
 echo -e "${YELLOW}Activating GPIO simulator...${NC}"
 sudo sh -c "echo 1 > $CONFIG_PATH/live"
 
-# Wait a moment for the device to be created
-sleep 1
-
-# Find the actual gpiochip device created
-GPIOCHIP_DEV=""
-for chip in /dev/gpiochip*; do
-    if [[ -e "$chip" ]]; then
-        if gpioinfo "$chip" 2>/dev/null | grep "gpio_sim_line_"; then
-            GPIOCHIP_DEV=$(basename "$chip")
-            break
-        fi
-    fi
-done
-
-if [[ -z "$GPIOCHIP_DEV" ]]; then
-    echo -e "${RED}Error: Could not find the created GPIO simulator device${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}GPIO simulator successfully configured!${NC}"
-echo "Device: /dev/$GPIOCHIP_DEV"
-echo "Label: circuits_gpio_sim"
-echo "Lines available: 0-7"
-
-# Show GPIO information
-echo -e "${YELLOW}GPIO simulator information:${NC}"
-gpioinfo "/dev/$GPIOCHIP_DEV"
-
-# Create a symbolic link for consistent device naming
-if [[ -L "/dev/gpiochip_sim" ]]; then
-    sudo rm "/dev/gpiochip_sim"
-fi
-sudo ln -sf "/dev/$GPIOCHIP_DEV" "/dev/gpiochip_sim"
-
 echo -e "${GREEN}Setup complete!${NC}"
 echo ""
 echo "To run the GPIO simulator tests:"

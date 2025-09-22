@@ -22,6 +22,47 @@ jobs:
       - checkout
       - run: reuse lint
 
+  gpio-sim-test:
+    machine:
+      image: ubuntu-2404:current
+    working_directory: ~/repo
+    environment:
+      LC_ALL: C.UTF-8
+    steps:
+      - checkout
+      - run:
+          name: Install system dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y build-essential linux-modules-extra-$(uname -r) gpiod
+            # Make sure gpio-sim loads. It's in linux-modules-extra.
+            sudo modprobe gpio-sim
+      - run:
+          name: Setup GPIO permissions
+          command: |
+            # Create gpio group and add circleci user to it
+            sudo groupadd -f gpio
+            sudo usermod -a -G gpio circleci
+      - run:
+          name: Install Elixir and Erlang
+          command: |
+            # Install Erlang and Elixir from Ubuntu repositories
+            sudo apt-get install -y erlang-dev erlang-parsetools erlang-xmerl erlang-crypto erlang-public-key elixir
+      - run:
+          name: Install hex and rebar
+          command: |
+            mix local.hex --force
+            mix local.rebar --force
+      - run:
+          name: Setup GPIO simulator
+          command: |
+            ./setup_gpio_sim.sh
+      - run: mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run:
+          name: Run GPIO simulator tests
+          command: sg gpio -c "mix test --include gpio_sim"
+
   build-test:
     parameters:
       tag:
@@ -69,6 +110,7 @@ workflows:
   checks:
     jobs:
       - check-license
+      - gpio-sim-test
       - build-test:
           name: << matrix.tag >>
           matrix:
