@@ -14,6 +14,8 @@ defmodule Circuits.GPIO.Diagnostics do
   """
   alias Circuits.GPIO
 
+  @type options() :: [skip_pullup_tests?: boolean()]
+
   @doc """
   Reminder for how to use report/2
   """
@@ -35,12 +37,17 @@ defmodule Circuits.GPIO.Diagnostics do
 
   This function is intended for IEx prompt usage. See `run/2` for programmatic
   use.
+
+  Options:
+
+  * `:skip_pullup_tests?` - set to `true` if the GPIO controller doesn't support
+    internal pullups and you don't want to get an error
   """
-  @spec report(GPIO.gpio_spec(), GPIO.gpio_spec()) :: boolean
-  def report(out_gpio_spec, in_gpio_spec) do
+  @spec report(GPIO.gpio_spec(), GPIO.gpio_spec(), options()) :: boolean
+  def report(out_gpio_spec, in_gpio_spec, options \\ []) do
     {:ok, out_identifiers} = GPIO.identifiers(out_gpio_spec)
     {:ok, in_identifiers} = GPIO.identifiers(in_gpio_spec)
-    results = run(out_gpio_spec, in_gpio_spec)
+    results = run(out_gpio_spec, in_gpio_spec, options)
     passed = Enum.all?(results, fn {_, result} -> result == :ok end)
     check_connections? = hd(results) != {"Simple writes and reads work", :ok}
     speed_results = speed_test(out_gpio_spec)
@@ -89,20 +96,28 @@ defmodule Circuits.GPIO.Diagnostics do
 
   @doc """
   Run GPIO tests and return a list of the results
+
+  Options:
+
+  * `:skip_pullup_tests?` - set to `true` if the GPIO controller doesn't support
+    internal pullups and you don't want to get an error
   """
-  @spec run(GPIO.gpio_spec(), GPIO.gpio_spec()) :: list()
-  def run(out_gpio_spec, in_gpio_spec) do
+  @spec run(GPIO.gpio_spec(), GPIO.gpio_spec(), keyword) :: list()
+  def run(out_gpio_spec, in_gpio_spec, options \\ []) do
+    skip_pullup_tests? = Keyword.get(options, :skip_pullup_tests?, false)
+
     tests = [
       {"Simple writes and reads work", &check_reading_and_writing/3, []},
       {"Can set 0 on open", &check_setting_initial_value/3, value: 0},
       {"Can set 1 on open", &check_setting_initial_value/3, value: 1},
       {"Input interrupts sent", &check_interrupts/3, []},
       {"Interrupt timing sane", &check_interrupt_timing/3, []},
-      {"Internal pullup works", &check_pullup/3, []},
-      {"Internal pulldown works", &check_pulldown/3, []}
+      if(!skip_pullup_tests?, do: {"Internal pullup works", &check_pullup/3, []}),
+      if(!skip_pullup_tests?, do: {"Internal pulldown works", &check_pulldown/3, []})
     ]
 
     tests
+    |> Enum.reject(&is_nil/1)
     |> Enum.map(&check(&1, out_gpio_spec, in_gpio_spec))
   end
 
