@@ -186,33 +186,45 @@ defmodule Circuits.GPIO.Diagnostics do
     _ = GPIO.read_one(gpio_spec)
   end
 
+  defp fail(line, msg), do: raise("diagnostics.ex:#{line} #{msg}")
+
   defmacrop assert(expr) do
     line = __CALLER__.line
 
     quote do
       if !unquote(expr) do
-        raise "#{unquote(line)}: Assertion failed: #{unquote(Macro.to_string(expr))}"
+        fail(unquote(line), "Assertion failed: #{unquote(Macro.to_string(expr))}")
       end
     end
   end
 
   defmacrop assert_receive(expected, timeout \\ 500) do
+    line = __CALLER__.line
+
     quote do
       receive do
         unquote(expected) = x ->
           x
       after
         unquote(timeout) ->
-          raise "Expected message not received within #{unquote(timeout)}ms: #{unquote(Macro.to_string(expected))}"
+          fail(
+            unquote(line),
+            "Expected message not received within #{unquote(timeout)}ms: #{unquote(Macro.to_string(expected))}"
+          )
       end
     end
   end
 
   defmacrop refute_receive(unexpected, timeout \\ 50) do
+    line = __CALLER__.line
+
     quote do
       receive do
         unquote(unexpected) ->
-          raise "Should not have received message within #{unquote(timeout)}ms: #{unquote(Macro.to_string(unexpected))}"
+          fail(
+            unquote(line),
+            "Should not have received message within #{unquote(timeout)}ms: #{unquote(Macro.to_string(unexpected))}"
+          )
       after
         unquote(timeout) -> :ok
       end
