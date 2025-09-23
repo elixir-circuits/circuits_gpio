@@ -198,6 +198,37 @@ defmodule Circuits.GPIO.Diagnostics do
     end
   end
 
+  defmacrop assert_eventually(expr, opts \\ []) do
+    line = __CALLER__.line
+
+    quote do
+      timeout = Keyword.get(unquote(opts), :timeout, 11)
+      interval = Keyword.get(unquote(opts), :interval, 1)
+      now = System.monotonic_time(:millisecond)
+      fun = fn -> unquote(expr) end
+
+      if retry(fun, now, now + timeout, interval) == :timeout do
+        fail(
+          unquote(line),
+          "Assertion failed after #{timeout} ms: #{unquote(Macro.to_string(expr))}"
+        )
+      end
+    end
+  end
+
+  defp retry(_fun, now, deadline, _interval) when now >= deadline, do: :timeout
+
+  defp retry(fun, _now, deadline, interval) do
+    if fun.() do
+      :ok
+    else
+      now = System.monotonic_time(:millisecond)
+      remaining = max(0, min(interval, deadline - now))
+      Process.sleep(remaining)
+      retry(fun, now, deadline, interval)
+    end
+  end
+
   defmacrop assert_receive(expected, timeout \\ 500) do
     line = __CALLER__.line
 
@@ -255,13 +286,13 @@ defmodule Circuits.GPIO.Diagnostics do
     {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input)
 
     GPIO.write(out_gpio, 0)
-    assert GPIO.read(in_gpio) == 0
+    assert_eventually(GPIO.read(in_gpio) == 0)
 
     GPIO.write(out_gpio, 1)
-    assert GPIO.read(in_gpio) == 1
+    assert_eventually(GPIO.read(in_gpio) == 1)
 
     GPIO.write(out_gpio, 0)
-    assert GPIO.read(in_gpio) == 0
+    assert_eventually(GPIO.read(in_gpio) == 0)
 
     GPIO.close(out_gpio)
     GPIO.close(in_gpio)
@@ -274,7 +305,7 @@ defmodule Circuits.GPIO.Diagnostics do
     {:ok, out_gpio} = GPIO.open(out_gpio_spec, :output, initial_value: value)
     {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input)
 
-    assert GPIO.read(in_gpio) == value
+    assert_eventually(GPIO.read(in_gpio) == value)
 
     GPIO.close(out_gpio)
     GPIO.close(in_gpio)
@@ -286,9 +317,10 @@ defmodule Circuits.GPIO.Diagnostics do
     {:ok, out_gpio} = GPIO.open(out_gpio_spec, :output, initial_value: 0)
     {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input)
 
+    # Wait for the input GPIO to be 0 to set_interrupts. No message should be
+    # sent since there was no change.
+    assert_eventually(GPIO.read(in_gpio) == 0)
     :ok = GPIO.set_interrupts(in_gpio, :both)
-
-    # Initial notification
     refute_receive {:circuits_gpio, _spec, _timestamp, _}
 
     # Toggle enough times to avoid being tricked by something
@@ -343,17 +375,17 @@ defmodule Circuits.GPIO.Diagnostics do
     {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input, pull_mode: :pullup)
 
     # Check non-pullup case
-    assert GPIO.read(in_gpio) == 0
+    assert_eventually(GPIO.read(in_gpio) == 0)
     GPIO.write(out_gpio, 1)
-    assert GPIO.read(in_gpio) == 1
+    assert_eventually(GPIO.read(in_gpio) == 1)
     GPIO.write(out_gpio, 0)
-    assert GPIO.read(in_gpio) == 0
+    assert_eventually(GPIO.read(in_gpio) == 0)
 
     # Check pullup by re-opening out_gpio as an input
     GPIO.close(out_gpio)
     {:ok, out_gpio} = GPIO.open(out_gpio_spec, :input)
 
-    assert GPIO.read(in_gpio) == 1
+    assert_eventually(GPIO.read(in_gpio) == 1)
 
     GPIO.close(out_gpio)
     GPIO.close(in_gpio)
@@ -366,17 +398,17 @@ defmodule Circuits.GPIO.Diagnostics do
     {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input, pull_mode: :pulldown)
 
     # Check non-pullup case
-    assert GPIO.read(in_gpio) == 1
+    assert_eventually(GPIO.read(in_gpio) == 1)
     GPIO.write(out_gpio, 0)
-    assert GPIO.read(in_gpio) == 0
+    assert_eventually(GPIO.read(in_gpio) == 0)
     GPIO.write(out_gpio, 1)
-    assert GPIO.read(in_gpio) == 1
+    assert_eventually(GPIO.read(in_gpio) == 1)
 
     # Check pulldown by re-opening out_gpio as an input
     GPIO.close(out_gpio)
     {:ok, out_gpio} = GPIO.open(out_gpio_spec, :input)
 
-    assert GPIO.read(in_gpio) == 0
+    assert_eventually(GPIO.read(in_gpio) == 0)
 
     GPIO.close(out_gpio)
     GPIO.close(in_gpio)
