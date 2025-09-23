@@ -290,7 +290,7 @@ defmodule Circuits.GPIO do
   end
 
   defp check_options!([{:pull_mode, value} | rest]) do
-    unless value in [:not_set, :pullup, :pulldown, :none],
+    if value not in [:not_set, :pullup, :pulldown, :none],
       do: raise(ArgumentError, ":pull_mode should be :not_set, :pullup, :pulldown, or :none")
 
     check_options!(rest)

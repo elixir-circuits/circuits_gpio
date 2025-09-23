@@ -175,7 +175,7 @@ defmodule Circuits.GPIO.Diagnostics do
     line = __CALLER__.line
 
     quote do
-      unless unquote(expr) do
+      if !unquote(expr) do
         raise "#{unquote(line)}: Assertion failed: #{unquote(Macro.to_string(expr))}"
       end
     end
