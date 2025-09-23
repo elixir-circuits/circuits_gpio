@@ -12,12 +12,15 @@ defmodule Circuits.GPIO.DiagnosticsTest do
   @gpio1 "gpio_sim_line_1"
 
   test "report/2" do
-    output = capture_io(fn -> Diagnostics.report(0, 1) end)
+    _ = start_supervised!({GPIOSimWire, read: @gpio0, write: @gpio1})
+
+    output = capture_io(fn -> Diagnostics.report(@gpio0, @gpio1, skip_pullup_tests?: true) end)
     assert output =~ "All tests passed"
   end
 
   test "run/2" do
-    results = Diagnostics.run(2, 3)
+    _ = start_supervised!({GPIOSimWire, read: @gpio0, write: @gpio1})
+    results = Diagnostics.run(@gpio0, @gpio1, skip_pullup_tests?: true)
 
     assert Enum.all?(results, fn {_name, result} -> result == :ok end)
   end
