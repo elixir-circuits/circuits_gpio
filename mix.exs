@@ -1,13 +1,14 @@
 defmodule Circuits.GPIO.MixProject do
   use Mix.Project
 
+  @app :circuits_gpio
   @version "2.1.3"
   @description "Use GPIOs in Elixir"
-  @source_url "https://github.com/elixir-circuits/circuits_gpio"
+  @source_url "https://github.com/elixir-circuits/#{@app}"
 
   def project do
     [
-      app: :circuits_gpio,
+      app: @app,
       version: @version,
       elixir: "~> 1.13",
       description: @description,
@@ -53,9 +54,10 @@ defmodule Circuits.GPIO.MixProject do
       ],
       licenses: ["Apache-2.0"],
       links: %{
+        "Changelog" => "https://hexdocs.pm/#{@app}/changelog.html",
         "GitHub" => @source_url,
         "REUSE Compliance" =>
-          "https://api.reuse.software/info/github.com/elixir-circuits/circuits_gpio"
+          "https://api.reuse.software/info/github.com/elixir-circuits/#{@app}"
       }
     }
   end
