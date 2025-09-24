@@ -202,9 +202,7 @@ defmodule Circuits.GPIO do
   """
   @spec identifiers(gpio_spec()) :: {:ok, identifiers()} | {:error, atom()}
   def identifiers(gpio_spec) do
-    {backend, backend_defaults} = default_backend()
-
-    backend.identifiers(gpio_spec, backend_defaults)
+    backends() |> Enum.flat_map(fn {m, o} -> m.identifiers(gpio_spec, o) end)
   end
 
   @doc """
@@ -215,10 +213,17 @@ defmodule Circuits.GPIO do
   """
   @spec status(gpio_spec()) :: {:ok, status()} | {:error, atom()}
   def status(gpio_spec) do
-    {backend, backend_defaults} = default_backend()
-
-    backend.status(gpio_spec, backend_defaults)
+    try_status(backends(), gpio_spec, {:error, :not_found})
   end
+
+  defp try_status([{backend, backend_defaults} | rest], gpio_spec, _last_error) do
+    case backend.status(gpio_spec, backend_defaults) do
+      {:ok, _} = result -> result
+      error -> try_status(rest, gpio_spec, error)
+    end
+  end
+
+  defp try_status([], _gpio_spec, last_error), do: last_error
 
   @doc """
   Open a GPIO
@@ -252,16 +257,23 @@ defmodule Circuits.GPIO do
     check_direction!(direction)
     check_options!(options)
 
-    {backend, backend_defaults} = default_backend()
+    try_open(backends(), gpio_spec, direction, options, {:error, :not_found})
+  end
 
+  defp try_open([{backend, backend_defaults} | rest], gpio_spec, direction, options, _last_error) do
     all_options =
       backend_defaults
       |> Keyword.merge(options)
       |> Keyword.put_new(:initial_value, 0)
       |> Keyword.put_new(:pull_mode, :not_set)
 
-    backend.open(gpio_spec, direction, all_options)
+    case backend.open(gpio_spec, direction, all_options) do
+      {:ok, _handle} = result -> result
+      error -> try_open(rest, gpio_spec, direction, options, error)
+    end
   end
+
+  defp try_open([], _gpio_spec, _direction, _options, last_error), do: last_error
 
   defp check_gpio_spec!(gpio_spec) do
     if not gpio_spec?(gpio_spec) do
@@ -415,11 +427,15 @@ defmodule Circuits.GPIO do
 
   This may be helpful when debugging issues.
   """
-  @spec backend_info(backend() | nil) :: map()
-  def backend_info(backend \\ nil)
+  @spec backend_info(backend() | [backend()] | nil) :: [map()]
+  def backend_info(backends \\ nil)
 
-  def backend_info(nil), do: backend_info(default_backend())
-  def backend_info({backend, _options}), do: backend.backend_info()
+  def backend_info(nil), do: backend_info(backends())
+  def backend_info(m) when is_atom(m), do: backend_info([normalize_backend(m)])
+  def backend_info({m, o} = v) when is_atom(m) and is_list(o), do: backend_info([v])
+
+  def backend_info(backends) when is_list(backends),
+    do: backends |> Enum.map(&normalize_backend/1) |> Enum.map(fn {m, _o} -> m.backend_info() end)
 
   @doc """
   Return a list of accessible GPIOs
@@ -429,16 +445,22 @@ defmodule Circuits.GPIO do
   itself can also be passed to `open/3` and the function will figure out how to
   access the GPIO.
   """
-  @spec enumerate(backend() | nil) :: [identifiers()]
+  @spec enumerate([backend()] | backend() | nil) :: [identifiers()]
   def enumerate(backend \\ nil)
-  def enumerate(nil), do: enumerate(default_backend())
-  def enumerate({backend, options}), do: backend.enumerate(options)
+  def enumerate(nil), do: enumerate(backends())
+  def enumerate(m) when is_atom(m), do: enumerate([normalize_backend(m)])
+  def enumerate({m, o} = v) when is_atom(m) and is_list(o), do: enumerate([v])
 
-  defp default_backend() do
-    case Application.get_env(:circuits_gpio, :default_backend) do
-      nil -> {Circuits.GPIO.NilBackend, []}
-      m when is_atom(m) -> {m, []}
-      {m, o} = value when is_atom(m) and is_list(o) -> value
-    end
+  def enumerate(backends) when is_list(backends),
+    do:
+      backends |> Enum.map(&normalize_backend/1) |> Enum.flat_map(fn {m, _o} -> m.enumerate() end)
+
+  defp backends() do
+    Application.get_env(:circuits_spi, :backends, [])
+    |> List.wrap()
+    |> Enum.map(&normalize_backend/1)
   end
+
+  defp normalize_backend(m) when is_atom(m), do: {m, []}
+  defp normalize_backend({m, o} = value) when is_atom(m) and is_list(o), do: value
 end
