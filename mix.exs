@@ -18,7 +18,6 @@ defmodule Circuits.GPIO.MixProject do
       compilers: [:elixir_make | Mix.compilers()],
       make_targets: ["all"],
       make_clean: ["clean"],
-      make_env: make_env(),
       docs: docs(),
       aliases: [format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
@@ -38,7 +37,7 @@ defmodule Circuits.GPIO.MixProject do
   def application do
     # IMPORTANT: This provides a default at runtime and at compile-time when
     # circuits_gpio is pulled in as a dependency.
-    [env: [default_backend: default_backend()], extra_applications: [:logger]]
+    [env: [backends: default_backends()], extra_applications: [:logger]]
   end
 
   defp package do
@@ -94,48 +93,26 @@ defmodule Circuits.GPIO.MixProject do
     ]
   end
 
-  defp default_backend(), do: default_backend(Mix.env(), Mix.target())
-  defp default_backend(:test, _target), do: {Circuits.GPIO.CDev, test: true}
-  defp default_backend(:docs, _target), do: {Circuits.GPIO.CDev, test: true}
-  defp default_backend(:nil_test, _target), do: Circuits.GPIO.NilBackend
+  defp default_backends(), do: default_backends(Mix.env(), Mix.target())
+  defp default_backends(:test, _target), do: []
+  defp default_backends(:docs, _target), do: []
 
-  defp default_backend(_env, :host) do
+  defp default_backends(_env, :host) do
     case :os.type() do
-      {:unix, :linux} -> Circuits.GPIO.CDev
-      _ -> {Circuits.GPIO.CDev, test: true}
+      {:unix, :linux} -> [Circuits.GPIO.CDev]
+      _ -> []
     end
   end
 
   # MIX_TARGET set to something besides host
-  defp default_backend(env, _not_host) do
+  defp default_backends(env, _not_host) do
     # If CROSSCOMPILE is set, then the Makefile will use the crosscompiler and
     # assume a Linux/Nerves build If not, then the NIF will be build for the
     # host, so use the default host backend
     case System.fetch_env("CROSSCOMPILE") do
-      {:ok, _} -> Circuits.GPIO.CDev
-      :error -> default_backend(env, :host)
+      {:ok, _} -> [Circuits.GPIO.CDev]
+      :error -> default_backends(env, :host)
     end
-  end
-
-  defp make_env() do
-    # Since user configuration hasn't been loaded into the application
-    # environment when `project/1` is called, load it here for building
-    # the NIF.
-    backend = Application.get_env(:circuits_gpio, :default_backend, default_backend())
-
-    %{"CIRCUITS_GPIO_BACKEND" => cdev_compile_mode(backend)}
-  end
-
-  defp cdev_compile_mode({Circuits.GPIO.CDev, _options}) do
-    "cdev"
-  end
-
-  defp cdev_compile_mode(Circuits.GPIO.CDev) do
-    "cdev"
-  end
-
-  defp cdev_compile_mode(_other) do
-    "disabled"
   end
 
   defp format_c([]) do
