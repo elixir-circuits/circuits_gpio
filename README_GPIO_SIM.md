@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: CC-BY-4.0
+  SPDX-FileCopyrightText: 2025 Frank Hunleth
+-->
+
 # GPIO Simulator Testing for circuits_gpio
 
 This directory contains a test setup for verifying that the `circuits_gpio` cdev backend works correctly with real GPIO hardware using the Linux `gpio-sim` kernel module.
