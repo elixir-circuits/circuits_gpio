@@ -186,6 +186,7 @@ defmodule Circuits.GPIO.Diagnostics do
     _ = GPIO.read_one(gpio_spec)
   end
 
+  @spec fail(non_neg_integer(), String.t()) :: no_return()
   defp fail(line, msg), do: raise("diagnostics.ex:#{line} #{msg}")
 
   defmacrop assert(expr) do
