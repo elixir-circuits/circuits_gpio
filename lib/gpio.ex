@@ -202,8 +202,17 @@ defmodule Circuits.GPIO do
   """
   @spec identifiers(gpio_spec()) :: {:ok, identifiers()} | {:error, atom()}
   def identifiers(gpio_spec) do
-    backends() |> Enum.flat_map(fn {m, o} -> m.identifiers(gpio_spec, o) end)
+    try_identifiers(backends(), gpio_spec, {:error, :not_found})
   end
+
+  defp try_identifiers([{backend, backend_defaults} | rest], gpio_spec, _last_error) do
+    case backend.identifiers(gpio_spec, backend_defaults) do
+      {:ok, _} = result -> result
+      error -> try_identifiers(rest, gpio_spec, error)
+    end
+  end
+
+  defp try_identifiers([], _gpio_spec, last_error), do: last_error
 
   @doc """
   Return dynamic configuration and status information about a GPIO

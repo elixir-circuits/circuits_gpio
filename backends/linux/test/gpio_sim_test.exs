@@ -52,7 +52,8 @@ defmodule Circuits.GPIOSimTest do
     assert info.pins_open == 0
   end
 
-  test "enumerate/0" do
+  describe "enumerate/0" do
+    test "finding all gpio-sim GPIOs"
     all_gpios = GPIO.enumerate()
     assert is_list(all_gpios)
 
@@ -73,6 +74,31 @@ defmodule Circuits.GPIOSimTest do
       index = info.label |> String.replace("gpio_sim_line_", "") |> String.to_integer()
       assert info.location == {gpiochip, index}
     end)
+
+    test "refreshing enumeration cache" do
+      bogus_gpio = %{
+        location: {"gpiochip10", 5},
+        label: "not_a_gpio",
+        controller: "not_a_controller"
+      }
+
+      bogus_gpio_list = [bogus_gpio]
+
+      # Set the cache to something bogus and check that it's comes back
+      :persistent_term.put(Circuits.GPIO.CDev, bogus_gpio_list)
+
+      assert GPIO.identifiers("not_a_gpio") == {:ok, bogus_gpio}
+      assert GPIO.enumerate() == bogus_gpio_list
+
+      # Now check that the cache gets refreshed when a gpio isn't found
+      _ = GPIO.identifiers("anything_else")
+      assert GPIO.enumerate() != bogus_gpio_list
+
+      # The bogus GPIO doesn't come back
+      assert GPIO.identifiers("not_a_gpio") == {:error, :not_found}
+
+      # Cache was refreshed, so it's back to normal now for any subsequent tests
+    end
   end
 
   describe "identifiers/1" do
