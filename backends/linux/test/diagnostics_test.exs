@@ -7,6 +7,8 @@ defmodule Circuits.GPIO.DiagnosticsTest do
   alias Circuits.GPIO.Diagnostics
 
   import ExUnit.CaptureIO
+  @moduletag :gpio_sim
+
 
   @gpio0 "gpio_sim_line_0"
   @gpio1 "gpio_sim_line_1"
