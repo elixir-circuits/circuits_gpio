@@ -16,8 +16,7 @@ defmodule GPIOSim do
 
   @spec detected?() :: boolean()
   def detected?() do
-    first_gpio = hd(all_gpios())
-    File.exists?(line_path(first_gpio))
+    File.exists?("/sys/kernel/config/gpio-sim/gpiochip_sim")
   end
 
   @spec line_path(String.t()) :: String.t()
