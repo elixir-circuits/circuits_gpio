@@ -16,7 +16,6 @@
 # Variables to override:
 #
 # MIX_APP_PATH  path to the build directory
-# CIRCUITS_GPIO_BACKEND Backend to build - `"cdev"` or`"disabled"` will build a NIF
 #
 # CC            C compiler
 # CROSSCOMPILE	crosscompiler prefix, if any
@@ -34,8 +33,6 @@ NIF = $(PREFIX)/gpio_nif.so
 
 CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter -pedantic
 
-$(info "**** CIRCUITS_GPIO_BACKEND set to [$(CIRCUITS_GPIO_BACKEND)] ****")
-
 # Check that we're on a supported build platform
 ifeq ($(CROSSCOMPILE),)
 # Not crosscompiling, so check that we're on Linux for whether to compile the NIF.
@@ -43,10 +40,7 @@ ifeq ($(shell uname -s),Linux)
 CFLAGS += -fPIC
 LDFLAGS += -fPIC -shared
 else
-LDFLAGS += -undefined dynamic_lookup -dynamiclib
-ifeq ($(CIRCUITS_GPIO_BACKEND),cdev)
-$(error Circuits.GPIO Linux cdev backend is not supported on non-Linux platforms. Review circuits_gpio backend configuration or report an issue if improperly detected.)
-endif
+$(error Circuits.GPIO Linux cdev backend is not supported on non-Linux platforms. Review circuits_gpio backends configuration or report an issue if improperly detected.)
 endif
 else
 # Crosscompiled build
@@ -54,15 +48,10 @@ LDFLAGS += -fPIC -shared
 CFLAGS += -fPIC
 endif
 
-ifeq ($(CIRCUITS_GPIO_BACKEND),cdev)
 # Enable real GPIO calls. This is the default and works with Nerves
 HAL_SRC = c_src/hal_cdev_gpio.c c_src/hal_cdev_gpio_interrupts.c
 # Hide cdev ioctl warnings
 CFLAGS += -Wno-overflow
-else
-# Don't build NIF
-NIF =
-endif
 
 # Set Erlang-specific compile and linker flags
 ERL_CFLAGS ?= -I"$(ERL_EI_INCLUDE_DIR)"
