@@ -3,23 +3,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-defmodule Circuits.GPIO.CDev do
+defmodule Circuits.GPIO.LinuxBackend do
   @moduledoc """
-  Circuits.GPIO backend that uses the Linux CDev for controlling GPIOs
+  Circuits.GPIO backend that uses the Linux GPIO cdev interface
 
   This is the default on Linux and Nerves. Nothing needs to be done to
   use it on those platforms. If you need to be explicit, here's the
   configuration to force it:
 
   ```elixir
-  config :circuits_gpio, default_backend: Circuits.GPIO.CDev
-  ```
-
-  It takes one option, `:test`, that can be set to `true` to compile
-  the stub implementation that can be useful for testing.
-
-  ```elixir
-  config :circuits_gpio, default_backend: {Circuits.GPIO.CDev, test: true}
+  config :circuits_gpio, backends: [Circuits.GPIO.LinuxBackend]
   ```
   """
   @behaviour Circuits.GPIO.Backend
@@ -134,27 +127,27 @@ defmodule Circuits.GPIO.CDev do
 
   defimpl Handle do
     @impl Handle
-    def read(%Circuits.GPIO.CDev{ref: ref}) do
+    def read(%Circuits.GPIO.LinuxBackend{ref: ref}) do
       Nif.read(ref)
     end
 
     @impl Handle
-    def write(%Circuits.GPIO.CDev{ref: ref}, value) do
+    def write(%Circuits.GPIO.LinuxBackend{ref: ref}, value) do
       Nif.write(ref, value)
     end
 
     @impl Handle
-    def set_direction(%Circuits.GPIO.CDev{ref: ref}, direction) do
+    def set_direction(%Circuits.GPIO.LinuxBackend{ref: ref}, direction) do
       Nif.set_direction(ref, direction)
     end
 
     @impl Handle
-    def set_pull_mode(%Circuits.GPIO.CDev{ref: ref}, pull_mode) do
+    def set_pull_mode(%Circuits.GPIO.LinuxBackend{ref: ref}, pull_mode) do
       Nif.set_pull_mode(ref, pull_mode)
     end
 
     @impl Handle
-    def set_interrupts(%Circuits.GPIO.CDev{ref: ref}, trigger, options) do
+    def set_interrupts(%Circuits.GPIO.LinuxBackend{ref: ref}, trigger, options) do
       suppress_glitches = Keyword.get(options, :suppress_glitches, true)
 
       receiver =
@@ -168,7 +161,7 @@ defmodule Circuits.GPIO.CDev do
     end
 
     @impl Handle
-    def close(%Circuits.GPIO.CDev{ref: ref}) do
+    def close(%Circuits.GPIO.LinuxBackend{ref: ref}) do
       Nif.close(ref)
     end
   end

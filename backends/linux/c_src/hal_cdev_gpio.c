@@ -182,7 +182,7 @@ size_t hal_priv_size()
 ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info)
 {
     struct hal_cdev_gpio_priv *priv = hal_priv;
-    enif_make_map_put(env, info, atom_name, enif_make_atom(env, "Elixir.Circuits.GPIO.CDev"), &info);
+    enif_make_map_put(env, info, atom_name, enif_make_atom(env, "Elixir.Circuits.GPIO.LinuxBackend"), &info);
     enif_make_map_put(env, info,
                       enif_make_atom(env, "gpio_number_remapping"),
                       gpiochip_order_r[15] == 3 ? enif_make_atom(env, "am335x") : enif_make_atom(env, "none"),

@@ -48,7 +48,7 @@ defmodule Circuits.GPIOSimTest do
   test "backend_info/0" do
     info = GPIO.backend_info()
 
-    assert info.name == Circuits.GPIO.CDev
+    assert info.name == Circuits.GPIO.LinuxBackend
     assert info.pins_open == 0
   end
 
@@ -61,7 +61,7 @@ defmodule Circuits.GPIOSimTest do
     sim_gpios =
       Enum.filter(all_gpios, fn info -> String.starts_with?(info.label, "gpio_sim_line_") end)
 
-    assert length(sim_gpios) == length(@all_gpios)
+    assert length(sim_gpios) == length(@all_gpios), "Check that gpio-sim has been setup"
 
     # Check that they all have the same controller
     %{controller: controller} = hd(sim_gpios)
@@ -85,7 +85,7 @@ defmodule Circuits.GPIOSimTest do
       bogus_gpio_list = [bogus_gpio]
 
       # Set the cache to something bogus and check that it's comes back
-      :persistent_term.put(Circuits.GPIO.CDev, bogus_gpio_list)
+      :persistent_term.put(Circuits.GPIO.LinuxBackend, bogus_gpio_list)
 
       assert GPIO.identifiers("not_a_gpio") == {:ok, bogus_gpio}
       assert GPIO.enumerate() == bogus_gpio_list
@@ -506,7 +506,7 @@ defmodule Circuits.GPIOSimTest do
 
       # Try running something to verify that it works.
       {:ok, gpio} = GPIO.open(@gpio1, :input)
-      assert is_struct(gpio, Circuits.GPIO.CDev)
+      assert is_struct(gpio, Circuits.GPIO.LinuxBackend)
       GPIO.close(gpio)
 
       assert true == :code.delete(Circuits.GPIO.Nif)
