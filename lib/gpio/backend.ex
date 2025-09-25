@@ -75,5 +75,5 @@ defmodule Circuits.GPIO.Backend do
   @doc """
   Return information about this backend
   """
-  @callback backend_info() :: map()
+  @callback backend_info(options :: GPIO.open_options()) :: map()
 end

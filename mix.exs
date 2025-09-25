@@ -14,7 +14,7 @@ defmodule Circuits.GPIO.MixProject do
       description: @description,
       package: package(),
       source_url: @source_url,
-      elixirc_paths: elixirc_paths(Mix.env()),
+      elixirc_paths: ["lib"],
       test_paths: ["test"],
       docs: docs(),
       start_permanent: Mix.env() == :prod,
@@ -25,7 +25,7 @@ defmodule Circuits.GPIO.MixProject do
     if build_linux_backend?() do
       additions = [
         compilers: [:elixir_make | Mix.compilers()],
-        elixirc_paths: ["backends/linux/lib"],
+        elixirc_paths: linux_elixirc_paths(Mix.env()),
         test_paths: ["backends/linux/test"],
         make_makefile: "Makefile",
         make_cwd: "backends/linux",
@@ -40,8 +40,8 @@ defmodule Circuits.GPIO.MixProject do
     end
   end
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_), do: ["lib"]
+  defp linux_elixirc_paths(:test), do: ["backends/linux/lib", "backends/linux/test/support"]
+  defp linux_elixirc_paths(_), do: ["backends/linux/lib"]
 
   def cli do
     [preferred_envs: %{docs: :docs, "hex.publish": :docs, "hex.build": :docs}]
@@ -123,8 +123,7 @@ defmodule Circuits.GPIO.MixProject do
     [] |> maybe_add_test_backends(Mix.env()) |> maybe_add_linux_backend(Mix.target(), :os.type())
   end
 
-  defp maybe_add_test_backends(backends, :test), do: [Circuits.SPI.LoopBackend | backends]
-  defp maybe_add_test_backends(backends, _other), do: backends
+  defp maybe_add_test_backends(backends, _any), do: backends
 
   defp maybe_add_linux_backend(backends, :host, {:unix, :linux}),
     do: [Circuits.GPIO.LinuxBackend | backends]
