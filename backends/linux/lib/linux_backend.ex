@@ -121,7 +121,7 @@ defmodule Circuits.GPIO.LinuxBackend do
   end
 
   @impl Backend
-  def backend_info() do
+  def backend_info(_options) do
     Nif.backend_info()
   end
 

@@ -444,7 +444,7 @@ defmodule Circuits.GPIO do
   def backend_info({m, o} = v) when is_atom(m) and is_list(o), do: backend_info([v])
 
   def backend_info(backends) when is_list(backends),
-    do: backends |> Enum.map(&normalize_backend/1) |> Enum.map(fn {m, _o} -> m.backend_info() end)
+    do: backends |> Enum.map(&normalize_backend/1) |> Enum.map(fn {m, o} -> m.backend_info(o) end)
 
   @doc """
   Return a list of accessible GPIOs
@@ -462,10 +462,10 @@ defmodule Circuits.GPIO do
 
   def enumerate(backends) when is_list(backends),
     do:
-      backends |> Enum.map(&normalize_backend/1) |> Enum.flat_map(fn {m, _o} -> m.enumerate() end)
+      backends |> Enum.map(&normalize_backend/1) |> Enum.flat_map(fn {m, o} -> m.enumerate(o) end)
 
   defp backends() do
-    Application.get_env(:circuits_spi, :backends, [])
+    Application.get_env(:circuits_gpio, :backends, [])
     |> List.wrap()
     |> Enum.map(&normalize_backend/1)
   end

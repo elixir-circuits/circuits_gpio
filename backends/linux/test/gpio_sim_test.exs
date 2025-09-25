@@ -33,47 +33,50 @@ defmodule Circuits.GPIOSimTest do
     "gpio_sim_line_7"
   ]
 
+  defp pins_open(), do: hd(GPIO.backend_info()).pins_open
+
   setup do
     # Verify the test is being run with a clean environment
-    assert GPIO.backend_info().pins_open == 0, "Some other test didn't stop cleanly"
+    assert pins_open() == 0, "Some other test didn't stop cleanly"
 
     # Verify that the test leaves the environment clean
     on_exit(fn ->
-      assert GPIO.backend_info().pins_open == 0, "Test didn't close all opened GPIOs"
+      assert pins_open() == 0, "Test didn't close all opened GPIOs"
     end)
 
     :ok
   end
 
   test "backend_info/0" do
-    info = GPIO.backend_info()
-
-    assert info.name == Circuits.GPIO.LinuxBackend
-    assert info.pins_open == 0
+    infos = GPIO.backend_info()
+    linux_backend = Enum.find(infos, fn %{name: name} -> name == Circuits.GPIO.LinuxBackend end)
+    assert linux_backend != nil
+    assert linux_backend.pins_open == 0
   end
 
   describe "enumerate/0" do
-    test "finding all gpio-sim GPIOs"
-    all_gpios = GPIO.enumerate()
-    assert is_list(all_gpios)
+    test "finding all gpio-sim GPIOs" do
+      all_gpios = GPIO.enumerate()
+      assert is_list(all_gpios)
 
-    # Filter out the gpio-sim lines
-    sim_gpios =
-      Enum.filter(all_gpios, fn info -> String.starts_with?(info.label, "gpio_sim_line_") end)
+      # Filter out the gpio-sim lines
+      sim_gpios =
+        Enum.filter(all_gpios, fn info -> String.starts_with?(info.label, "gpio_sim_line_") end)
 
-    assert length(sim_gpios) == length(@all_gpios), "Check that gpio-sim has been setup"
+      assert length(sim_gpios) == length(@all_gpios), "Check that gpio-sim has been setup"
 
-    # Check that they all have the same controller
-    %{controller: controller} = hd(sim_gpios)
-    Enum.each(sim_gpios, fn info -> assert info.controller == controller end)
+      # Check that they all have the same controller
+      %{controller: controller} = hd(sim_gpios)
+      Enum.each(sim_gpios, fn info -> assert info.controller == controller end)
 
-    # Check that they all have the expected location
-    %{location: {gpiochip, _line}} = hd(sim_gpios)
+      # Check that they all have the expected location
+      %{location: {gpiochip, _line}} = hd(sim_gpios)
 
-    Enum.each(sim_gpios, fn info ->
-      index = info.label |> String.replace("gpio_sim_line_", "") |> String.to_integer()
-      assert info.location == {gpiochip, index}
-    end)
+      Enum.each(sim_gpios, fn info ->
+        index = info.label |> String.replace("gpio_sim_line_", "") |> String.to_integer()
+        assert info.location == {gpiochip, index}
+      end)
+    end
 
     test "refreshing enumeration cache" do
       bogus_gpio = %{
@@ -251,7 +254,7 @@ defmodule Circuits.GPIOSimTest do
     end
 
     test "lots of gpio refs can be created" do
-      assert GPIO.backend_info().pins_open == 0
+      assert pins_open() == 0
 
       # Expect that the process dying will free up all of the pins
       me = self()
@@ -260,7 +263,7 @@ defmodule Circuits.GPIOSimTest do
         spawn_monitor(fn ->
           x = Enum.map(@all_gpios, fn label -> {:ok, _ref} = GPIO.open(label, :input) end)
           count = length(x)
-          assert GPIO.backend_info().pins_open == count
+          assert pins_open() == count
           send(me, :done)
         end)
 
@@ -276,7 +279,7 @@ defmodule Circuits.GPIOSimTest do
       # a race between the send and the GC actually running.
       Process.sleep(100)
 
-      assert GPIO.backend_info().pins_open == 0
+      assert pins_open() == 0
     end
   end
 
