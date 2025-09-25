@@ -1,6 +1,25 @@
 defmodule GPIOSim do
   alias Circuits.GPIO
 
+  def all_gpios() do
+    [
+      "gpio_sim_line_0",
+      "gpio_sim_line_1",
+      "gpio_sim_line_2",
+      "gpio_sim_line_3",
+      "gpio_sim_line_4",
+      "gpio_sim_line_5",
+      "gpio_sim_line_6",
+      "gpio_sim_line_7"
+    ]
+  end
+
+  @spec detected?() :: boolean()
+  def detected?() do
+    first_gpio = hd(all_gpios())
+    File.exists?(line_path(first_gpio))
+  end
+
   @spec line_path(String.t()) :: String.t()
   def line_path(gpio_name) do
     {:ok, %{location: {gpiochip, line}, controller: controller}} = GPIO.identifiers(gpio_name)

@@ -22,16 +22,6 @@ defmodule Circuits.GPIOSimTest do
 
   @gpio0 "gpio_sim_line_0"
   @gpio1 "gpio_sim_line_1"
-  @all_gpios [
-    "gpio_sim_line_0",
-    "gpio_sim_line_1",
-    "gpio_sim_line_2",
-    "gpio_sim_line_3",
-    "gpio_sim_line_4",
-    "gpio_sim_line_5",
-    "gpio_sim_line_6",
-    "gpio_sim_line_7"
-  ]
 
   defp pins_open(), do: hd(GPIO.backend_info()).pins_open
 
@@ -63,7 +53,7 @@ defmodule Circuits.GPIOSimTest do
       sim_gpios =
         Enum.filter(all_gpios, fn info -> String.starts_with?(info.label, "gpio_sim_line_") end)
 
-      assert length(sim_gpios) == length(@all_gpios), "Check that gpio-sim has been setup"
+      assert length(sim_gpios) == length(GPIOSim.all_gpios())
 
       # Check that they all have the same controller
       %{controller: controller} = hd(sim_gpios)
@@ -109,7 +99,7 @@ defmodule Circuits.GPIOSimTest do
       {:ok, %{location: {gpiochip, 0}, controller: controller, label: @gpio0}} =
         GPIO.identifiers(@gpio0)
 
-      Enum.each(@all_gpios, fn gpio_name ->
+      Enum.each(GPIOSim.all_gpios(), fn gpio_name ->
         assert {:ok, %{location: {^gpiochip, line}, controller: ^controller, label: label}} =
                  GPIO.identifiers(gpio_name)
 
