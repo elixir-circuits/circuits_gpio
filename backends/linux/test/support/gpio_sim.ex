@@ -1,19 +1,6 @@
 defmodule GPIOSim do
   alias Circuits.GPIO
 
-  def all_gpios() do
-    [
-      "gpio_sim_line_0",
-      "gpio_sim_line_1",
-      "gpio_sim_line_2",
-      "gpio_sim_line_3",
-      "gpio_sim_line_4",
-      "gpio_sim_line_5",
-      "gpio_sim_line_6",
-      "gpio_sim_line_7"
-    ]
-  end
-
   @spec detected?() :: boolean()
   def detected?() do
     File.exists?("/sys/kernel/config/gpio-sim/gpiochip_sim")
