@@ -7,7 +7,7 @@ defmodule Circuits.GPIO.MixProject do
   @source_url "https://github.com/elixir-circuits/#{@app}"
 
   def project do
-    [
+    base = [
       app: @app,
       version: @version,
       elixir: "~> 1.13",
@@ -15,27 +15,40 @@ defmodule Circuits.GPIO.MixProject do
       package: package(),
       source_url: @source_url,
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:elixir_make | Mix.compilers()],
-      make_targets: ["all"],
-      make_clean: ["clean"],
+      test_paths: ["test"],
       docs: docs(),
-      aliases: [format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
       dialyzer: dialyzer(),
-      deps: deps(),
-      preferred_cli_env: %{
-        docs: :docs,
-        "hex.publish": :docs,
-        "hex.build": :docs
-      }
+      deps: deps()
     ]
+
+    if build_linux_backend?() do
+      additions = [
+        compilers: [:elixir_make | Mix.compilers()],
+        elixirc_paths: ["backends/linux/lib"],
+        test_paths: ["backends/linux/test"],
+        make_makefile: "Makefile",
+        make_cwd: "backends/linux",
+        make_targets: ["all"],
+        make_clean: ["clean"],
+        aliases: [format: [&format_c/1, "format"]]
+      ]
+
+      Keyword.merge(base, additions, fn _key, value1, value2 -> value1 ++ value2 end)
+    else
+      base
+    end
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
+  def cli do
+    [preferred_envs: %{docs: :docs, "hex.publish": :docs, "hex.build": :docs}]
+  end
+
   def application do
-    # IMPORTANT: This provides a default at runtime and at compile-time when
+    # IMPORTANT: This provides defaults at runtime and at compile-time when
     # circuits_gpio is pulled in as a dependency.
     [env: [backends: default_backends()], extra_applications: [:logger]]
   end
@@ -44,11 +57,12 @@ defmodule Circuits.GPIO.MixProject do
     %{
       files: [
         "CHANGELOG.md",
-        "c_src/*.[ch]",
-        "c_src/linux/gpio.h",
+        "backends/linux/c_src/*.[ch]",
+        "backends/linux/c_src/linux/gpio.h",
+        "backends/linux/lib",
+        "backends/linux/Makefile",
         "lib",
-        "LICENSES/*",
-        "Makefile",
+        "LICENSES",
         "mix.exs",
         "NOTICE",
         "PORTING.md",
@@ -59,8 +73,7 @@ defmodule Circuits.GPIO.MixProject do
       links: %{
         "Changelog" => "https://hexdocs.pm/#{@app}/changelog.html",
         "GitHub" => @source_url,
-        "REUSE Compliance" =>
-          "https://api.reuse.software/info/github.com/elixir-circuits/#{@app}"
+        "REUSE Compliance" => "https://api.reuse.software/info/github.com/elixir-circuits/#{@app}"
       }
     }
   end
@@ -93,25 +106,38 @@ defmodule Circuits.GPIO.MixProject do
     ]
   end
 
-  defp default_backends(), do: default_backends(Mix.env(), Mix.target())
-  defp default_backends(:test, _target), do: []
-  defp default_backends(:docs, _target), do: []
+  defp build_linux_backend?() do
+    # Infer whether to build it based on the backends
+    # setting. If backends references it, then build it. If it
+    # references something else, then don't build. Default is to build.
+    backends = Application.get_env(:circuits_gpio, :backends, default_backends())
 
-  defp default_backends(_env, :host) do
-    case :os.type() do
-      {:unix, :linux} -> [Circuits.GPIO.CDev]
-      _ -> []
-    end
+    Enum.find(backends, &linux_backend?/1) != nil
   end
 
-  # MIX_TARGET set to something besides host
-  defp default_backends(env, _not_host) do
-    # If CROSSCOMPILE is set, then the Makefile will use the crosscompiler and
+  defp linux_backend?(Circuits.GPIO.LinuxBackend), do: true
+  defp linux_backend?({Circuits.GPIO.LinuxBackend, _}), do: true
+  defp linux_backend?(_other), do: false
+
+  defp default_backends() do
+    [] |> maybe_add_test_backends(Mix.env()) |> maybe_add_linux_backend(Mix.target(), :os.type())
+  end
+
+  defp maybe_add_test_backends(backends, :test), do: [Circuits.SPI.LoopBackend | backends]
+  defp maybe_add_test_backends(backends, _other), do: backends
+
+  defp maybe_add_linux_backend(backends, :host, {:unix, :linux}),
+    do: [Circuits.GPIO.LinuxBackend | backends]
+
+  defp maybe_add_linux_backend(backends, :host, _other), do: backends
+
+  defp maybe_add_linux_backend(backends, _not_host, os) do
+    # If CROSSCOMPILE is set, then the Makefile will use the cross-compiler and
     # assume a Linux/Nerves build If not, then the NIF will be build for the
     # host, so use the default host backend
     case System.fetch_env("CROSSCOMPILE") do
-      {:ok, _} -> [Circuits.GPIO.CDev]
-      :error -> default_backends(env, :host)
+      {:ok, _} -> [Circuits.GPIO.LinuxBackend | backends]
+      :error -> maybe_add_linux_backend(backends, :host, os)
     end
   end
 
@@ -121,7 +147,7 @@ defmodule Circuits.GPIO.MixProject do
         Mix.Shell.IO.info("Install astyle to format C code.")
 
       astyle ->
-        System.cmd(astyle, ["-n", "c_src/*.c"], into: IO.stream(:stdio, :line))
+        System.cmd(astyle, ["-n", "backends/linux/c_src/*.c"], into: IO.stream(:stdio, :line))
     end
   end
 

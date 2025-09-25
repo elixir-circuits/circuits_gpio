@@ -29,27 +29,4 @@ defmodule Circuits.GPIOTest do
     refute GPIO.gpio_spec?(nil)
     refute GPIO.gpio_spec?(%{})
   end
-
-  test "refresh enumeration cache" do
-    bogus_gpio = %{
-      location: {"gpiochip10", 5},
-      label: "not_a_gpio",
-      controller: "not_a_controller"
-    }
-
-    bogus_gpio_list = [bogus_gpio]
-
-    # Set the cache to something bogus and check that it's comes back
-    :persistent_term.put(Circuits.GPIO.CDev, bogus_gpio_list)
-
-    assert GPIO.identifiers("not_a_gpio") == {:ok, bogus_gpio}
-    assert GPIO.enumerate() == bogus_gpio_list
-
-    # Now check that the cache gets refreshed when a gpio isn't found
-    _ = GPIO.identifiers("anything_else")
-    assert GPIO.enumerate() != bogus_gpio_list
-
-    # The bogus GPIO doesn't come back
-    assert GPIO.identifiers("not_a_gpio") == {:error, :not_found}
-  end
 end
