@@ -7,7 +7,6 @@ path = [
  ".formatter.exs",
  ".github/dependabot.yml",
  ".gitignore",
- "CHANGELOG.md",
  "NOTICE",
  "REUSE.toml",
  "mix.exs",
@@ -16,16 +15,6 @@ path = [
 precedence = "aggregate"
 SPDX-FileCopyrightText = "None"
 SPDX-License-Identifier = "CC0-1.0"
-
-[[annotations]]
-path = [
- "PORTING.md",
- "README.md",
- "RELEASE.md"
-]
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2014 Frank Hunleth"
-SPDX-License-Identifier = "CC-BY-4.0"
 
 [[annotations]]
 path = ["assets/images/schematic-gpio-led.png", "assets/images/schematic-gpio-button.png"]

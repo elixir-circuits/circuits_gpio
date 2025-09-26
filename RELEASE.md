@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: CC-BY-4.0
+  SPDX-FileCopyrightText: 2018 Frank Hunleth
+-->
+
 # Release checklist
 
   1. Update `CHANGELOG.md` with a bulletpoint list of new features and bug fixes

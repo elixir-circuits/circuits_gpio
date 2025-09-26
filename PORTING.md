@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: CC-BY-4.0
+  SPDX-FileCopyrightText: 2018 Frank Hunleth
+-->
+
 # Porting
 
 ## Upgrading Circuits.GPIO 1.0 projects to 2.0
