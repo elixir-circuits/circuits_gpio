@@ -13,6 +13,7 @@ defmodule Circuits.GPIO.Diagnostics do
   to work on some devices.
   """
   alias Circuits.GPIO
+  alias Circuits.GPIO.Diagnostics.CPU
 
   @doc """
   Reminder for how to use report/2
@@ -56,14 +57,23 @@ defmodule Circuits.GPIO.Diagnostics do
       Input ids:   #{inspect(in_identifiers)}
       Backend: #{inspect(Circuits.GPIO.backend_info()[:name])}
 
+      == Functionality ==
+
       """,
       Enum.map(results, &pass_text/1),
       """
 
-      write/2:     #{round(speed_results.write_cps)} calls/s
-      read/1:      #{round(speed_results.read_cps)} calls/s
-      write_one/3: #{round(speed_results.write_one_cps)} calls/s
-      read_one/2:  #{round(speed_results.read_one_cps)} calls/s
+      == Performance ==
+
+      Kernel:      #{speed_results.uname}
+      CPU count:   #{speed_results.cpu_count}
+      CPU speed:   #{:erlang.float_to_binary(speed_results.speed_mhz, decimals: 1)} MHz
+      Warnings?:   #{speed_results.warnings?}
+
+      write/2:     #{cps_to_us(speed_results.write_cps)} µs/call
+      read/1:      #{cps_to_us(speed_results.read_cps)} µs/call
+      write_one/3: #{cps_to_us(speed_results.write_one_cps)} µs/call
+      read_one/2:  #{cps_to_us(speed_results.read_one_cps)} µs/call
 
       """,
       if(check_connections?,
@@ -81,6 +91,9 @@ defmodule Circuits.GPIO.Diagnostics do
 
     passed
   end
+
+  # Truncate sub-nanosecond for readability
+  defp cps_to_us(cps), do: :erlang.float_to_binary(1_000_000 / cps, decimals: 3)
 
   defp pass_text({name, :ok}), do: [name, ": ", :green, "PASSED", :reset, "\n"]
 
@@ -109,17 +122,29 @@ defmodule Circuits.GPIO.Diagnostics do
   @doc """
   Run GPIO API performance tests
 
-  Disclaimer: There should be a better way than relying on the Circuits.GPIO
-  write performance on nearly every device. Write performance shouldn't be
-  terrible, though.
+  If you get warnings about the CPU speed, run
+  `Circuits.GPIO.Diagnostics.CPU.force_slowest/0` or
+  `Circuits.GPIO.Diagnostics.CPU.set_speed/1` to make sure that the CPU doesn't
+  change speeds during the test.
+
+  Disclaimer: This tests Circuits.GPIO write performance. Write performance
+  should be reasonably good. However, if it's not acceptable, please
+  investigate other options. Usually there's some hardware-assisted way to
+  accomplish high speed GPIO tasks (PWM controllers, for example).
   """
   @spec speed_test(GPIO.gpio_spec()) :: %{
           write_cps: float(),
           read_cps: float(),
           write_one_cps: float(),
-          read_one_cps: float()
+          read_one_cps: float(),
+          uname: String.t(),
+          cpu_count: non_neg_integer(),
+          speed_mhz: number(),
+          warnings?: boolean()
         }
   def speed_test(gpio_spec) do
+    cpu_info = CPU.check_benchmark_suitability()
+
     times = 1000
     one_times = ceil(times / 100)
 
@@ -134,12 +159,14 @@ defmodule Circuits.GPIO.Diagnostics do
     write_one_cps = time_fun2(one_times, &write_one2/1, gpio_spec)
     read_one_cps = time_fun2(one_times, &read_one2/1, gpio_spec)
 
-    %{
+    results = %{
       write_cps: write_cps,
       read_cps: read_cps,
       write_one_cps: write_one_cps,
       read_one_cps: read_one_cps
     }
+
+    Map.merge(results, cpu_info)
   end
 
   defp time_fun2(times, fun, arg) do
