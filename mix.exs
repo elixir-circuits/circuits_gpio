@@ -22,12 +22,7 @@ defmodule Circuits.GPIO.MixProject do
       aliases: [format: [&format_c/1, "format"]],
       start_permanent: Mix.env() == :prod,
       dialyzer: dialyzer(),
-      deps: deps(),
-      preferred_cli_env: %{
-        docs: :docs,
-        "hex.publish": :docs,
-        "hex.build": :docs
-      }
+      deps: deps()
     ]
   end
 
@@ -35,6 +30,10 @@ defmodule Circuits.GPIO.MixProject do
     # IMPORTANT: This provides a default at runtime and at compile-time when
     # circuits_gpio is pulled in as a dependency.
     [env: [default_backend: default_backend()], extra_applications: [:logger]]
+  end
+
+  def cli do
+    [preferred_envs: %{docs: :docs, "hex.publish": :docs, "hex.build": :docs}]
   end
 
   defp package do
@@ -56,8 +55,7 @@ defmodule Circuits.GPIO.MixProject do
       links: %{
         "Changelog" => "https://hexdocs.pm/#{@app}/changelog.html",
         "GitHub" => @source_url,
-        "REUSE Compliance" =>
-          "https://api.reuse.software/info/github.com/elixir-circuits/#{@app}"
+        "REUSE Compliance" => "https://api.reuse.software/info/github.com/elixir-circuits/#{@app}"
       }
     }
   end
