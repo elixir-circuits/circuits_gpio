@@ -172,7 +172,7 @@ static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
         return enif_make_badarg(env);
 
     if (!pin->config.is_output)
-        return enif_raise_exception(env, enif_make_atom(env, "pin_not_input"));
+        return enif_raise_exception(env, enif_make_atom(env, "pin_not_output"));
 
     // Make sure value is 0 or 1
     value = !!value;
