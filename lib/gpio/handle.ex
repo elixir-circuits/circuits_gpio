@@ -31,6 +31,11 @@ defprotocol Circuits.GPIO.Handle do
   @spec set_pull_mode(t(), GPIO.pull_mode()) :: :ok | {:error, atom()}
   def set_pull_mode(handle, mode)
 
+  # Set the drive mode
+  @doc false
+  @spec set_drive_mode(t(), GPIO.drive_mode()) :: :ok | {:error, atom()}
+  def set_drive_mode(handle, mode)
+
   # Free up resources associated with the handle
   #
   # Well behaved backends free up their resources with the help of the Erlang
