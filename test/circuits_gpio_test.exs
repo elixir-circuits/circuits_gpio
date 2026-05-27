@@ -91,7 +91,7 @@ defmodule Circuits.GPIOTest do
 
   describe "status/2" do
     test "all gpio_spec examples" do
-      expected = %{consumer: "", direction: :input, pull_mode: :none}
+      expected = %{consumer: "", direction: :input, pull_mode: :none, drive_mode: :push_pull}
 
       assert GPIO.status(5) == {:ok, expected}
       assert GPIO.status("pair_2_1") == {:ok, expected}
@@ -117,7 +117,8 @@ defmodule Circuits.GPIOTest do
                 %{
                   consumer: "stub",
                   direction: :output,
-                  pull_mode: :none
+                  pull_mode: :none,
+                  drive_mode: :push_pull
                 }}
 
       GPIO.close(gpio)
@@ -131,10 +132,84 @@ defmodule Circuits.GPIOTest do
                 %{
                   consumer: "stub",
                   direction: :input,
-                  pull_mode: :pullup
+                  pull_mode: :pullup,
+                  drive_mode: :push_pull
                 }}
 
       GPIO.close(gpio)
+    end
+  end
+
+  describe "drive_mode" do
+    test "can set drive mode in open" do
+      {:ok, gpio} = GPIO.open({@gpiochip, 0}, :output, drive_mode: :open_drain)
+
+      assert GPIO.status({@gpiochip, 0}) ==
+               {:ok,
+                %{
+                  consumer: "stub",
+                  direction: :output,
+                  pull_mode: :none,
+                  drive_mode: :open_drain
+                }}
+
+      GPIO.close(gpio)
+    end
+
+    test "can change drive mode after open" do
+      {:ok, gpio} = GPIO.open({@gpiochip, 0}, :output)
+      assert {:ok, %{drive_mode: :push_pull}} = GPIO.status({@gpiochip, 0})
+
+      :ok = GPIO.set_drive_mode(gpio, :open_source)
+      assert {:ok, %{drive_mode: :open_source}} = GPIO.status({@gpiochip, 0})
+
+      GPIO.close(gpio)
+    end
+
+    test "emulates open-drain in stub" do
+      # Pin 0 (output) connected to Pin 1 (input)
+      {:ok, out} = GPIO.open({@gpiochip, 0}, :output, drive_mode: :open_drain)
+      {:ok, p1} = GPIO.open({@gpiochip, 1}, :input, pull_mode: :pullup)
+
+      # 0 pulls line low
+      :ok = GPIO.write(out, 0)
+      assert GPIO.read(p1) == 0
+
+      # 1 floats, pullup makes it high
+      :ok = GPIO.write(out, 1)
+      assert GPIO.read(p1) == 1
+
+      # Turning off pullup causes it to float to 0
+      :ok = GPIO.set_pull_mode(p1, :none)
+      assert GPIO.read(p1) == 0
+
+      GPIO.close(out)
+      GPIO.close(p1)
+    end
+
+    test "emulates open-source in stub" do
+      # Pin 0 (output) connected to Pin 1 (input)
+      {:ok, out} = GPIO.open({@gpiochip, 0}, :output, drive_mode: :open_source)
+      {:ok, p1} = GPIO.open({@gpiochip, 1}, :input, pull_mode: :pulldown)
+
+      # 1 pulls line high
+      :ok = GPIO.write(out, 1)
+      assert GPIO.read(p1) == 1
+
+      # 0 floats, pulldown makes it low
+      :ok = GPIO.write(out, 0)
+      assert GPIO.read(p1) == 0
+
+      # Turning off pulldown causes it to float to 0
+      :ok = GPIO.set_pull_mode(p1, :none)
+      assert GPIO.read(p1) == 0
+
+      GPIO.close(out)
+      GPIO.close(p1)
+    end
+
+    test "raises ArgumentError for invalid drive modes" do
+      assert_raise ArgumentError, fn -> GPIO.open({@gpiochip, 0}, :output, drive_mode: :bogus) end
     end
   end
 
