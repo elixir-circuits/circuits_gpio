@@ -46,6 +46,12 @@ enum pull_mode {
     PULL_DOWN
 };
 
+enum drive_mode {
+    DRIVE_PUSH_PULL,
+    DRIVE_OPEN_DRAIN,
+    DRIVE_OPEN_SOURCE
+};
+
 struct gpio_priv {
     ErlNifResourceType *gpio_pin_rt;
 
@@ -56,6 +62,7 @@ struct gpio_config {
     bool is_output;
     enum trigger_mode trigger;
     enum pull_mode pull;
+    enum drive_mode drive;
     bool suppress_glitches;
     int initial_value;
     ErlNifPid pid;
@@ -185,6 +192,14 @@ int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env);
  * @return 0 on success
  */
 int hal_apply_pull_mode(struct gpio_pin *pin);
+
+/**
+ * Apply GPIO drive mode settings
+ *
+ * @param pin which one
+ * @return 0 on success
+ */
+int hal_apply_drive_mode(struct gpio_pin *pin);
 
 /**
  * Return a map that has runtime information about a GPIO

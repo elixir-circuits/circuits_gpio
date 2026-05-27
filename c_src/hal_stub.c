@@ -215,6 +215,12 @@ int hal_apply_pull_mode(struct gpio_pin *pin)
     return 0;
 }
 
+int hal_apply_drive_mode(struct gpio_pin *pin)
+{
+    (void) pin;
+    return 0;
+}
+
 ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
 {
     ERL_NIF_TERM gpio_list = enif_make_list(env, 0);

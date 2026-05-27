@@ -258,6 +258,20 @@ static int get_pull_mode(ErlNifEnv *env, ERL_NIF_TERM term, enum pull_mode *pull
     return true;
 }
 
+static int get_drive_mode(ErlNifEnv *env, ERL_NIF_TERM term, enum drive_mode *drive)
+{
+    char buffer[16];
+    if (!enif_get_atom(env, term, buffer, sizeof(buffer), ERL_NIF_LATIN1))
+        return false;
+
+    if (strcmp("push_pull", buffer) == 0) *drive = DRIVE_PUSH_PULL;
+    else if (strcmp("open_drain", buffer) == 0) *drive = DRIVE_OPEN_DRAIN;
+    else if (strcmp("open_source", buffer) == 0) *drive = DRIVE_OPEN_SOURCE;
+    else return false;
+
+    return true;
+}
+
 static ERL_NIF_TERM set_interrupts(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
@@ -328,6 +342,28 @@ static ERL_NIF_TERM set_pull_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM a
     return atom_ok;
 }
 
+static ERL_NIF_TERM set_drive_mode(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    struct gpio_priv *priv = enif_priv_data(env);
+    struct gpio_pin *pin;
+
+    if (argc != 2 ||
+            !enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin))
+        return enif_make_badarg(env);
+
+    struct gpio_config old_config = pin->config;
+    if (!get_drive_mode(env, argv[1], &pin->config.drive))
+        return enif_make_badarg(env);
+
+    int rc = hal_apply_drive_mode(pin);
+    if (rc < 0) {
+        pin->config = old_config;
+        return make_errno_error(env, rc);
+    }
+
+    return atom_ok;
+}
+
 static ERL_NIF_TERM get_status(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
@@ -352,13 +388,15 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     int offset;
     int initial_value;
     enum pull_mode pull;
+    enum drive_mode drive;
     char gpiochip_path[MAX_GPIOCHIP_PATH_LEN];
 
-    if (argc != 5 ||
+    if (argc != 6 ||
             !get_resolved_location(env, argv[1], gpiochip_path, &offset) ||
             !get_direction(env, argv[2], &is_output) ||
             !get_value(env, argv[3], &initial_value) ||
-            !get_pull_mode(env, argv[4], &pull))
+            !get_pull_mode(env, argv[4], &pull) ||
+            !get_drive_mode(env, argv[5], &drive))
         return enif_make_badarg(env);
 
     debug("open {%s, %d}", gpiochip_path, offset);
@@ -373,6 +411,7 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     pin->config.is_output = is_output;
     pin->config.trigger = TRIGGER_NONE;
     pin->config.pull = pull;
+    pin->config.drive = drive;
     pin->config.suppress_glitches = false;
     pin->config.initial_value = initial_value;
 
@@ -424,13 +463,14 @@ static ERL_NIF_TERM gpio_enumerate(ErlNifEnv *env, int argc, const ERL_NIF_TERM 
 }
 
 static ErlNifFunc nif_funcs[] = {
-    {"open", 5, open_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
+    {"open", 6, open_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
     {"close", 1, close_gpio, 0},
     {"read", 1, read_gpio, 0},
     {"write", 2, write_gpio, 0},
     {"set_interrupts", 4, set_interrupts, 0},
     {"set_direction", 2, set_direction, 0},
     {"set_pull_mode", 2, set_pull_mode, 0},
+    {"set_drive_mode", 2, set_drive_mode, 0},
     {"status", 1, get_status, 0},
     {"backend_info", 0, backend_info, 0},
     {"enumerate", 0, gpio_enumerate, 0}
