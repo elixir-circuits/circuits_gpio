@@ -152,6 +152,23 @@ pull-down is between 50K and 60K.  It is not possible to read back the current
 Pull-up/down settings, and GPIO pull-up pull-down resistor connections are
 maintained, even when the CPU is powered down.
 
+### GPIO drive mode
+
+To configure how an output GPIO pin is driven, call the `set_drive_mode`
+function:
+
+```elixir
+iex> Circuits.GPIO.set_drive_mode(gpio, :open_drain)
+:ok
+```
+
+Valid `drive_mode` values are `:push_pull`, `:open_drain`, or `:open_source`.
+
+The `:push_pull` drive mode is the default and drives the pin high or low
+actively. The `:open_drain` and `:open_source` only pull a line to low or high,
+respectively, and other states leave the line floating. Read more about open
+drain and open source [here](https://en.wikipedia.org/wiki/Open_collector)
+
 ## GPIO Specs
 
 `Circuits.GPIO` v2.0 supports a new form of specifying how to open a GPIO called
