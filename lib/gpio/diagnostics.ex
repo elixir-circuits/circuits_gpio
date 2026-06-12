@@ -322,9 +322,10 @@ defmodule Circuits.GPIO.Diagnostics do
     GPIO.write(out_gpio, 0)
     assert GPIO.read(in_gpio) == 0
 
-    # Check pullup by re-opening out_gpio as an input
+    # Check pullup by re-opening out_gpio as an input with no pull
+    # Note: the default pull_mode is :not_set.
     GPIO.close(out_gpio)
-    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :input)
+    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :input, pull_mode: :none)
 
     assert GPIO.read(in_gpio) == 1
 
@@ -345,9 +346,9 @@ defmodule Circuits.GPIO.Diagnostics do
     GPIO.write(out_gpio, 1)
     assert GPIO.read(in_gpio) == 1
 
-    # Check pulldown by re-opening out_gpio as an input
+    # Check pulldown by re-opening out_gpio as an input with no pull
     GPIO.close(out_gpio)
-    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :input)
+    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :input, pull_mode: :none)
 
     assert GPIO.read(in_gpio) == 0
 
