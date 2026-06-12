@@ -172,13 +172,28 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
     struct stub_priv *stub_priv = pin->hal_priv;
     int our_pin = pin->fd;
     int other_pin = our_pin ^ 1;
-    if (stub_priv->value[our_pin] != value) {
-        stub_priv->value[our_pin] = value;
-        maybe_send_notification(env, stub_priv->gpio_pins[our_pin], value);
+
+    // When drive_mode is :open_drain or :open_source, we need to first determine if the
+    // output is hi-Z (which is modeled by a value of -1)
+    bool is_open_drain = pin->config.drive == DRIVE_OPEN_DRAIN;
+    bool is_open_source = pin->config.drive == DRIVE_OPEN_SOURCE;
+
+    int target_value;
+    if (is_open_drain && value == 1) {
+        target_value = -1;
+    } else if (is_open_source && value == 0) {
+        target_value = -1;
+    } else {
+        target_value = value;
+    }
+
+    if (stub_priv->value[our_pin] != target_value) {
+        stub_priv->value[our_pin] = target_value;
+        maybe_send_notification(env, stub_priv->gpio_pins[our_pin], target_value);
 
         // Only notify other pin if it's not outputting a value.
         if (stub_priv->value[other_pin] == -1)
-            maybe_send_notification(env, stub_priv->gpio_pins[other_pin], value);
+            maybe_send_notification(env, stub_priv->gpio_pins[other_pin], target_value);
     }
     return 0;
 }
@@ -210,6 +225,12 @@ int hal_apply_direction(struct gpio_pin *pin)
 }
 
 int hal_apply_pull_mode(struct gpio_pin *pin)
+{
+    (void) pin;
+    return 0;
+}
+
+int hal_apply_drive_mode(struct gpio_pin *pin)
 {
     (void) pin;
     return 0;
@@ -271,6 +292,7 @@ int hal_get_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int off
 
     struct gpio_pin *pin = stub_priv->gpio_pins[pin_index];
     const char *pull_mode_str;
+    const char *drive_mode_str;
     int is_output;
     if (pin) {
         switch (pin->config.pull) {
@@ -284,15 +306,30 @@ int hal_get_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int off
             pull_mode_str = "none";
             break;
         }
+
+        switch (pin->config.drive) {
+        case DRIVE_OPEN_DRAIN:
+            drive_mode_str = "open_drain";
+            break;
+        case DRIVE_OPEN_SOURCE:
+            drive_mode_str = "open_source";
+            break;
+        default:
+            drive_mode_str = "push_pull";
+            break;
+        }
+
         is_output = pin->config.is_output;
     } else {
         is_output = 0;
         pull_mode_str = "none";
+        drive_mode_str = "push_pull";
     }
 
     enif_make_map_put(env, map, atom_consumer, consumer, &map);
     enif_make_map_put(env, map, enif_make_atom(env, "direction"), enif_make_atom(env, is_output ? "output" : "input"), &map);
     enif_make_map_put(env, map, enif_make_atom(env, "pull_mode"), enif_make_atom(env, pull_mode_str), &map);
+    enif_make_map_put(env, map, enif_make_atom(env, "drive_mode"), enif_make_atom(env, drive_mode_str), &map);
 
     *result = map;
     return 0;

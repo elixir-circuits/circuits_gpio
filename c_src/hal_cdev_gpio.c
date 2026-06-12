@@ -116,6 +116,18 @@ static uint64_t config_to_flags(const struct gpio_pin *pin)
         break;
     }
 
+    switch (pin->config.drive) {
+    case DRIVE_OPEN_DRAIN:
+        flags |= GPIO_V2_LINE_FLAG_OPEN_DRAIN;
+        break;
+    case DRIVE_OPEN_SOURCE:
+        flags |= GPIO_V2_LINE_FLAG_OPEN_SOURCE;
+        break;
+    case DRIVE_PUSH_PULL:
+    default:
+        break;
+    }
+
     switch (pin->config.trigger) {
     case TRIGGER_RISING:
         flags |= GPIO_V2_LINE_FLAG_EDGE_RISING;
@@ -316,6 +328,12 @@ int hal_apply_pull_mode(struct gpio_pin *pin)
     return refresh_config(pin);
 }
 
+int hal_apply_drive_mode(struct gpio_pin *pin)
+{
+    debug("hal_apply_drive_mode %s:%d", pin->gpiochip, pin->offset);
+    return refresh_config(pin);
+}
+
 ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
 {
     int i;
@@ -387,11 +405,20 @@ int hal_get_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int off
     else
         pull_mode_str = "none";
 
+    const char *drive_mode_str;
+    if (line.flags & GPIO_V2_LINE_FLAG_OPEN_DRAIN)
+        drive_mode_str = "open_drain";
+    else if (line.flags & GPIO_V2_LINE_FLAG_OPEN_SOURCE)
+        drive_mode_str = "open_source";
+    else
+        drive_mode_str = "push_pull";
+
     ERL_NIF_TERM map = enif_make_new_map(env);
     ERL_NIF_TERM consumer = make_string_binary(env, line.consumer);
     enif_make_map_put(env, map, atom_consumer, consumer, &map);
     enif_make_map_put(env, map, enif_make_atom(env, "direction"), enif_make_atom(env, is_output ? "output" : "input"), &map);
     enif_make_map_put(env, map, enif_make_atom(env, "pull_mode"), enif_make_atom(env, pull_mode_str), &map);
+    enif_make_map_put(env, map, enif_make_atom(env, "drive_mode"), enif_make_atom(env, drive_mode_str), &map);
 
     *result = map;
     return 0;

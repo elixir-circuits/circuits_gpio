@@ -119,10 +119,12 @@ defmodule Circuits.GPIO.CDev do
   def open(gpio_spec, direction, options) do
     value = Keyword.fetch!(options, :initial_value)
     pull_mode = Keyword.fetch!(options, :pull_mode)
+    drive_mode = Keyword.fetch!(options, :drive_mode)
 
     with {:ok, location} <- find_location(gpio_spec, options),
          resolved_location = resolve_gpiochip(location),
-         {:ok, ref} <- Nif.open(gpio_spec, resolved_location, direction, value, pull_mode) do
+         {:ok, ref} <-
+           Nif.open(gpio_spec, resolved_location, direction, value, pull_mode, drive_mode) do
       {:ok, %__MODULE__{ref: ref}}
     end
   end
@@ -151,6 +153,11 @@ defmodule Circuits.GPIO.CDev do
     @impl Handle
     def set_pull_mode(%Circuits.GPIO.CDev{ref: ref}, pull_mode) do
       Nif.set_pull_mode(ref, pull_mode)
+    end
+
+    @impl Handle
+    def set_drive_mode(%Circuits.GPIO.CDev{ref: ref}, drive_mode) do
+      Nif.set_drive_mode(ref, drive_mode)
     end
 
     @impl Handle

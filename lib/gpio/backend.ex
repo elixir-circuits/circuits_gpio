@@ -62,6 +62,8 @@ defmodule Circuits.GPIO.Backend do
   * :initial_value - Set to `0` or `1`. Only used for outputs. Defaults to `0`.
   * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
      input pin. `:not_set` is the default.
+  * :drive_mode - Set to `:push_pull`, `:open_drain`, or `:open_source`.
+     `:push_pull` is the default.
 
   Returns `{:ok, handle}` on success.
   """
