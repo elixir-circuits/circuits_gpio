@@ -99,7 +99,9 @@ defmodule Circuits.GPIO.Diagnostics do
       {"Input interrupts sent", &check_interrupts/3, []},
       {"Interrupt timing sane", &check_interrupt_timing/3, []},
       {"Internal pullup works", &check_pullup/3, []},
-      {"Internal pulldown works", &check_pulldown/3, []}
+      {"Internal pulldown works", &check_pulldown/3, []},
+      {"Open drain drive mode works", &check_open_drain/3, []},
+      {"Open source drive mode works", &check_open_source/3, []}
     ]
 
     tests
@@ -350,6 +352,82 @@ defmodule Circuits.GPIO.Diagnostics do
     GPIO.close(out_gpio)
     {:ok, out_gpio} = GPIO.open(out_gpio_spec, :input, pull_mode: :none)
 
+    assert GPIO.read(in_gpio) == 0
+
+    GPIO.close(out_gpio)
+    GPIO.close(in_gpio)
+  end
+
+  # Wait for a released line to settle through its weak pull resistor.
+  # Without a wait, the tests actually can fail. 1 ms should be much
+  # more than enough time.
+  defp settle(), do: Process.sleep(1)
+
+  @doc false
+  @spec check_open_drain(GPIO.gpio_spec(), GPIO.gpio_spec(), keyword()) :: :ok
+  def check_open_drain(out_gpio_spec, in_gpio_spec, _options) do
+    # Note that the pull_mode is set to :none since the default is to not change it.
+    {:ok, out_gpio} =
+      GPIO.open(out_gpio_spec, :output,
+        drive_mode: :open_drain,
+        pull_mode: :none,
+        initial_value: 1
+      )
+
+    {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input, pull_mode: :pullup)
+
+    # Writing a 1 releases the line, so the pullup should win
+    settle()
+    assert GPIO.read(in_gpio) == 1
+
+    # Writing a 0 actively drives the line low even with the pullup
+    GPIO.write(out_gpio, 0)
+    assert GPIO.read(in_gpio) == 0
+
+    # Stop driving the line. Input should follow its pull mode
+    GPIO.write(out_gpio, 1)
+    settle()
+    assert GPIO.read(in_gpio) == 1
+    :ok = GPIO.set_pull_mode(in_gpio, :pulldown)
+    settle()
+    assert GPIO.read(in_gpio) == 0
+    :ok = GPIO.set_pull_mode(in_gpio, :pullup)
+    settle()
+    assert GPIO.read(in_gpio) == 1
+
+    GPIO.close(out_gpio)
+    GPIO.close(in_gpio)
+  end
+
+  @doc false
+  @spec check_open_source(GPIO.gpio_spec(), GPIO.gpio_spec(), keyword()) :: :ok
+  def check_open_source(out_gpio_spec, in_gpio_spec, _options) do
+    {:ok, out_gpio} =
+      GPIO.open(out_gpio_spec, :output,
+        drive_mode: :open_source,
+        pull_mode: :none,
+        initial_value: 0
+      )
+
+    {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input, pull_mode: :pulldown)
+
+    # Writing a 0 releases the line, so the pulldown should win
+    settle()
+    assert GPIO.read(in_gpio) == 0
+
+    # Writing a 1 actively drives the line high even with the pulldown
+    GPIO.write(out_gpio, 1)
+    assert GPIO.read(in_gpio) == 1
+
+    # Stop driving the line. Input should follow its pull mode
+    GPIO.write(out_gpio, 0)
+    settle()
+    assert GPIO.read(in_gpio) == 0
+    :ok = GPIO.set_pull_mode(in_gpio, :pullup)
+    settle()
+    assert GPIO.read(in_gpio) == 1
+    :ok = GPIO.set_pull_mode(in_gpio, :pulldown)
+    settle()
     assert GPIO.read(in_gpio) == 0
 
     GPIO.close(out_gpio)
