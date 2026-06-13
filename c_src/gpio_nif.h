@@ -218,7 +218,22 @@ ERL_NIF_TERM make_errno_error(ErlNifEnv *env, int errno_value);
 ERL_NIF_TERM make_string_binary(ErlNifEnv *env, const char *str);
 int enif_get_boolean(ErlNifEnv *env, ERL_NIF_TERM term, bool *v);
 
+/**
+ * Send a GPIO interrupt message to a process
+ *
+ * @param env the caller's environment: the process bound environment when
+ *            called from a NIF or NULL when called from a custom thread
+ * @param msg_env a process independent environment for building the message.
+ *                It is cleared before this function returns so that it can be
+ *                reused.
+ * @param gpio_spec the GPIO spec term (may be from another environment)
+ * @param pid who to notify
+ * @param timestamp event timestamp in nanoseconds
+ * @param value the new GPIO value
+ * @return true on success (see enif_send)
+ */
 int send_gpio_message(ErlNifEnv *env,
+                      ErlNifEnv *msg_env,
                       ERL_NIF_TERM gpio_spec,
                       ErlNifPid *pid,
                       int64_t timestamp,

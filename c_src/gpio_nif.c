@@ -85,18 +85,27 @@ static ErlNifResourceTypeInit gpio_pin_init = {gpio_pin_dtor, gpio_pin_stop, gpi
 #endif
 
 int send_gpio_message(ErlNifEnv *env,
+                      ErlNifEnv *msg_env,
                       ERL_NIF_TERM gpio_spec,
                       ErlNifPid *pid,
                       int64_t timestamp,
                       int value)
 {
-    ERL_NIF_TERM msg = enif_make_tuple4(env,
+    // gpio_spec lives in the pin's environment, so it has to be copied to
+    // msg_env before it can be used in a term created there.
+    ERL_NIF_TERM msg = enif_make_tuple4(msg_env,
                                         atom_circuits_gpio,
-                                        gpio_spec,
-                                        enif_make_int64(env, timestamp),
-                                        enif_make_int(env, value));
+                                        enif_make_copy(msg_env, gpio_spec),
+                                        enif_make_int64(msg_env, timestamp),
+                                        enif_make_int(msg_env, value));
 
-    return enif_send(env, pid, NULL, msg);
+    int rc = enif_send(env, pid, msg_env, msg);
+
+    // Clear msg_env so that it can be reused. Not clearing it would leak the
+    // message terms until the environment is freed.
+    enif_clear_env(msg_env);
+
+    return rc;
 }
 
 static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
