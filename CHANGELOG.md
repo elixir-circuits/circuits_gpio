@@ -5,6 +5,17 @@
 
 # Changelog
 
+## v2.2.0 - 2026-06-12
+
+* Changes
+  * Support setting the drive mode for open drain/collector GPIOs. See the `:drive_mode` option. (@gworkman)
+  * Add drive mode verification to `Circuits.GPIO.Diagnostics`
+
+* Bug fixes
+  * Fix memory leak when receiving GPIO interrupts
+  * Fix false failure in `Circuits.GPIO.Diagnostics` when testing pull mode
+    support
+
 ## v2.1.3 - 2025-09-22
 
 IMPORTANT: Please upgrade to this version or newer since it fixes an issue where
