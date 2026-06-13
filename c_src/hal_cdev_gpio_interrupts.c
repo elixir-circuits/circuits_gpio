@@ -54,7 +54,7 @@ static void compact_listeners(struct gpio_monitor_info *infos)
     memset(&infos[write_pos], 0, remaining * sizeof(struct gpio_monitor_info));
 }
 
-static int handle_gpio_update(ErlNifEnv *env,
+static int handle_gpio_update(ErlNifEnv *msg_env,
                               struct gpio_monitor_info *info,
                               uint64_t timestamp,
                               int event_id)
@@ -63,13 +63,13 @@ static int handle_gpio_update(ErlNifEnv *env,
     int value = event_id == GPIO_V2_LINE_EVENT_RISING_EDGE ? 1 : 0;
 
     // Convert true/false return to the typical 0/negative returns of this file
-    if (send_gpio_message(env, info->gpio_spec, &info->pid, timestamp, value))
+    if (send_gpio_message(NULL, msg_env, info->gpio_spec, &info->pid, timestamp, value))
         return 0;
     else
         return -1;
 }
 
-static int process_gpio_events(ErlNifEnv *env,
+static int process_gpio_events(ErlNifEnv *msg_env,
                                struct gpio_monitor_info *info)
 {
     struct gpio_v2_line_event events[16];
@@ -81,7 +81,7 @@ static int process_gpio_events(ErlNifEnv *env,
 
     int num_events = amount_read / sizeof(struct gpio_v2_line_event);
     for (int i = 0; i < num_events; i++) {
-        if (handle_gpio_update(env,
+        if (handle_gpio_update(msg_env,
                                info,
                                events[i].timestamp_ns,
                                events[i].id) < 0) {
@@ -92,7 +92,7 @@ static int process_gpio_events(ErlNifEnv *env,
     return 0;
 }
 
-static void add_listener(ErlNifEnv *env, struct gpio_monitor_info *infos, const struct gpio_monitor_info *to_add)
+static void add_listener(struct gpio_monitor_info *infos, const struct gpio_monitor_info *to_add)
 {
     for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
         if (infos[i].trigger == TRIGGER_NONE || infos[i].fd == to_add->fd) {
@@ -124,7 +124,9 @@ void *gpio_poller_thread(void *arg)
     int *pipefd = arg;
     debug("gpio_poller_thread started");
 
-    ErlNifEnv *env = enif_alloc_env();
+    // Environment for building messages. It's cleared after each send so it
+    // can be allocated once and reused for the life of the thread.
+    ErlNifEnv *msg_env = enif_alloc_env();
 
     init_listeners(monitor_info);
     for (;;) {
@@ -169,7 +171,7 @@ void *gpio_poller_thread(void *arg)
         for (nfds_t i = 0; i < count - 1; i++) {
             short gpio_revents = fdset[i].revents;
             if (gpio_revents & POLLIN) {
-                if (process_gpio_events(env, &monitor_info[i]) < 0) {
+                if (process_gpio_events(msg_env, &monitor_info[i]) < 0) {
                     error("error processing gpio events for %d", monitor_info[i].offset);
                     monitor_info[i].trigger = TRIGGER_NONE;
                     cleanup = true;
@@ -190,7 +192,7 @@ void *gpio_poller_thread(void *arg)
             }
 
             if (message.trigger != TRIGGER_NONE)
-                add_listener(env, monitor_info, &message);
+                add_listener(monitor_info, &message);
             else
                 remove_listener(monitor_info, message.fd);
         }
@@ -200,7 +202,7 @@ void *gpio_poller_thread(void *arg)
             compact_listeners(monitor_info);
     }
 
-    enif_free_env(env);
+    enif_free_env(msg_env);
     debug("gpio_poller_thread ended");
     return NULL;
 }

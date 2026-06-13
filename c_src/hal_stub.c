@@ -163,7 +163,9 @@ static void maybe_send_notification(ErlNifEnv *env, struct gpio_pin *pin, int va
 
     if (send_it) {
         ErlNifTime now = enif_monotonic_time(ERL_NIF_NSEC);
-        send_gpio_message(env, pin->gpio_spec, &stub_priv->pid[pin->fd], now, value);
+        ErlNifEnv *msg_env = enif_alloc_env();
+        send_gpio_message(env, msg_env, pin->gpio_spec, &stub_priv->pid[pin->fd], now, value);
+        enif_free_env(msg_env);
     }
 }
 
