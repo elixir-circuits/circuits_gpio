@@ -49,4 +49,14 @@ defprotocol Circuits.GPIO.Handle do
   @doc false
   @spec set_interrupts(t(), GPIO.trigger(), GPIO.interrupt_options()) :: :ok | {:error, atom()}
   def set_interrupts(handle, trigger, options)
+
+  # Subscribe to change notifications, returning the ref/tag that's included in messages
+  @doc false
+  @spec subscribe(t(), GPIO.subscribe_options()) :: {:ok, term()} | {:error, atom()}
+  def subscribe(handle, options)
+
+  # Stop change notifications started with subscribe/2
+  @doc false
+  @spec unsubscribe(t()) :: :ok | {:error, atom()}
+  def unsubscribe(handle)
 end

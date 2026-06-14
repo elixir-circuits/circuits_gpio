@@ -181,6 +181,19 @@ defmodule Circuits.GPIO do
   """
   @type interrupt_options() :: [suppress_glitches: boolean(), receiver: pid() | atom()]
 
+  @typedoc """
+  Options for `subscribe/2`
+
+  * `:receiver` - process that should receive notifications. Defaults to the
+    calling process (`self()`).
+  * `:tag` - a term echoed in the `:ref` field of every notification instead of
+    the auto-generated reference. Use this to route messages with a
+    domain-specific label.
+  * `:trigger` - notify on `:rising` edges, `:falling` edges, or `:both`.
+    Defaults to `:both`.
+  """
+  @type subscribe_options() :: [trigger: trigger(), receiver: pid() | atom(), tag: term()]
+
   @doc """
   Guard version of `gpio_spec?/1`
 
@@ -380,6 +393,10 @@ defmodule Circuits.GPIO do
   @doc """
   Enable or disable GPIO value change notifications
 
+  New code should prefer `subscribe/2`, which delivers a map (with the value and
+  previous value) and returns a reference for matching messages. `set_interrupts/3`
+  remains for backwards compatibility and sends the tuple described below.
+
   Notifications are sent based on the trigger:
 
   * `:none` - No notifications are sent
@@ -414,6 +431,51 @@ defmodule Circuits.GPIO do
   """
   @spec set_interrupts(Handle.t(), trigger(), interrupt_options()) :: :ok | {:error, atom()}
   defdelegate set_interrupts(handle, trigger, options \\ []), to: Handle
+
+  @doc """
+  Subscribe to GPIO value change notifications
+
+  This is the preferred way to receive change notifications. It returns
+  `{:ok, ref}` where `ref` is a reference echoed in every notification so you can
+  match messages to this subscription.
+
+  Available options:
+
+  * `:receiver` - process that should receive notifications. Defaults to the
+    calling process (`self()`).
+  * `:tag` - a term echoed in the `:ref` field instead of the auto-generated
+    reference.
+  * `:trigger` - send notifications on the `:rising`, `:falling`, or `:both`
+    edges. Defaults to `:both`.
+
+  Notification messages are maps:
+
+  ```
+  {:circuits_gpio, %{ref: ref, timestamp: timestamp, value: value, previous_value: previous_value}}
+  ```
+
+  Where `ref` is the reference returned by this function (or your `:tag`),
+  `timestamp` is an OS monotonic timestamp in nanoseconds, `value` is the new
+  value (`0` or `1`), and `previous_value` is the value just before the change.
+
+  Timestamps are not necessarily the same as from `System.monotonic_time/0`.
+  For example, with the cdev backend, they're applied by the Linux kernel or
+  can come from a hardware timer. Erlang's monotonic time is adjusted so
+  it's not the same as OS monotonic time. The result is that these timestamps
+  can be compared with each other, but not with anything else.
+
+  NOTE: You will need to keep the handle from `open/3` (for example, in your
+  `GenServer`'s state) so that it isn't garbage collected. Notifications stop
+  when it is collected.
+  """
+  @spec subscribe(Handle.t(), subscribe_options()) :: {:ok, term()} | {:error, atom()}
+  defdelegate subscribe(handle, options \\ []), to: Handle
+
+  @doc """
+  Stop GPIO value change notifications started with `subscribe/2`
+  """
+  @spec unsubscribe(Handle.t()) :: :ok | {:error, atom()}
+  defdelegate unsubscribe(handle), to: Handle
 
   @doc """
   Change the direction of the pin

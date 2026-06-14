@@ -113,18 +113,21 @@ iex> Circuits.GPIO.read(gpio)
 ```
 
 If you'd like to get a message when the button is pressed or released, call the
-`set_interrupts` function. You can trigger on the `:rising` edge, `:falling`
-edge or `:both`.
+`subscribe/2` function.
 
 ```elixir
-iex> Circuits.GPIO.set_interrupts(gpio, :both)
-:ok
+iex> Circuits.GPIO.subscribe(gpio)
+{:ok, ref}
 
 iex> flush
-{:circuits_gpio, "GPIO17", 1233456, 1}
-{:circuits_gpio, "GPIO17", 1234567, 0}
+{:circuits_gpio, %{ref: ref, timestamp: 1233456, value: 1, previous_value: 0}}
+{:circuits_gpio, %{ref: ref, timestamp: 1233457, value: 0, previous_value: 1}}
 :ok
 ```
+
+You may see existing code use `set_interrupts/3`. It's similar, but sends a
+`{:circuits_gpio, gpio_spec, timestamp, value}` tuple. New code should use
+`subscribe/2`.
 
 ### Internal pull-up/pull-down
 

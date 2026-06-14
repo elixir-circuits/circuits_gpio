@@ -164,7 +164,13 @@ static void maybe_send_notification(ErlNifEnv *env, struct gpio_pin *pin, int va
     if (send_it) {
         ErlNifTime now = enif_monotonic_time(ERL_NIF_NSEC);
         ErlNifEnv *msg_env = enif_alloc_env();
-        send_gpio_message(env, msg_env, pin->gpio_spec, &stub_priv->pid[pin->fd], now, value);
+        if (pin->notify_map) {
+            // A single line's previous value is the opposite of the new value.
+            uint64_t v = value > 0 ? 1 : 0;
+            send_gpio_change(env, msg_env, pin->notify_id, &stub_priv->pid[pin->fd], now, v, v ^ 1);
+        } else {
+            send_gpio_message(env, msg_env, pin->gpio_spec, &stub_priv->pid[pin->fd], now, value);
+        }
         enif_free_env(msg_env);
     }
 }

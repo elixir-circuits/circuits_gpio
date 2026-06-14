@@ -320,123 +320,279 @@ defmodule Circuits.GPIOTest do
     GPIO.close(gpio)
   end
 
-  test "no initial interrupt on set_interrupts" do
-    {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
-    {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+  describe "set_interrupts/3" do
+    test "no initial interrupt on set_interrupts" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
 
-    :ok = GPIO.set_interrupts(gpio1, :both)
-    refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, _}
+      :ok = GPIO.set_interrupts(gpio1, :both)
+      refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, _}
 
-    GPIO.close(gpio0)
-    GPIO.close(gpio1)
-  end
+      GPIO.close(gpio0)
+      GPIO.close(gpio1)
+    end
 
-  test "interrupts on both edges" do
-    {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
-    {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
-
-    :ok = GPIO.set_interrupts(gpio1, :both)
-    refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, _}
-
-    :ok = GPIO.write(gpio0, 1)
-    assert_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 1}
-
-    :ok = GPIO.write(gpio0, 0)
-    assert_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 0}
-
-    GPIO.close(gpio0)
-    GPIO.close(gpio1)
-  end
-
-  test "interrupt with various specs" do
-    # Test that interrupts sent the original spec that they were opened with
-    for spec1 <- [33, "pair_16_1", {"stub1", "pair_16_1"}] do
-      {:ok, gpio0} = GPIO.open({"gpiochip1", 0}, :output)
-      {:ok, gpio1} = GPIO.open(spec1, :input)
+    test "interrupts on both edges" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
 
       :ok = GPIO.set_interrupts(gpio1, :both)
       refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, _}
 
       :ok = GPIO.write(gpio0, 1)
-      assert_receive {:circuits_gpio, ^spec1, _timestamp, 1}
+      assert_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 1}
 
       :ok = GPIO.write(gpio0, 0)
-      assert_receive {:circuits_gpio, ^spec1, _timestamp, 0}
+      assert_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 0}
 
       GPIO.close(gpio0)
       GPIO.close(gpio1)
     end
+
+    test "interrupt with various specs" do
+      # Test that interrupts sent the original spec that they were opened with
+      for spec1 <- [33, "pair_16_1", {"stub1", "pair_16_1"}] do
+        {:ok, gpio0} = GPIO.open({"gpiochip1", 0}, :output)
+        {:ok, gpio1} = GPIO.open(spec1, :input)
+
+        :ok = GPIO.set_interrupts(gpio1, :both)
+
+        :ok = GPIO.write(gpio0, 1)
+        assert_receive {:circuits_gpio, ^spec1, _timestamp, 1}
+
+        :ok = GPIO.write(gpio0, 0)
+        assert_receive {:circuits_gpio, ^spec1, _timestamp, 0}
+
+        refute_receive _
+        GPIO.close(gpio0)
+        GPIO.close(gpio1)
+      end
+    end
+
+    test "interrupts on falling edges" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+
+      :ok = GPIO.set_interrupts(gpio1, :falling)
+      refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, _}
+
+      :ok = GPIO.write(gpio0, 1)
+      refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 1}
+
+      :ok = GPIO.write(gpio0, 0)
+      assert_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 0}
+
+      GPIO.close(gpio0)
+      GPIO.close(gpio1)
+    end
+
+    test "interrupts on rising edges" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+
+      :ok = GPIO.set_interrupts(gpio1, :rising)
+      refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 0}
+
+      :ok = GPIO.write(gpio0, 1)
+      assert_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 1}
+
+      :ok = GPIO.write(gpio0, 0)
+      refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 0}
+
+      GPIO.close(gpio0)
+      GPIO.close(gpio1)
+    end
+
+    test "can disable interrupts" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+
+      :ok = GPIO.set_interrupts(gpio1, :both)
+      refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, _}
+
+      :ok = GPIO.write(gpio0, 1)
+      assert_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 1}
+
+      :ok = GPIO.set_interrupts(gpio1, :none)
+      :ok = GPIO.write(gpio0, 0)
+      refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 0}
+
+      GPIO.close(gpio0)
+      GPIO.close(gpio1)
+    end
+
+    test "no interrupts after closing" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+
+      :ok = GPIO.set_interrupts(gpio1, :both)
+      refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, _}
+
+      :ok = GPIO.write(gpio0, 1)
+      assert_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 1}
+
+      GPIO.close(gpio1)
+      Process.sleep(10)
+
+      :ok = GPIO.write(gpio0, 0)
+      refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 0}
+
+      GPIO.close(gpio0)
+    end
   end
 
-  test "interrupts on falling edges" do
-    {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
-    {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+  describe "subscribe/2" do
+    test "no initial interrupt" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
 
-    :ok = GPIO.set_interrupts(gpio1, :falling)
-    refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, _}
+      {:ok, _ref} = GPIO.subscribe(gpio1)
+      refute_receive _
 
-    :ok = GPIO.write(gpio0, 1)
-    refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 1}
+      GPIO.close(gpio0)
+      GPIO.close(gpio1)
+    end
 
-    :ok = GPIO.write(gpio0, 0)
-    assert_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 0}
+    test "interrupts on both edges" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
 
-    GPIO.close(gpio0)
-    GPIO.close(gpio1)
-  end
+      {:ok, ref} = GPIO.subscribe(gpio1)
+      refute_receive _
 
-  test "interrupts on rising edges" do
-    {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
-    {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+      :ok = GPIO.write(gpio0, 1)
+      assert_receive {:circuits_gpio, %{ref: ^ref, value: 1, previous_value: 0}}
 
-    :ok = GPIO.set_interrupts(gpio1, :rising)
-    refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 0}
+      :ok = GPIO.write(gpio0, 0)
+      assert_receive {:circuits_gpio, %{ref: ^ref, value: 0, previous_value: 1}}
 
-    :ok = GPIO.write(gpio0, 1)
-    assert_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 1}
+      refute_receive _
+      GPIO.close(gpio0)
+      GPIO.close(gpio1)
+    end
 
-    :ok = GPIO.write(gpio0, 0)
-    refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 0}
+    test "tag replaces the ref in notifications" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
 
-    GPIO.close(gpio0)
-    GPIO.close(gpio1)
-  end
+      {:ok, tag} = GPIO.subscribe(gpio1, tag: :button)
+      assert tag == :button
 
-  test "can disable interrupts" do
-    {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
-    {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+      :ok = GPIO.write(gpio0, 1)
+      assert_receive {:circuits_gpio, %{ref: :button, value: 1, previous_value: 0}}
 
-    :ok = GPIO.set_interrupts(gpio1, :both)
-    refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, _}
+      GPIO.close(gpio0)
+      GPIO.close(gpio1)
+    end
 
-    :ok = GPIO.write(gpio0, 1)
-    assert_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 1}
+    test "notifications go to the :receiver process" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
 
-    :ok = GPIO.set_interrupts(gpio1, :none)
-    :ok = GPIO.write(gpio0, 0)
-    refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 0}
+      parent = self()
+      receiver = spawn_link(fn -> receive do: (msg -> send(parent, {:got, msg})) end)
 
-    GPIO.close(gpio0)
-    GPIO.close(gpio1)
-  end
+      {:ok, ref} = GPIO.subscribe(gpio1, receiver: receiver)
 
-  test "no interrupts after closing" do
-    {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
-    {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+      :ok = GPIO.write(gpio0, 1)
+      assert_receive {:got, {:circuits_gpio, %{ref: ^ref, value: 1, previous_value: 0}}}
+      # The subscribing process itself gets nothing
+      refute_receive {:circuits_gpio, _}
 
-    :ok = GPIO.set_interrupts(gpio1, :both)
-    refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, _}
+      GPIO.close(gpio0)
+      GPIO.close(gpio1)
+    end
 
-    :ok = GPIO.write(gpio0, 1)
-    assert_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 1}
+    test "interrupt with various specs" do
+      # Test that interrupts sent the original spec that they were opened with
+      for spec1 <- [33, "pair_16_1", {"stub1", "pair_16_1"}] do
+        {:ok, gpio0} = GPIO.open({"gpiochip1", 0}, :output)
+        {:ok, gpio1} = GPIO.open(spec1, :input)
 
-    GPIO.close(gpio1)
-    Process.sleep(10)
+        {:ok, ref} = GPIO.subscribe(gpio1)
+        refute_receive _
 
-    :ok = GPIO.write(gpio0, 0)
-    refute_receive {:circuits_gpio, {@gpiochip, 1}, _timestamp, 0}
+        :ok = GPIO.write(gpio0, 1)
+        assert_receive {:circuits_gpio, %{ref: ^ref, value: 1, previous_value: 0}}
 
-    GPIO.close(gpio0)
+        :ok = GPIO.write(gpio0, 0)
+        assert_receive {:circuits_gpio, %{ref: ^ref, value: 0, previous_value: 1}}
+
+        GPIO.close(gpio0)
+        GPIO.close(gpio1)
+      end
+    end
+
+    test "interrupts on falling edges" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+
+      {:ok, ref} = GPIO.subscribe(gpio1, trigger: :falling)
+      refute_receive _
+
+      :ok = GPIO.write(gpio0, 1)
+      refute_receive _
+
+      :ok = GPIO.write(gpio0, 0)
+      assert_receive {:circuits_gpio, %{ref: ^ref, value: 0, previous_value: 1}}
+
+      GPIO.close(gpio0)
+      GPIO.close(gpio1)
+    end
+
+    test "interrupts on rising edges" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+
+      {:ok, ref} = GPIO.subscribe(gpio1, trigger: :rising)
+      refute_receive _
+
+      :ok = GPIO.write(gpio0, 1)
+      assert_receive {:circuits_gpio, %{ref: ^ref, value: 1, previous_value: 0}}
+
+      :ok = GPIO.write(gpio0, 0)
+      refute_receive _
+
+      GPIO.close(gpio0)
+      GPIO.close(gpio1)
+    end
+
+    test "can unsubscribe" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+
+      {:ok, ref} = GPIO.subscribe(gpio1)
+      refute_receive _
+
+      :ok = GPIO.write(gpio0, 1)
+      assert_receive {:circuits_gpio, %{ref: ^ref, value: 1, previous_value: 0}}
+
+      :ok = GPIO.unsubscribe(gpio1)
+      :ok = GPIO.write(gpio0, 0)
+      refute_receive _
+
+      GPIO.close(gpio0)
+      GPIO.close(gpio1)
+    end
+
+    test "no messages after closing" do
+      {:ok, gpio0} = GPIO.open({@gpiochip, 0}, :output)
+      {:ok, gpio1} = GPIO.open({@gpiochip, 1}, :input)
+
+      {:ok, ref} = GPIO.subscribe(gpio1)
+      refute_receive _
+
+      :ok = GPIO.write(gpio0, 1)
+      assert_receive {:circuits_gpio, %{ref: ^ref, value: 1, previous_value: 0}}
+
+      GPIO.close(gpio1)
+      Process.sleep(10)
+
+      :ok = GPIO.write(gpio0, 0)
+      refute_receive _
+
+      GPIO.close(gpio0)
+    end
   end
 
   test "opening as an output with no initial_value defaults to 0" do

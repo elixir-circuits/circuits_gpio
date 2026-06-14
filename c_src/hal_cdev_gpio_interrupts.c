@@ -29,13 +29,26 @@ struct gpio_monitor_info {
     enum trigger_mode trigger;
     int fd;
     int offset;
+    bool notify_map;
+    ErlNifEnv *env;
     ErlNifPid pid;
     ERL_NIF_TERM gpio_spec;
+    ERL_NIF_TERM notify_id;
 };
 
 static void init_listeners(struct gpio_monitor_info *infos)
 {
     memset(infos, 0, MAX_GPIO_LISTENERS * sizeof(struct gpio_monitor_info));
+}
+
+static void clear_listener(struct gpio_monitor_info *info)
+{
+    if (info->env) {
+        enif_free_env(info->env);
+        info->env = NULL;
+    }
+
+    memset(info, 0, sizeof(struct gpio_monitor_info));
 }
 
 static void compact_listeners(struct gpio_monitor_info *infos)
@@ -63,10 +76,14 @@ static int handle_gpio_update(ErlNifEnv *msg_env,
     int value = event_id == GPIO_V2_LINE_EVENT_RISING_EDGE ? 1 : 0;
 
     // Convert true/false return to the typical 0/negative returns of this file
-    if (send_gpio_message(NULL, msg_env, info->gpio_spec, &info->pid, timestamp, value))
-        return 0;
+    int rc;
+    if (info->notify_map)
+        // A single line's previous value is the opposite of the new value.
+        rc = send_gpio_change(NULL, msg_env, info->notify_id, &info->pid, timestamp, value, value ^ 1);
     else
-        return -1;
+        rc = send_gpio_message(NULL, msg_env, info->gpio_spec, &info->pid, timestamp, value);
+
+    return rc ? 0 : -1;
 }
 
 static int process_gpio_events(ErlNifEnv *msg_env,
@@ -94,13 +111,21 @@ static int process_gpio_events(ErlNifEnv *msg_env,
 
 static void add_listener(struct gpio_monitor_info *infos, const struct gpio_monitor_info *to_add)
 {
+    // The message owns its term environment (see update_polling_thread). Taking
+    // the message by value transfers that ownership to the listener slot, so the
+    // poller never dereferences the pin's environment.
     for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
         if (infos[i].trigger == TRIGGER_NONE || infos[i].fd == to_add->fd) {
-            memcpy(&infos[i], to_add, sizeof(struct gpio_monitor_info));
+            clear_listener(&infos[i]);
+            infos[i] = *to_add;
             return;
         }
     }
     error("Too many gpio listeners. Max is %d", MAX_GPIO_LISTENERS);
+
+    // No slot available, so free the environment that would have been adopted.
+    if (to_add->env)
+        enif_free_env(to_add->env);
 }
 
 static void remove_listener(struct gpio_monitor_info *infos, int fd)
@@ -109,7 +134,7 @@ static void remove_listener(struct gpio_monitor_info *infos, int fd)
     bool cleanup = false;
     for (int i = 0; i < MAX_GPIO_LISTENERS; i++) {
         if (infos[i].fd == fd) {
-            infos[i].trigger = TRIGGER_NONE;
+            clear_listener(&infos[i]);
             cleanup = true;
         }
     }
@@ -173,12 +198,12 @@ void *gpio_poller_thread(void *arg)
             if (gpio_revents & POLLIN) {
                 if (process_gpio_events(msg_env, &monitor_info[i]) < 0) {
                     error("error processing gpio events for %d", monitor_info[i].offset);
-                    monitor_info[i].trigger = TRIGGER_NONE;
+                    clear_listener(&monitor_info[i]);
                     cleanup = true;
                 }
             } else if (gpio_revents & (POLLERR | POLLHUP | POLLNVAL)) {
                 error("error listening on gpio %d", monitor_info[i].offset);
-                monitor_info[i].trigger = TRIGGER_NONE;
+                clear_listener(&monitor_info[i]);
                 cleanup = true;
             }
         }
@@ -202,6 +227,9 @@ void *gpio_poller_thread(void *arg)
             compact_listeners(monitor_info);
     }
 
+    for (int i = 0; i < MAX_GPIO_LISTENERS; i++)
+        clear_listener(&monitor_info[i]);
+
     enif_free_env(msg_env);
     debug("gpio_poller_thread ended");
     return NULL;
@@ -212,13 +240,29 @@ int update_polling_thread(struct gpio_pin *pin)
     struct hal_cdev_gpio_priv *priv = (struct hal_cdev_gpio_priv *) pin->hal_priv;
 
     struct gpio_monitor_info message;
+    memset(&message, 0, sizeof(message));
     message.trigger = pin->config.trigger;
     message.fd = pin->fd;
     message.offset = pin->offset;
-    message.gpio_spec = pin->gpio_spec;
+    message.notify_map = pin->notify_map;
     message.pid = pin->config.pid;
+
+    // For an active subscription, copy the term the poller will echo into an
+    // environment owned by the message. This happens on the caller's thread
+    // while pin->env is valid, so the poller never has to dereference pin->env
+    // (which this thread may clear on re-subscribe or free on close).
+    if (pin->config.trigger != TRIGGER_NONE) {
+        message.env = enif_alloc_env();
+        if (pin->notify_map)
+            message.notify_id = enif_make_copy(message.env, pin->notify_id);
+        else
+            message.gpio_spec = enif_make_copy(message.env, pin->gpio_spec);
+    }
+
     if (write(priv->pipe_fds[1], &message, sizeof(message)) != sizeof(message)) {
         error("Error writing polling thread!");
+        if (message.env)
+            enif_free_env(message.env);
         return -1;
     }
     return 0;

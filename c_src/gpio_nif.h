@@ -77,7 +77,15 @@ struct gpio_pin {
 
     // NIF environment for holding on to the gpio_spec term
     ErlNifEnv *env;
+
+    // Used by set_interrupts/3 notifications ({:circuits_gpio, spec, ...})
     ERL_NIF_TERM gpio_spec;
+
+    // Used by subscribe/2 notifications ({:circuits_gpio, %{ref: ..., ...}}).
+    ERL_NIF_TERM notify_id;
+
+    // true to use subscribe/2 notification format
+    bool notify_map;
 };
 
 // Atoms
@@ -89,6 +97,10 @@ extern ERL_NIF_TERM atom_location;
 extern ERL_NIF_TERM atom_controller;
 extern ERL_NIF_TERM atom_circuits_gpio;
 extern ERL_NIF_TERM atom_consumer;
+extern ERL_NIF_TERM atom_ref;
+extern ERL_NIF_TERM atom_timestamp;
+extern ERL_NIF_TERM atom_value;
+extern ERL_NIF_TERM atom_previous_value;
 
 // HAL
 
@@ -239,4 +251,29 @@ int send_gpio_message(ErlNifEnv *env,
                       int64_t timestamp,
                       int value);
 
+/**
+ * Send a GPIO change notification (subscribe/2 map format) to a process
+ *
+ * Builds {:circuits_gpio, %{ref: notify_id, timestamp: ts, value: value,
+ * previous_value: previous_value}}.
+ *
+ * @param env the caller's environment: the process bound environment when
+ *            called from a NIF or NULL when called from a custom thread
+ * @param msg_env a process independent environment for building the message.
+ *                It is cleared before this function returns so that it can be
+ *                reused.
+ * @param notify_id the ref/tag term to echo (may be from another environment)
+ * @param pid who to notify
+ * @param timestamp event timestamp in nanoseconds
+ * @param value the new group value bitmap
+ * @param previous_value the group value bitmap before this change
+ * @return true on success (see enif_send)
+ */
+int send_gpio_change(ErlNifEnv *env,
+                     ErlNifEnv *msg_env,
+                     ERL_NIF_TERM notify_id,
+                     ErlNifPid *pid,
+                     int64_t timestamp,
+                     uint64_t value,
+                     uint64_t previous_value);
 #endif // GPIO_NIF_H

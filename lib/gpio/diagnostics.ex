@@ -97,6 +97,7 @@ defmodule Circuits.GPIO.Diagnostics do
       {"Can set 0 on open", &check_setting_initial_value/3, value: 0},
       {"Can set 1 on open", &check_setting_initial_value/3, value: 1},
       {"Input interrupts sent", &check_interrupts/3, []},
+      {"Subscribe notifications sent", &check_subscribe/3, []},
       {"Interrupt timing sane", &check_interrupt_timing/3, []},
       {"Internal pullup works", &check_pullup/3, []},
       {"Internal pulldown works", &check_pulldown/3, []},
@@ -281,24 +282,54 @@ defmodule Circuits.GPIO.Diagnostics do
   end
 
   @doc false
+  @spec check_subscribe(GPIO.gpio_spec(), GPIO.gpio_spec(), keyword()) :: :ok
+  def check_subscribe(out_gpio_spec, in_gpio_spec, _options) do
+    {:ok, out_gpio} = GPIO.open(out_gpio_spec, :output, initial_value: 0)
+    {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input)
+
+    {:ok, ref} = GPIO.subscribe(in_gpio)
+
+    # No initial notification
+    refute_receive {:circuits_gpio, _}
+
+    # Toggle enough times to avoid being tricked by something that
+    # works a few times and then stops.
+    for _ <- 1..64 do
+      GPIO.write(out_gpio, 1)
+      _ = assert_receive {:circuits_gpio, %{ref: ^ref, value: 1, previous_value: 0}}
+
+      GPIO.write(out_gpio, 0)
+      _ = assert_receive {:circuits_gpio, %{ref: ^ref, value: 0, previous_value: 1}}
+    end
+
+    # Unsubscribing stops notifications
+    :ok = GPIO.unsubscribe(in_gpio)
+    GPIO.write(out_gpio, 1)
+    refute_receive {:circuits_gpio, _}
+
+    GPIO.close(out_gpio)
+    GPIO.close(in_gpio)
+  end
+
+  @doc false
   @spec check_interrupt_timing(GPIO.gpio_spec(), GPIO.gpio_spec(), keyword()) :: :ok
   def check_interrupt_timing(out_gpio_spec, in_gpio_spec, _options) do
     {:ok, out_gpio} = GPIO.open(out_gpio_spec, :output, initial_value: 0)
     {:ok, in_gpio} = GPIO.open(in_gpio_spec, :input)
 
-    :ok = GPIO.set_interrupts(in_gpio, :both)
+    {:ok, ref} = GPIO.subscribe(in_gpio)
 
     # No notifications until something changes
-    refute_receive {:circuits_gpio, _, _, _}
+    refute_receive {:circuits_gpio, _}
 
     GPIO.write(out_gpio, 1)
-    {_, _, first_ns, _} = assert_receive {:circuits_gpio, ^in_gpio_spec, _, 1}
+    {_, %{timestamp: first_ns}} = assert_receive {:circuits_gpio, %{ref: ^ref, value: 1}}
 
     GPIO.write(out_gpio, 0)
-    {_, _, second_ns, _} = assert_receive {:circuits_gpio, ^in_gpio_spec, _, 0}
+    {_, %{timestamp: second_ns}} = assert_receive {:circuits_gpio, %{ref: ^ref, value: 0}}
 
     # No notifications after this
-    refute_receive {:circuits_gpio, _, _, _}
+    refute_receive {:circuits_gpio, _}
 
     GPIO.close(out_gpio)
     GPIO.close(in_gpio)

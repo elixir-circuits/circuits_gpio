@@ -24,6 +24,10 @@ ERL_NIF_TERM atom_location;
 ERL_NIF_TERM atom_controller;
 ERL_NIF_TERM atom_circuits_gpio;
 ERL_NIF_TERM atom_consumer;
+ERL_NIF_TERM atom_ref;
+ERL_NIF_TERM atom_timestamp;
+ERL_NIF_TERM atom_value;
+ERL_NIF_TERM atom_previous_value;
 
 #ifdef DEBUG
 FILE *log_location = NULL;
@@ -39,6 +43,16 @@ static void release_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
         hal_close_gpio(pin);
         pin->fd = -1;
     }
+}
+
+static void set_pin_terms(struct gpio_pin *pin,
+                          ERL_NIF_TERM gpio_spec,
+                          bool notify_map,
+                          ERL_NIF_TERM notify_id)
+{
+    enif_clear_env(pin->env);
+    pin->gpio_spec = enif_make_copy(pin->env, gpio_spec);
+    pin->notify_id = notify_map ? enif_make_copy(pin->env, notify_id) : 0;
 }
 
 static void gpio_pin_dtor(ErlNifEnv *env, void *obj)
@@ -108,6 +122,31 @@ int send_gpio_message(ErlNifEnv *env,
     return rc;
 }
 
+int send_gpio_change(ErlNifEnv *env,
+                     ErlNifEnv *msg_env,
+                     ERL_NIF_TERM notify_id,
+                     ErlNifPid *pid,
+                     int64_t timestamp,
+                     uint64_t value,
+                     uint64_t previous_value)
+{
+    // notify_id lives in the pin's environment, so it has to be copied to
+    // msg_env before it can be used in a term created there.
+    ERL_NIF_TERM map = enif_make_new_map(msg_env);
+    enif_make_map_put(msg_env, map, atom_ref, enif_make_copy(msg_env, notify_id), &map);
+    enif_make_map_put(msg_env, map, atom_timestamp, enif_make_int64(msg_env, timestamp), &map);
+    enif_make_map_put(msg_env, map, atom_value, enif_make_uint64(msg_env, value), &map);
+    enif_make_map_put(msg_env, map, atom_previous_value, enif_make_uint64(msg_env, previous_value), &map);
+
+    ERL_NIF_TERM msg = enif_make_tuple2(msg_env, atom_circuits_gpio, map);
+
+    int rc = enif_send(env, pid, msg_env, msg);
+
+    enif_clear_env(msg_env);
+
+    return rc;
+}
+
 static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
 {
     (void) info;
@@ -126,6 +165,10 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
     atom_controller = enif_make_atom(env, "controller");
     atom_circuits_gpio = enif_make_atom(env, "circuits_gpio");
     atom_consumer = enif_make_atom(env, "consumer");
+    atom_ref = enif_make_atom(env, "ref");
+    atom_timestamp = enif_make_atom(env, "timestamp");
+    atom_value = enif_make_atom(env, "value");
+    atom_previous_value = enif_make_atom(env, "previous_value");
 
     size_t extra_size = hal_priv_size();
     struct gpio_priv *priv = enif_alloc(sizeof(struct gpio_priv) + extra_size);
@@ -297,6 +340,7 @@ static ERL_NIF_TERM set_interrupts(ErlNifEnv *env, int argc, const ERL_NIF_TERM 
         pin->config = old_config;
         return enif_make_badarg(env);
     }
+    pin->notify_map = false;
 
     int rc = hal_apply_interrupts(pin, env);
     if (rc < 0) {
@@ -304,6 +348,64 @@ static ERL_NIF_TERM set_interrupts(ErlNifEnv *env, int argc, const ERL_NIF_TERM 
         return make_errno_error(env, rc);
     }
 
+    return atom_ok;
+}
+
+static ERL_NIF_TERM subscribe(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    struct gpio_priv *priv = enif_priv_data(env);
+    struct gpio_pin *pin;
+
+    // subscribe(resource, notify_id, trigger, pid)
+    if (argc != 4 ||
+            !enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin))
+        return enif_make_badarg(env);
+
+    struct gpio_config old_config = pin->config;
+    bool old_notify_map = pin->notify_map;
+    ERL_NIF_TERM old_gpio_spec = enif_make_copy(env, pin->gpio_spec);
+    ERL_NIF_TERM old_notify_id = old_notify_map ? enif_make_copy(env, pin->notify_id) : 0;
+    if (!get_trigger(env, argv[2], &pin->config.trigger) ||
+            !enif_get_local_pid(env, argv[3], &pin->config.pid)) {
+        pin->config = old_config;
+        return enif_make_badarg(env);
+    }
+
+    // A single line's previous_value is always the opposite of the new value
+    // (an edge toggles it), so no value needs to be sampled here.
+    pin->notify_map = true;
+    set_pin_terms(pin, old_gpio_spec, true, argv[1]);
+
+    int rc = hal_apply_interrupts(pin, env);
+    if (rc < 0) {
+        pin->config = old_config;
+        pin->notify_map = old_notify_map;
+        set_pin_terms(pin, old_gpio_spec, old_notify_map, old_notify_id);
+        return make_errno_error(env, rc);
+    }
+
+    return atom_ok;
+}
+
+static ERL_NIF_TERM unsubscribe(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    struct gpio_priv *priv = enif_priv_data(env);
+    struct gpio_pin *pin;
+
+    if (argc != 1 ||
+            !enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin))
+        return enif_make_badarg(env);
+
+    struct gpio_config old_config = pin->config;
+    pin->config.trigger = TRIGGER_NONE;
+
+    int rc = hal_apply_interrupts(pin, env);
+    if (rc < 0) {
+        pin->config = old_config;
+        return make_errno_error(env, rc);
+    }
+
+    pin->notify_map = false;
     return atom_ok;
 }
 
@@ -416,6 +518,8 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     pin->offset = offset;
     pin->env = enif_alloc_env();
     pin->gpio_spec = enif_make_copy(pin->env, argv[0]);
+    pin->notify_id = 0;
+    pin->notify_map = false;
     pin->hal_priv = priv->hal_priv;
     pin->config.is_output = is_output;
     pin->config.trigger = TRIGGER_NONE;
@@ -477,6 +581,8 @@ static ErlNifFunc nif_funcs[] = {
     {"read", 1, read_gpio, 0},
     {"write", 2, write_gpio, 0},
     {"set_interrupts", 4, set_interrupts, 0},
+    {"subscribe", 4, subscribe, 0},
+    {"unsubscribe", 1, unsubscribe, 0},
     {"set_direction", 2, set_direction, 0},
     {"set_pull_mode", 2, set_pull_mode, 0},
     {"set_drive_mode", 2, set_drive_mode, 0},

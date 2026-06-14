@@ -25,6 +25,9 @@ defmodule Circuits.GPIO.Nif do
   def set_interrupts(_gpio, _trigger, _suppress_glitches, _process),
     do: :erlang.nif_error(:nif_not_loaded)
 
+  def subscribe(_gpio, _notify_id, _trigger, _process), do: :erlang.nif_error(:nif_not_loaded)
+  def unsubscribe(_gpio), do: :erlang.nif_error(:nif_not_loaded)
+
   def set_direction(_gpio, _direction), do: :erlang.nif_error(:nif_not_loaded)
   def set_pull_mode(_gpio, _pull_mode), do: :erlang.nif_error(:nif_not_loaded)
   def set_drive_mode(_gpio, _drive_mode), do: :erlang.nif_error(:nif_not_loaded)

@@ -163,20 +163,36 @@ defmodule Circuits.GPIO.CDev do
     @impl Handle
     def set_interrupts(%Circuits.GPIO.CDev{ref: ref}, trigger, options) do
       suppress_glitches = Keyword.get(options, :suppress_glitches, true)
+      Nif.set_interrupts(ref, trigger, suppress_glitches, resolve_receiver(options))
+    end
 
-      receiver =
-        case Keyword.get(options, :receiver) do
-          pid when is_pid(pid) -> pid
-          name when is_atom(name) -> Process.whereis(name) || self()
-          _ -> self()
-        end
+    @impl Handle
+    def subscribe(%Circuits.GPIO.CDev{ref: ref}, options) do
+      notify_id = Keyword.get(options, :tag) || make_ref()
+      trigger = Keyword.get(options, :trigger) || :both
 
-      Nif.set_interrupts(ref, trigger, suppress_glitches, receiver)
+      case Nif.subscribe(ref, notify_id, trigger, resolve_receiver(options)) do
+        :ok -> {:ok, notify_id}
+        error -> error
+      end
+    end
+
+    @impl Handle
+    def unsubscribe(%Circuits.GPIO.CDev{ref: ref}) do
+      Nif.unsubscribe(ref)
     end
 
     @impl Handle
     def close(%Circuits.GPIO.CDev{ref: ref}) do
       Nif.close(ref)
+    end
+
+    defp resolve_receiver(options) do
+      case Keyword.get(options, :receiver) do
+        pid when is_pid(pid) -> pid
+        name when is_atom(name) and not is_nil(name) -> Process.whereis(name) || self()
+        _ -> self()
+      end
     end
   end
 end
