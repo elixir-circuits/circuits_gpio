@@ -1,0 +1,156 @@
+# Reading a rotary encoder with multi-GPIO
+
+```elixir
+Mix.install([
+  {:circuits_gpio, "~> 2.3"},
+  {:kino, "~> 0.14"}
+])
+```
+
+## What's a rotary encoder?
+
+A [rotary encoder](https://en.wikipedia.org/wiki/Incremental_encoder) is an
+"infinite spinning knob" you find on volume controls and 3D printers. As you
+turn it, it produces two square waves, `A` and `B`, that are 90° out of phase.
+The order in which `A` and `B` change tells you the direction, and counting the
+changes tells you how far it turned.
+
+The four states cycle in Gray-code order (only one bit changes at a time):
+
+```
+turning one way:   00 → 01 → 11 → 10 → 00 → ...
+turning the other: 00 → 10 → 11 → 01 → 00 → ...
+```
+
+`Circuits.GPIO` supports opening multiple GPIO lines as a group. This allows
+you to read both `A` and `B` together as a single 2-bit value.
+
+## Wiring
+
+| Encoder pin | Connects to                  |
+| ----------- | ---------------------------- |
+| `A`         | a GPIO (e.g. `GPIO17`)       |
+| `B`         | another GPIO (e.g. `GPIO27`) |
+| `GND`       | ground                       |
+
+We'll enable the internal pull-ups so the lines idle high when the encoder's
+switches are open. If the encoder includes external pull-up resistors, then
+this is unneeded, but harmless.
+
+```elixir
+# Adjust these to match your wiring. They can be GPIO numbers, labels, or
+# {controller, line} tuples. The order matters: the first is bit 0.
+
+# GPIOs for the Nerves Starter Kit. Replace for other boards.
+a_spec = "PE13"
+b_spec = "PE2"
+```
+
+## Open A and B as a group
+
+Pass a list of GPIO specs to `open/3` to get a single handle for both lines.
+`read/1` returns a 2-bit value: bit 0 is `A` (the first spec) and bit 1 is `B`
+(the second spec).
+
+```elixir
+{:ok, encoder} = Circuits.GPIO.open([a_spec, b_spec], :input, pull_mode: :pullup)
+
+# A single value with both lines sampled together. Turn the knob and re-run.
+result = Circuits.GPIO.read(encoder)
+
+Circuits.GPIO.close(encoder)
+```
+
+## Decoding direction
+
+Each time a line changes, the encoder moves from one 2-bit state to the next.
+Looking up the `(previous_state, new_state)` pair in a small table tells us
+whether that was a step clockwise (`+1`), counter-clockwise (`-1`), or an
+invalid transition caused by switch bounce (`0`, which we simply ignore).
+
+```elixir
+defmodule RotaryEncoder do
+  import Bitwise
+
+  # Key is (previous_value <<< 2) ||| value. Only the eight valid Gray-code
+  # transitions are listed; anything else (no movement or a bounce) is 0.
+  @transitions %{
+    0b0001 => +1,
+    0b0111 => +1,
+    0b1110 => +1,
+    0b1000 => +1,
+    0b0010 => -1,
+    0b0100 => -1,
+    0b1011 => -1,
+    0b1101 => -1
+  }
+
+  @doc "Direction of a transition from `previous_value` to `value`: +1, -1, or 0."
+  def delta(previous_value, value) do
+    Map.get(@transitions, previous_value <<< 2 ||| value, 0)
+  end
+end
+
+# A clockwise step from 00 -> 01:
+RotaryEncoder.delta(0b00, 0b01)
+```
+
+## Live position counter
+
+Now subscribe to the group and turn each notification into a running position.
+
+`subscribe/2` returns `{:ok, ref}` and then sends a message on every change:
+
+`{:circuits_gpio, %{ref: ref, timestamp: ts, value: value, previous_value: previous_value}}`
+
+<!-- livebook:{"break_markdown":true} -->
+
+Because the handle wraps both lines, `value` and `previous_value` are the full
+2-bit states before and after the change — we can hand them straight to
+`RotaryEncoder.delta/2`. No need to track the previous state ourselves.
+
+```elixir
+position_frame = Kino.Frame.new()
+```
+
+```elixir
+# Run the reader in its own process so the encoder handle stays alive (a handle
+# that gets garbage collected stops sending notifications) and so it owns the
+# subscription. Turn the knob and watch the frame above update.
+reader =
+  spawn(fn ->
+    {:ok, encoder} = Circuits.GPIO.open([a_spec, b_spec], :input, pull_mode: :pullup)
+    {:ok, _ref} = Circuits.GPIO.subscribe(encoder)
+
+    loop = fn loop, position ->
+      receive do
+        {:circuits_gpio, %{value: value, previous_value: previous_value}} ->
+          position = position + RotaryEncoder.delta(previous_value, value)
+          Kino.Frame.render(position_frame, Kino.Markdown.new("## Position: `#{position}`"))
+          loop.(loop, position)
+      end
+    end
+
+    Kino.Frame.render(position_frame, Kino.Markdown.new("## Position: `0`"))
+    loop.(loop, 0)
+  end)
+```
+
+When you're done, stop the reader process (closing its handle and the
+subscription):
+
+```elixir
+Process.exit(reader, :kill)
+```
+
+## Notes
+
+* The transition table is a full-step quadrature decoder. Some encoders produce
+  four state changes per physical "detent," so `position` may move by 4 per
+  click — divide if you want one count per detent.
+* Invalid transitions (from contact bounce) map to `0`, so they're harmless. For
+  noisy encoders you can still add an [RC filter](https://en.wikipedia.org/wiki/Low-pass_filter)
+  or debounce in software.
+* This same pattern — open related lines as a group, decode `value`/
+  `previous_value` on each notification — works for any small parallel signal,
+  like a 2-bit mode switch or a Gray-coded absolute position sensor.

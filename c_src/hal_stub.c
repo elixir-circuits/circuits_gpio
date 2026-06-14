@@ -16,15 +16,17 @@
  *
  * gpiochip0 -> 32 GPIOs. GPIO 0 is connected to GPIO 1, 2 to 3, and so on.
  * gpiochip1 -> 32 GPIOs. GPIO 0 is connected to GPIO 1, 2 to 3, and so on.
+ *
+ * GPIOs can be opened individually or as a group. The state for each line is
+ * tracked globally (indexed by the combined chip+offset) so that loopback and
+ * notifications work regardless of how the lines were grouped at open time.
  */
 
 struct stub_priv {
     atomic_int pins_open;
-    int in_use[NUM_GPIOS]; // 0=no; 1=yes
+    int in_use[NUM_GPIOS]; // 0=no; >0=yes
     int value[NUM_GPIOS]; // -1, 0, 1 -> -1=hiZ
-    struct gpio_pin *gpio_pins[NUM_GPIOS];
-    ErlNifPid pid[NUM_GPIOS];
-    enum trigger_mode mode[NUM_GPIOS];
+    struct gpio_pin *owner[NUM_GPIOS]; // group that opened this line, or NULL
 };
 
 ERL_NIF_TERM hal_info(ErlNifEnv *env, void *hal_priv, ERL_NIF_TERM info)
@@ -63,69 +65,30 @@ void hal_unload(void *hal_priv)
     (void) hal_priv;
 }
 
-int hal_open_gpio(struct gpio_pin *pin,
-                  ErlNifEnv *env)
+// Return the global line index base for a gpiochip, or -1 if unknown.
+static int chip_base(const char *gpiochip)
 {
-    struct stub_priv *stub_priv = pin->hal_priv;
-    int pin_base;
-
-    if (strcmp(pin->gpiochip, "gpiochip0") == 0 ||
-            strcmp(pin->gpiochip, "/dev/gpiochip0") == 0) {
-        pin_base = 0;
-    } else if (strcmp(pin->gpiochip, "gpiochip1") == 0 ||
-               strcmp(pin->gpiochip, "/dev/gpiochip1") == 0) {
-        pin_base = 32;
-    } else {
-        return -ENOENT;
-    }
-
-    if (pin->offset < 0 || pin->offset >= 32)
-        return -ENOENT;
-
-    pin->fd = pin_base + pin->offset;
-    stub_priv->gpio_pins[pin->fd] = pin;
-
-    if (pin->config.is_output) {
-        if (pin->config.initial_value >= 0) {
-            hal_write_gpio(pin, pin->config.initial_value, env);
-        } else if (stub_priv->value[pin->fd] == -1) {
-            // Default the pin to zero when hi impedance even
-            // when no initial value.
-            hal_write_gpio(pin, 0, env);
-        }
-    } else {
-        stub_priv->value[pin->fd] = -1;
-    }
-    stub_priv->in_use[pin->fd]++;
-    atomic_fetch_add(&stub_priv->pins_open, 1);
-
-    return 0;
+    if (strcmp(gpiochip, "gpiochip0") == 0 ||
+            strcmp(gpiochip, "/dev/gpiochip0") == 0)
+        return 0;
+    else if (strcmp(gpiochip, "gpiochip1") == 0 ||
+             strcmp(gpiochip, "/dev/gpiochip1") == 0)
+        return 32;
+    else
+        return -1;
 }
 
-void hal_close_gpio(struct gpio_pin *pin)
+// Resolve the readable logic level of a single global line, honoring the
+// even/odd loopback wiring and the group's pull mode.
+static int read_line_value(struct stub_priv *stub_priv, struct gpio_pin *pin, int gidx)
 {
-    if (pin->fd >= 0 && pin->fd < NUM_GPIOS) {
-        struct stub_priv *stub_priv = pin->hal_priv;
-        stub_priv->mode[pin->fd] = TRIGGER_NONE;
-        stub_priv->gpio_pins[pin->fd] = NULL;
-        stub_priv->in_use[pin->fd]--;
-        atomic_fetch_sub(&stub_priv->pins_open, 1);
+    int other = gidx ^ 1;
 
-        pin->fd = -1;
-    }
-}
+    if (stub_priv->value[gidx] != -1)
+        return stub_priv->value[gidx];
 
-int hal_read_gpio(struct gpio_pin *pin)
-{
-    struct stub_priv *stub_priv = pin->hal_priv;
-    int our_pin = pin->fd;
-    int other_pin = our_pin ^ 1;
-
-    if (stub_priv->value[our_pin] != -1)
-        return stub_priv->value[our_pin];
-
-    if (stub_priv->value[other_pin] != -1)
-        return stub_priv->value[other_pin];
+    if (stub_priv->value[other] != -1)
+        return stub_priv->value[other];
 
     if (pin->config.pull == PULL_UP)
         return 1;
@@ -133,86 +96,169 @@ int hal_read_gpio(struct gpio_pin *pin)
     if (pin->config.pull == PULL_DOWN)
         return 0;
 
-    // Both the pin and the pin it's connected to are high impedance and pull mode
-    // isn't set. This should be random, but that might be more confusing so return 0.
+    // Both the line and the line it's connected to are high impedance and pull
+    // mode isn't set. This should be random, but that might be more confusing
+    // so return 0.
     return 0;
 }
 
-static void maybe_send_notification(ErlNifEnv *env, struct gpio_pin *pin, int value)
+int hal_read_gpio(struct gpio_pin *pin, uint64_t *value)
 {
-    if (!pin)
-        return;
-
     struct stub_priv *stub_priv = pin->hal_priv;
+    int base = chip_base(pin->gpiochip);
+    if (base < 0)
+        return -ENOENT;
 
-    int send_it = 0;
-    switch (stub_priv->mode[pin->fd]) {
-    case TRIGGER_BOTH:
-        send_it = 1;
-        break;
-    case TRIGGER_FALLING:
-        send_it = (value == 0);
-        break;
-    case TRIGGER_RISING:
-        send_it = (value != 0);
-        break;
-    case TRIGGER_NONE:
-        send_it = 0;
-        break;
+    uint64_t v = 0;
+    for (int i = 0; i < pin->num_lines; i++) {
+        int gidx = base + pin->offsets[i];
+        if (read_line_value(stub_priv, pin, gidx))
+            v |= ((uint64_t) 1 << i);
     }
-
-    if (send_it) {
-        ErlNifTime now = enif_monotonic_time(ERL_NIF_NSEC);
-        ErlNifEnv *msg_env = enif_alloc_env();
-        if (pin->notify_map) {
-            // A single line's previous value is the opposite of the new value.
-            uint64_t v = value > 0 ? 1 : 0;
-            send_gpio_change(env, msg_env, pin->notify_id, &stub_priv->pid[pin->fd], now, v, v ^ 1);
-        } else {
-            send_gpio_message(env, msg_env, pin->gpio_spec, &stub_priv->pid[pin->fd], now, value);
-        }
-        enif_free_env(msg_env);
-    }
+    *value = v;
+    return 0;
 }
 
-int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env)
+// A single global line changed. Notify the group that owns it (if any and if
+// it's listening), updating that group's shadow value and emitting one message.
+static void notify_line_change(ErlNifEnv *env, struct stub_priv *stub_priv, int gidx)
+{
+    struct gpio_pin *owner = stub_priv->owner[gidx];
+    if (!owner || owner->config.trigger == TRIGGER_NONE)
+        return;
+
+    int base = chip_base(owner->gpiochip);
+    if (base < 0)
+        return;
+
+    // Which bit of the owning group does this line correspond to?
+    int changed_bit = -1;
+    for (int i = 0; i < owner->num_lines; i++) {
+        if (base + owner->offsets[i] == gidx) {
+            changed_bit = i;
+            break;
+        }
+    }
+    if (changed_bit < 0)
+        return;
+
+    uint64_t new_value;
+    if (hal_read_gpio(owner, &new_value) < 0)
+        return;
+
+    uint64_t previous_value = owner->shadow;
+    owner->shadow = new_value;
+
+    ErlNifTime now = enif_monotonic_time(ERL_NIF_NSEC);
+    ErlNifEnv *msg_env = enif_alloc_env();
+    ERL_NIF_TERM notify_term = owner->notify_map ? owner->notify_id : owner->gpio_spec;
+    emit_gpio_change(env, msg_env, owner->notify_map, notify_term,
+                     &owner->config.pid, owner->config.emit_trigger,
+                     now, new_value, previous_value, changed_bit);
+    enif_free_env(msg_env);
+}
+
+int hal_write_gpio(struct gpio_pin *pin, uint64_t value, ErlNifEnv *env)
 {
     struct stub_priv *stub_priv = pin->hal_priv;
-    int our_pin = pin->fd;
-    int other_pin = our_pin ^ 1;
+    int base = chip_base(pin->gpiochip);
+    if (base < 0)
+        return -ENOENT;
 
-    // When drive_mode is :open_drain or :open_source, we need to first determine if the
-    // output is hi-Z (which is modeled by a value of -1)
+    // When drive_mode is :open_drain or :open_source, a line may be hi-Z
+    // (modeled by a value of -1) instead of actively driven.
     bool is_open_drain = pin->config.drive == DRIVE_OPEN_DRAIN;
     bool is_open_source = pin->config.drive == DRIVE_OPEN_SOURCE;
 
-    int target_value;
-    if (is_open_drain && value == 1) {
-        target_value = -1;
-    } else if (is_open_source && value == 0) {
-        target_value = -1;
-    } else {
-        target_value = value;
-    }
+    for (int i = 0; i < pin->num_lines; i++) {
+        int gidx = base + pin->offsets[i];
+        int bitval = (int) ((value >> i) & 1);
 
-    if (stub_priv->value[our_pin] != target_value) {
-        stub_priv->value[our_pin] = target_value;
-        maybe_send_notification(env, stub_priv->gpio_pins[our_pin], target_value);
+        int target_value;
+        if (is_open_drain && bitval == 1)
+            target_value = -1;
+        else if (is_open_source && bitval == 0)
+            target_value = -1;
+        else
+            target_value = bitval;
 
-        // Only notify other pin if it's not outputting a value.
-        if (stub_priv->value[other_pin] == -1)
-            maybe_send_notification(env, stub_priv->gpio_pins[other_pin], target_value);
+        if (stub_priv->value[gidx] != target_value) {
+            stub_priv->value[gidx] = target_value;
+            notify_line_change(env, stub_priv, gidx);
+
+            // Only notify the loopback partner if it's not driving a value.
+            if (stub_priv->value[gidx ^ 1] == -1)
+                notify_line_change(env, stub_priv, gidx ^ 1);
+        }
     }
     return 0;
+}
+
+int hal_open_gpio(struct gpio_pin *pin,
+                  ErlNifEnv *env)
+{
+    struct stub_priv *stub_priv = pin->hal_priv;
+    int base = chip_base(pin->gpiochip);
+    if (base < 0)
+        return -ENOENT;
+
+    for (int i = 0; i < pin->num_lines; i++) {
+        if (pin->offsets[i] < 0 || pin->offsets[i] >= 32)
+            return -ENOENT;
+    }
+
+    for (int i = 0; i < pin->num_lines; i++) {
+        int gidx = base + pin->offsets[i];
+        stub_priv->owner[gidx] = pin;
+        stub_priv->in_use[gidx]++;
+        atomic_fetch_add(&stub_priv->pins_open, 1);
+        if (!pin->config.is_output)
+            stub_priv->value[gidx] = -1;
+    }
+
+    // Mark the group as open (fd is only used as an "is open" flag in the stub).
+    pin->fd = base + pin->offsets[0];
+
+    if (pin->config.is_output)
+        hal_write_gpio(pin, pin->config.initial_value, env);
+
+    return 0;
+}
+
+void hal_close_gpio(struct gpio_pin *pin)
+{
+    if (pin->fd < 0)
+        return;
+
+    struct stub_priv *stub_priv = pin->hal_priv;
+    int base = chip_base(pin->gpiochip);
+    if (base >= 0) {
+        for (int i = 0; i < pin->num_lines; i++) {
+            int gidx = base + pin->offsets[i];
+            if (stub_priv->owner[gidx] == pin)
+                stub_priv->owner[gidx] = NULL;
+            if (stub_priv->in_use[gidx] > 0)
+                stub_priv->in_use[gidx]--;
+            atomic_fetch_sub(&stub_priv->pins_open, 1);
+        }
+    }
+
+    pin->config.trigger = TRIGGER_NONE;
+    pin->fd = -1;
 }
 
 int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 {
+    (void) env;
     struct stub_priv *stub_priv = pin->hal_priv;
+    int base = chip_base(pin->gpiochip);
+    if (base < 0)
+        return -ENOENT;
 
-    stub_priv->mode[pin->fd] = pin->config.trigger;
-    stub_priv->pid[pin->fd] = pin->config.pid;
-    stub_priv->gpio_pins[pin->fd] = pin;
+    // Notification settings live on pin->config and are read live when a line
+    // changes; just (re)assert ownership of the lines.
+    for (int i = 0; i < pin->num_lines; i++)
+        stub_priv->owner[base + pin->offsets[i]] = pin;
 
     return 0;
 }
@@ -220,13 +266,18 @@ int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 int hal_apply_direction(struct gpio_pin *pin)
 {
     struct stub_priv *stub_priv = pin->hal_priv;
+    int base = chip_base(pin->gpiochip);
+    if (base < 0)
+        return -ENOENT;
 
-    if (pin->config.is_output) {
-        if (stub_priv->value[pin->fd] == -1) {
-            stub_priv->value[pin->fd] = 0;
+    for (int i = 0; i < pin->num_lines; i++) {
+        int gidx = base + pin->offsets[i];
+        if (pin->config.is_output) {
+            if (stub_priv->value[gidx] == -1)
+                stub_priv->value[gidx] = 0;
+        } else {
+            stub_priv->value[gidx] = -1;
         }
-    } else {
-        stub_priv->value[pin->fd] = -1;
     }
 
     return 0;
@@ -246,6 +297,7 @@ int hal_apply_drive_mode(struct gpio_pin *pin)
 
 ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
 {
+    (void) hal_priv;
     ERL_NIF_TERM gpio_list = enif_make_list(env, 0);
 
     ERL_NIF_TERM chip_name0 = make_string_binary(env, "gpiochip0");
@@ -277,28 +329,20 @@ ERL_NIF_TERM hal_enumerate(ErlNifEnv *env, void *hal_priv)
 int hal_get_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int offset, ERL_NIF_TERM *result)
 {
     struct stub_priv *stub_priv = hal_priv;
-    int pin_base;
-
-    if (strcmp(gpiochip, "gpiochip0") == 0 ||
-            strcmp(gpiochip, "/dev/gpiochip0") == 0) {
-        pin_base = 0;
-    } else if (strcmp(gpiochip, "gpiochip1") == 0 ||
-               strcmp(gpiochip, "/dev/gpiochip1") == 0) {
-        pin_base = 32;
-    } else {
+    int base = chip_base(gpiochip);
+    if (base < 0)
         return -ENOENT;
-    }
 
     if (offset < 0 || offset >= 32)
         return -ENOENT;
-    int pin_index = pin_base + offset;
+    int pin_index = base + offset;
 
     ERL_NIF_TERM map = enif_make_new_map(env);
 
     int in_use = stub_priv->in_use[pin_index];
     ERL_NIF_TERM consumer = make_string_binary(env, in_use > 0 ? "stub" : "");
 
-    struct gpio_pin *pin = stub_priv->gpio_pins[pin_index];
+    struct gpio_pin *pin = stub_priv->owner[pin_index];
     const char *pull_mode_str;
     const char *drive_mode_str;
     int is_output;

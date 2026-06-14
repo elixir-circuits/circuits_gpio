@@ -27,3 +27,9 @@ path = ["notebooks/basics.livemd"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2024 Masatoshi Nishiguchi"
 SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ["notebooks/rotary_encoder.livemd"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Frank Hunleth"
+SPDX-License-Identifier = "Apache-2.0"

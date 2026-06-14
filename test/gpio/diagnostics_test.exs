@@ -13,10 +13,37 @@ defmodule Circuits.GPIO.DiagnosticsTest do
     assert output =~ "All tests passed"
   end
 
+  test "report/1" do
+    output = capture_io(fn -> Diagnostics.report([{0, 1}]) end)
+    assert output =~ "All tests passed"
+  end
+
+  test "report/1 runs multi-GPIO diagnostics" do
+    output = capture_io(fn -> Diagnostics.report([{0, 1}, {2, 3}]) end)
+
+    assert output =~ "Multi-GPIO writes and reads work: PASSED"
+    assert output =~ "All tests passed"
+  end
+
   test "run/2" do
     results = Diagnostics.run(2, 3)
 
     assert Enum.all?(results, fn {_name, result} -> result == :ok end)
+  end
+
+  test "run/1 with one pair" do
+    results = Diagnostics.run([{2, 3}])
+
+    assert Enum.all?(results, fn {_name, result} -> result == :ok end)
+    refute Enum.any?(results, fn {name, _result} -> String.starts_with?(name, "Pair ") end)
+  end
+
+  test "run/1 with multiple pairs" do
+    results = Diagnostics.run([{0, 1}, {2, 3}])
+
+    assert Enum.all?(results, fn {_name, result} -> result == :ok end)
+
+    assert Enum.any?(results, fn {name, _result} -> name == "Multi-GPIO writes and reads work" end)
   end
 
   test "speed_test/1" do

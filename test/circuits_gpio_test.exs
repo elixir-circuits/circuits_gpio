@@ -720,4 +720,105 @@ defmodule Circuits.GPIOTest do
     assert GPIO.write_one({@gpiochip, 1}, 1) == :ok
     assert GPIO.read_one({@gpiochip, 0}) == 1
   end
+
+  describe "groups" do
+    test "read and write a group as a value bitmap" do
+      {:ok, out} =
+        GPIO.open([{@gpiochip, 0}, {@gpiochip, 2}, {@gpiochip, 4}, {@gpiochip, 6}], :output)
+
+      {:ok, input} =
+        GPIO.open([{@gpiochip, 1}, {@gpiochip, 3}, {@gpiochip, 5}, {@gpiochip, 7}], :input)
+
+      :ok = GPIO.write(out, 0b1011)
+      assert GPIO.read(input) == 0b1011
+
+      :ok = GPIO.write(out, 0b0100)
+      assert GPIO.read(input) == 0b0100
+
+      GPIO.close(out)
+      GPIO.close(input)
+    end
+
+    test "the first GPIO in the list is the least significant bit" do
+      # Open the outputs in reverse so bit 0 of `out` drives line 6.
+      {:ok, out} =
+        GPIO.open([{@gpiochip, 6}, {@gpiochip, 4}, {@gpiochip, 2}, {@gpiochip, 0}], :output)
+
+      {:ok, input} =
+        GPIO.open([{@gpiochip, 1}, {@gpiochip, 3}, {@gpiochip, 5}, {@gpiochip, 7}], :input)
+
+      # out bit 0 -> line 6 -> input bit 3
+      :ok = GPIO.write(out, 0b0001)
+      assert GPIO.read(input) == 0b1000
+
+      GPIO.close(out)
+      GPIO.close(input)
+    end
+
+    test "a single GPIO is a one-line group" do
+      {:ok, out} = GPIO.open([{@gpiochip, 0}], :output)
+      {:ok, input} = GPIO.open([{@gpiochip, 1}], :input)
+
+      :ok = GPIO.write(out, 1)
+      assert GPIO.read(input) == 1
+
+      GPIO.close(out)
+      GPIO.close(input)
+    end
+
+    test "initial_value is a value bitmap" do
+      {:ok, out} = GPIO.open([{@gpiochip, 0}, {@gpiochip, 2}], :output, initial_value: 0b10)
+      {:ok, input} = GPIO.open([{@gpiochip, 1}, {@gpiochip, 3}], :input)
+
+      assert GPIO.read(input) == 0b10
+
+      GPIO.close(out)
+      GPIO.close(input)
+    end
+
+    test "rejects lines on multiple controllers" do
+      assert GPIO.open([{"gpiochip0", 0}, {"gpiochip1", 0}], :input) ==
+               {:error, :multiple_controllers}
+    end
+
+    test "rejects duplicate lines" do
+      assert GPIO.open([{@gpiochip, 0}, {@gpiochip, 0}], :input) == {:error, :duplicate_lines}
+    end
+
+    test "rejects an empty list" do
+      assert_raise ArgumentError, fn -> GPIO.open([], :input) end
+    end
+
+    test "rejects more than 64 lines" do
+      specs = Enum.to_list(0..64)
+      assert_raise ArgumentError, fn -> GPIO.open(specs, :input) end
+    end
+
+    test "set_interrupts rejects a group handle" do
+      {:ok, group} = GPIO.open([{@gpiochip, 1}, {@gpiochip, 3}], :input)
+      assert GPIO.set_interrupts(group, :both) == {:error, :group_handle}
+      GPIO.close(group)
+    end
+  end
+
+  describe "subscribe/2 with a group" do
+    test "group notifications carry the aggregate value and previous_value" do
+      {:ok, out} = GPIO.open([{@gpiochip, 0}, {@gpiochip, 2}], :output)
+      {:ok, input} = GPIO.open([{@gpiochip, 1}, {@gpiochip, 3}], :input)
+
+      {:ok, ref} = GPIO.subscribe(input)
+
+      :ok = GPIO.write(out, 0b01)
+      assert_receive {:circuits_gpio, %{ref: ^ref, value: 0b01, previous_value: 0b00} = msg1}
+      # Exactly one line changed
+      assert Bitwise.bxor(msg1.value, msg1.previous_value) == 0b01
+
+      :ok = GPIO.write(out, 0b11)
+      assert_receive {:circuits_gpio, %{ref: ^ref, value: 0b11, previous_value: 0b01} = msg2}
+      assert Bitwise.bxor(msg2.value, msg2.previous_value) == 0b10
+
+      GPIO.close(out)
+      GPIO.close(input)
+    end
+  end
 end

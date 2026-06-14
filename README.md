@@ -126,8 +126,8 @@ iex> flush
 ```
 
 You may see existing code use `set_interrupts/3`. It's similar, but sends a
-`{:circuits_gpio, gpio_spec, timestamp, value}` tuple. New code should use
-`subscribe/2`.
+`{:circuits_gpio, gpio_spec, timestamp, value}` tuple and can't be used with a
+GPIO group. New code should use `subscribe/2`.
 
 ### Internal pull-up/pull-down
 

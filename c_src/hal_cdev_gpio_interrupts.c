@@ -27,8 +27,11 @@
 
 struct gpio_monitor_info {
     enum trigger_mode trigger;
+    enum trigger_mode emit_trigger;
     int fd;
-    int offset;
+    int num_lines;
+    int offsets[GPIO_MAX_LINES];
+    uint64_t shadow;
     bool notify_map;
     ErlNifEnv *env;
     ErlNifPid pid;
@@ -70,20 +73,40 @@ static void compact_listeners(struct gpio_monitor_info *infos)
 static int handle_gpio_update(ErlNifEnv *msg_env,
                               struct gpio_monitor_info *info,
                               uint64_t timestamp,
-                              int event_id)
+                              int event_id,
+                              unsigned int offset)
 {
-    debug("handle_gpio_update %d", info->offset);
-    int value = event_id == GPIO_V2_LINE_EVENT_RISING_EDGE ? 1 : 0;
+    debug("handle_gpio_update offset %u", offset);
+
+    // Map the changed line's offset to its bit position in the group.
+    int changed_bit = -1;
+    for (int i = 0; i < info->num_lines; i++) {
+        if ((unsigned int) info->offsets[i] == offset) {
+            changed_bit = i;
+            break;
+        }
+    }
+    if (changed_bit < 0)
+        return 0;
+
+    // Update the shadow value from the edge direction. The hardware tracks both
+    // edges so the aggregate stays accurate; emit_trigger decides what's sent.
+    uint64_t previous = info->shadow;
+    uint64_t new_value = previous;
+    if (event_id == GPIO_V2_LINE_EVENT_RISING_EDGE)
+        new_value |= ((uint64_t) 1 << changed_bit);
+    else
+        new_value &= ~((uint64_t) 1 << changed_bit);
+    info->shadow = new_value;
+
+    ERL_NIF_TERM notify_term = info->notify_map ? info->notify_id : info->gpio_spec;
 
     // Convert true/false return to the typical 0/negative returns of this file
-    int rc;
-    if (info->notify_map)
-        // A single line's previous value is the opposite of the new value.
-        rc = send_gpio_change(NULL, msg_env, info->notify_id, &info->pid, timestamp, value, value ^ 1);
+    if (emit_gpio_change(NULL, msg_env, info->notify_map, notify_term, &info->pid,
+                         info->emit_trigger, (int64_t) timestamp, new_value, previous, changed_bit))
+        return 0;
     else
-        rc = send_gpio_message(NULL, msg_env, info->gpio_spec, &info->pid, timestamp, value);
-
-    return rc ? 0 : -1;
+        return -1;
 }
 
 static int process_gpio_events(ErlNifEnv *msg_env,
@@ -101,8 +124,9 @@ static int process_gpio_events(ErlNifEnv *msg_env,
         if (handle_gpio_update(msg_env,
                                info,
                                events[i].timestamp_ns,
-                               events[i].id) < 0) {
-            error("send for gpio %d failed, so not listening to it any more", info->offset);
+                               events[i].id,
+                               events[i].offset) < 0) {
+            error("send for gpio fd %d failed, so not listening to it any more", info->fd);
             return -1;
         }
     }
@@ -197,12 +221,12 @@ void *gpio_poller_thread(void *arg)
             short gpio_revents = fdset[i].revents;
             if (gpio_revents & POLLIN) {
                 if (process_gpio_events(msg_env, &monitor_info[i]) < 0) {
-                    error("error processing gpio events for %d", monitor_info[i].offset);
+                    error("error processing gpio events for fd %d", monitor_info[i].fd);
                     clear_listener(&monitor_info[i]);
                     cleanup = true;
                 }
             } else if (gpio_revents & (POLLERR | POLLHUP | POLLNVAL)) {
-                error("error listening on gpio %d", monitor_info[i].offset);
+                error("error listening on gpio fd %d", monitor_info[i].fd);
                 clear_listener(&monitor_info[i]);
                 cleanup = true;
             }
@@ -242,8 +266,11 @@ int update_polling_thread(struct gpio_pin *pin)
     struct gpio_monitor_info message;
     memset(&message, 0, sizeof(message));
     message.trigger = pin->config.trigger;
+    message.emit_trigger = pin->config.emit_trigger;
     message.fd = pin->fd;
-    message.offset = pin->offset;
+    message.num_lines = pin->num_lines;
+    memcpy(message.offsets, pin->offsets, sizeof(int) * pin->num_lines);
+    message.shadow = pin->shadow;
     message.notify_map = pin->notify_map;
     message.pid = pin->config.pid;
 

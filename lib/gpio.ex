@@ -100,8 +100,14 @@ defmodule Circuits.GPIO do
   @typedoc "The GPIO direction (input or output)"
   @type direction() :: :input | :output
 
-  @typedoc "GPIO logic value (low = 0 or high = 1)"
-  @type value() :: 0 | 1
+  @typedoc """
+  Value of one or more GPIOs
+
+  In the common single-GPIO case, the value is either 0 (low) or 1 (high). When
+  opening groups of GPIOs, the constituent GPIOs are ordered starting from least
+  significant bit (bit 0).
+  """
+  @type value() :: non_neg_integer()
 
   @typedoc "Trigger edge for pin change notifications"
   @type trigger() :: :rising | :falling | :both | :none
@@ -189,8 +195,8 @@ defmodule Circuits.GPIO do
   * `:tag` - a term echoed in the `:ref` field of every notification instead of
     the auto-generated reference. Use this to route messages with a
     domain-specific label.
-  * `:trigger` - notify on `:rising` edges, `:falling` edges, or `:both`.
-    Defaults to `:both`.
+  * `:trigger` - send notifications on the `:rising` edges, `:falling` edges, or
+    `:both`. Defaults to `:both`.
   """
   @type subscribe_options() :: [trigger: trigger(), receiver: pid() | atom(), tag: term()]
 
@@ -241,19 +247,38 @@ defmodule Circuits.GPIO do
   end
 
   @doc """
-  Open a GPIO
+  Open one or more GPIOs
 
   See `t:gpio_spec/0` for the ways of referring to GPIOs. Set `direction` to
   either `:input` or `:output`. If opening as an output, then be sure to set
   the `:initial_value` option to minimize the time the GPIO is in the default
   state.
 
+  ## Groups
+
+  Passing a list of GPIO specs opens them together as a group. `read/1` then
+  returns a single integer and `write/2` takes one. The first GPIO in the list
+  is the least significant bit (bit 0), the second is bit 1, and so on:
+
+  ```elixir
+  iex> {:ok, bus} = Circuits.GPIO.open([{"gpiochip0", 2}, {"gpiochip0", 4}], :output)
+  iex> Circuits.GPIO.write(bus, 0b10)   # GPIO 2 -> 0, GPIO 4 -> 1
+  :ok
+  iex> Circuits.GPIO.close(bus)
+  :ok
+  ```
+
+  All GPIOs in a group must be on the same controller. `:initial_value` is
+  interpreted as an integer with the same one-bit-per-line layout, and
+  `:pull_mode`/`:drive_mode` apply to every line in the group.
+
   If you're having trouble, see `enumerate/0` for available GPIOs. If you
   suspect a hardware or driver issue, see `Circuits.GPIO.Diagnostics`.
 
   Options:
 
-  * :initial_value - Set to `0` or `1`. Only used for outputs. Defaults to `0`.
+  * :initial_value - Set to `0` or `1` (or an integer with one bit per line for
+     a group). Only used for outputs. Defaults to `0`.
   * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
      input pin. `:not_set` is the default.
   * :drive_mode - Set to `:push_pull`, `:open_drain`, or `:open_source`.
@@ -261,7 +286,11 @@ defmodule Circuits.GPIO do
 
   Returns `{:ok, handle}` on success.
   """
-  @spec open(gpio_spec() | identifiers(), direction(), open_options()) ::
+  @spec open(
+          gpio_spec() | identifiers() | [gpio_spec() | identifiers()],
+          direction(),
+          open_options()
+        ) ::
           {:ok, Handle.t()} | {:error, atom()}
   def open(gpio_spec_or_line_info, direction, options \\ [])
 
@@ -269,11 +298,27 @@ defmodule Circuits.GPIO do
     open(gpio_spec, direction, options)
   end
 
+  def open(gpio_specs, direction, options) when is_list(gpio_specs) do
+    specs = Enum.map(gpio_specs, &normalize_spec/1)
+    check_gpio_specs!(specs)
+    check_direction!(direction)
+    check_options!(options)
+
+    do_open(specs, direction, options)
+  end
+
   def open(gpio_spec, direction, options) do
     check_gpio_spec!(gpio_spec)
     check_direction!(direction)
     check_options!(options)
 
+    do_open(gpio_spec, direction, options)
+  end
+
+  defp normalize_spec(%{location: gpio_spec}), do: gpio_spec
+  defp normalize_spec(gpio_spec), do: gpio_spec
+
+  defp do_open(gpio_spec, direction, options) do
     {backend, backend_defaults} = default_backend()
 
     all_options =
@@ -292,6 +337,22 @@ defmodule Circuits.GPIO do
     end
   end
 
+  defp check_gpio_specs!(specs) do
+    cond do
+      specs == [] ->
+        raise ArgumentError, "Expected a non-empty list of GPIO specs"
+
+      length(specs) > 64 ->
+        raise ArgumentError, "A GPIO group is limited to 64 lines"
+
+      not Enum.all?(specs, &gpio_spec?/1) ->
+        raise ArgumentError, "Invalid GPIO spec in #{inspect(specs)}"
+
+      true ->
+        :ok
+    end
+  end
+
   defp check_direction!(direction) do
     if direction not in [:input, :output] do
       raise ArgumentError,
@@ -303,10 +364,15 @@ defmodule Circuits.GPIO do
 
   defp check_options!([{:initial_value, value} | rest]) do
     case value do
-      0 -> :ok
-      1 -> :ok
-      :not_set -> Logger.warning("Circuits.GPIO no longer supports :not_set for :initial_value")
-      _ -> raise ArgumentError, ":initial_value should be 0 or 1"
+      :not_set ->
+        Logger.warning("Circuits.GPIO no longer supports :not_set for :initial_value")
+
+      v when is_integer(v) and v >= 0 ->
+        :ok
+
+      _ ->
+        raise ArgumentError,
+              ":initial_value should be 0 or 1 (or an integer with one bit per line for a group)"
     end
 
     check_options!(rest)
@@ -343,6 +409,9 @@ defmodule Circuits.GPIO do
   @doc """
   Read a GPIO's value
 
+  For a group opened with a list of GPIO specs, this returns an integer with the
+  first GPIO as bit 0, the second as bit 1, and so on. See `t:value/0`.
+
   The value returned for GPIO's that are configured as outputs is undefined.
   Backends may choose not to support this.
   """
@@ -370,6 +439,9 @@ defmodule Circuits.GPIO do
   Set the value of a GPIO
 
   The GPIO must be configured as an output.
+
+  For a group opened with a list of GPIO specs, pass an integer with the first
+  GPIO as bit 0, the second as bit 1, and so on. See `t:value/0`.
   """
   @spec write(Handle.t(), value()) :: :ok
   defdelegate write(handle, value), to: Handle
@@ -394,8 +466,9 @@ defmodule Circuits.GPIO do
   Enable or disable GPIO value change notifications
 
   New code should prefer `subscribe/2`, which delivers a map (with the value and
-  previous value) and returns a reference for matching messages. `set_interrupts/3`
-  remains for backwards compatibility and sends the tuple described below.
+  previous value), works with GPIO groups, and returns a reference for matching
+  messages. `set_interrupts/3` remains for backwards compatibility and sends the
+  tuple described below. It cannot be used with a group handle.
 
   Notifications are sent based on the trigger:
 
@@ -415,8 +488,8 @@ defmodule Circuits.GPIO do
   {:circuits_gpio, gpio_spec, timestamp, value}
   ```
 
-  Where `gpio_spec` is the `t:gpio_spec/0` passed to `open/3`, `timestamp` is an OS
-  monotonic timestamp in nanoseconds, and `value` is the new value.
+  Where `gpio_spec` is the `t:gpio_spec/0` passed to `open/3`, `timestamp` is
+  an OS monotonic timestamp in nanoseconds, and `value` is the new value.
 
   Timestamps are not necessarily the same as from `System.monotonic_time/0`.
   For example, with the cdev backend, they come the Linux kernel. It's also
@@ -436,9 +509,10 @@ defmodule Circuits.GPIO do
   @doc """
   Subscribe to GPIO value change notifications
 
-  This is the preferred way to receive change notifications. It returns
-  `{:ok, ref}` where `ref` is a reference echoed in every notification so you can
-  match messages to this subscription.
+  This is the preferred way to receive change notifications and the only way to
+  receive them for a group (a handle opened with a list of GPIO specs). It
+  returns `{:ok, ref}` where `ref` is a reference echoed in every notification
+  so you can match messages to this subscription.
 
   Available options:
 
@@ -457,11 +531,14 @@ defmodule Circuits.GPIO do
 
   Where `ref` is the reference returned by this function (or your `:tag`),
   `timestamp` is an OS monotonic timestamp in nanoseconds, `value` is the new
-  value (`0` or `1`), and `previous_value` is the value just before the change.
+  value (an integer with one bit per line for a group), and `previous_value` is
+  the previously reported value. `Bitwise.bxor(value, previous_value)` has
+  the changed bits. It's possible to receive reports with no changes due to
+  transients.
 
   Timestamps are not necessarily the same as from `System.monotonic_time/0`.
   For example, with the cdev backend, they're applied by the Linux kernel or
-  can come from a hardware timer. Erlang's monotonic time is adjusted so
+  can be come from a hardware timer. Erlang's monotonic time is adjusted so
   it's not the same as OS monotonic time. The result is that these timestamps
   can be compared with each other, but not with anything else.
 

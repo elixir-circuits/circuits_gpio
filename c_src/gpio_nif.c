@@ -45,6 +45,9 @@ static void release_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
     }
 }
 
+// Reset the pin's environment to hold exactly the terms it needs. Without this,
+// repeated subscribe calls would accumulate copies in pin->env and grow it
+// without bound.
 static void set_pin_terms(struct gpio_pin *pin,
                           ERL_NIF_TERM gpio_spec,
                           bool notify_map,
@@ -60,7 +63,7 @@ static void gpio_pin_dtor(ErlNifEnv *env, void *obj)
     struct gpio_priv *priv = enif_priv_data(env);
     struct gpio_pin *pin = (struct gpio_pin*) obj;
 
-    debug("gpio_pin_dtor called on pin={%s,%d}", pin->gpiochip, pin->offset);
+    debug("gpio_pin_dtor called on pin={%s,%d+%d}", pin->gpiochip, pin->offsets[0], pin->num_lines);
 
     release_gpio_pin(priv, pin);
 }
@@ -74,7 +77,7 @@ static void gpio_pin_stop(ErlNifEnv *env, void *obj, int fd, int is_direct_call)
     //struct gpio_priv *priv = enif_priv_data(env);
 #ifdef DEBUG
     struct gpio_pin *pin = (struct gpio_pin*) obj;
-    debug("gpio_pin_stop called %s, pin={%s,%d}", (is_direct_call ? "DIRECT" : "LATER"), pin->gpiochip, pin->offset);
+    debug("gpio_pin_stop called %s, pin={%s,%d}", (is_direct_call ? "DIRECT" : "LATER"), pin->gpiochip, pin->offsets[0]);
 #endif
 }
 
@@ -86,7 +89,7 @@ static void gpio_pin_down(ErlNifEnv *env, void *obj, ErlNifPid *pid, ErlNifMonit
     (void) monitor;
 #ifdef DEBUG
     struct gpio_pin *pin = (struct gpio_pin*) obj;
-    debug("gpio_pin_down called on pin={%s,%d}", pin->gpiochip, pin->offset);
+    debug("gpio_pin_down called on pin={%s,%d}", pin->gpiochip, pin->offsets[0]);
 #endif
 }
 
@@ -145,6 +148,46 @@ int send_gpio_change(ErlNifEnv *env,
     enif_clear_env(msg_env);
 
     return rc;
+}
+
+bool emit_gpio_change(ErlNifEnv *env,
+                      ErlNifEnv *msg_env,
+                      bool notify_map,
+                      ERL_NIF_TERM notify_term,
+                      ErlNifPid *pid,
+                      enum trigger_mode emit_trigger,
+                      int64_t timestamp,
+                      uint64_t new_value,
+                      uint64_t previous_value,
+                      int changed_bit)
+{
+    int new_bit = (int) ((new_value >> changed_bit) & 1);
+    bool rising = new_bit != 0;
+
+    bool want;
+    switch (emit_trigger) {
+    case TRIGGER_BOTH:
+        want = true;
+        break;
+    case TRIGGER_RISING:
+        want = rising;
+        break;
+    case TRIGGER_FALLING:
+        want = !rising;
+        break;
+    case TRIGGER_NONE:
+    default:
+        want = false;
+        break;
+    }
+
+    if (!want)
+        return true;
+
+    if (notify_map)
+        return send_gpio_change(env, msg_env, notify_term, pid, timestamp, new_value, previous_value);
+    else
+        return send_gpio_message(env, msg_env, notify_term, pid, timestamp, new_bit);
 }
 
 static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
@@ -206,28 +249,26 @@ static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     if (argc != 1 || !enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin))
         return enif_make_badarg(env);
 
-    int value = hal_read_gpio(pin);
-    if (value < 0)
-        return enif_raise_exception(env, enif_make_atom(env, strerror(errno)));
+    uint64_t value;
+    int rc = hal_read_gpio(pin, &value);
+    if (rc < 0)
+        return enif_raise_exception(env, enif_make_atom(env, strerror(-rc)));
 
-    return enif_make_int(env, value);
+    return enif_make_uint64(env, value);
 }
 
 static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     struct gpio_priv *priv = enif_priv_data(env);
     struct gpio_pin *pin;
-    int value;
+    ErlNifUInt64 value;
     if (argc != 2 ||
             !enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin) ||
-            !enif_get_int(env, argv[1], &value))
+            !enif_get_uint64(env, argv[1], &value))
         return enif_make_badarg(env);
 
     if (!pin->config.is_output)
         return enif_raise_exception(env, enif_make_atom(env, "pin_not_output"));
-
-    // Make sure value is 0 or 1
-    value = !!value;
 
     if (hal_write_gpio(pin, value, env) < 0)
         return enif_raise_exception(env, enif_make_atom(env, strerror(errno)));
@@ -281,12 +322,46 @@ static int get_resolved_location(ErlNifEnv *env, ERL_NIF_TERM term, char *gpioch
     return true;
 }
 
-static int get_value(ErlNifEnv *env, ERL_NIF_TERM term, int *value)
+// Parse a resolved group location: {gpiochip_binary, [offset, ...]}. All lines
+// in a group live on the same controller.
+static int get_resolved_group(ErlNifEnv *env, ERL_NIF_TERM term, char *gpiochip_path, int *offsets, int *num_lines)
 {
-    int v;
-    if (enif_get_int(env, term, &v)) {
-        // Force v to be 0 or 1
-        *value = !!v;
+    int arity;
+    const ERL_NIF_TERM *tuple;
+    ErlNifBinary gpiochip_binary;
+
+    if (!enif_get_tuple(env, term, &arity, &tuple) ||
+            arity != 2 ||
+            !enif_inspect_binary(env, tuple[0], &gpiochip_binary) ||
+            gpiochip_binary.size + 1 > MAX_GPIOCHIP_PATH_LEN)
+        return false;
+
+    memcpy(gpiochip_path, gpiochip_binary.data, gpiochip_binary.size);
+    gpiochip_path[gpiochip_binary.size] = '\0';
+
+    unsigned int len;
+    if (!enif_get_list_length(env, tuple[1], &len) || len == 0 || len > GPIO_MAX_LINES)
+        return false;
+
+    ERL_NIF_TERM list = tuple[1];
+    ERL_NIF_TERM head, tail;
+    int i = 0;
+    while (enif_get_list_cell(env, list, &head, &tail)) {
+        if (!enif_get_int(env, head, &offsets[i]))
+            return false;
+        i++;
+        list = tail;
+    }
+
+    *num_lines = (int) len;
+    return true;
+}
+
+static int get_value(ErlNifEnv *env, ERL_NIF_TERM term, uint64_t *value)
+{
+    ErlNifUInt64 v;
+    if (enif_get_uint64(env, term, &v)) {
+        *value = v;
     } else {
         // Interpret anything else as 0 for backwards compatibility
         // with Circuit.GPIO v1's ":not_set". 0 is cdev's default.
@@ -333,6 +408,10 @@ static ERL_NIF_TERM set_interrupts(ErlNifEnv *env, int argc, const ERL_NIF_TERM 
             !enif_get_resource(env, argv[0], priv->gpio_pin_rt, (void**) &pin))
         return enif_make_badarg(env);
 
+    // Groups have no single-line tuple representation; they must use subscribe/3.
+    if (pin->num_lines != 1)
+        return enif_make_tuple2(env, atom_error, enif_make_atom(env, "group_handle"));
+
     struct gpio_config old_config = pin->config;
     if (!get_trigger(env, argv[1], &pin->config.trigger) ||
             !enif_get_boolean(env, argv[2], &pin->config.suppress_glitches) ||
@@ -340,6 +419,10 @@ static ERL_NIF_TERM set_interrupts(ErlNifEnv *env, int argc, const ERL_NIF_TERM 
         pin->config = old_config;
         return enif_make_badarg(env);
     }
+
+    // Legacy notifications emit on exactly the hardware-detected edge and use
+    // the {:circuits_gpio, spec, ts, value} tuple format.
+    pin->config.emit_trigger = pin->config.trigger;
     pin->notify_map = false;
 
     int rc = hal_apply_interrupts(pin, env);
@@ -365,14 +448,24 @@ static ERL_NIF_TERM subscribe(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     bool old_notify_map = pin->notify_map;
     ERL_NIF_TERM old_gpio_spec = enif_make_copy(env, pin->gpio_spec);
     ERL_NIF_TERM old_notify_id = old_notify_map ? enif_make_copy(env, pin->notify_id) : 0;
-    if (!get_trigger(env, argv[2], &pin->config.trigger) ||
-            !enif_get_local_pid(env, argv[3], &pin->config.pid)) {
-        pin->config = old_config;
+    enum trigger_mode emit_trigger;
+    ErlNifPid pid;
+    if (!get_trigger(env, argv[2], &emit_trigger) ||
+            !enif_get_local_pid(env, argv[3], &pid)) {
         return enif_make_badarg(env);
     }
 
-    // A single line's previous_value is always the opposite of the new value
-    // (an edge toggles it), so no value needs to be sampled here.
+    // Seed the shadow with the current value so the first notification's
+    // previous_value is well defined.
+    uint64_t seed;
+    if (hal_read_gpio(pin, &seed) >= 0)
+        pin->shadow = seed;
+
+    // The hardware tracks both edges so the shadow stays accurate even when the
+    // caller only wants one direction; emit_trigger filters what's sent.
+    pin->config.trigger = (emit_trigger == TRIGGER_NONE) ? TRIGGER_NONE : TRIGGER_BOTH;
+    pin->config.emit_trigger = emit_trigger;
+    pin->config.pid = pid;
     pin->notify_map = true;
     set_pin_terms(pin, old_gpio_spec, true, argv[1]);
 
@@ -398,6 +491,7 @@ static ERL_NIF_TERM unsubscribe(ErlNifEnv *env, int argc, const ERL_NIF_TERM arg
 
     struct gpio_config old_config = pin->config;
     pin->config.trigger = TRIGGER_NONE;
+    pin->config.emit_trigger = TRIGGER_NONE;
 
     int rc = hal_apply_interrupts(pin, env);
     if (rc < 0) {
@@ -496,26 +590,29 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
 {
     struct gpio_priv *priv = enif_priv_data(env);
     bool is_output;
-    int offset;
-    int initial_value;
+    int offsets[GPIO_MAX_LINES];
+    int num_lines;
+    uint64_t initial_value;
     enum pull_mode pull;
     enum drive_mode drive;
     char gpiochip_path[MAX_GPIOCHIP_PATH_LEN];
 
     if (argc != 6 ||
-            !get_resolved_location(env, argv[1], gpiochip_path, &offset) ||
+            !get_resolved_group(env, argv[1], gpiochip_path, offsets, &num_lines) ||
             !get_direction(env, argv[2], &is_output) ||
             !get_value(env, argv[3], &initial_value) ||
             !get_pull_mode(env, argv[4], &pull) ||
             !get_drive_mode(env, argv[5], &drive))
         return enif_make_badarg(env);
 
-    debug("open {%s, %d}", gpiochip_path, offset);
+    debug("open {%s, %d lines}", gpiochip_path, num_lines);
 
     struct gpio_pin *pin = enif_alloc_resource(priv->gpio_pin_rt, sizeof(struct gpio_pin));
     pin->fd = -1;
     memcpy(pin->gpiochip, gpiochip_path, MAX_GPIOCHIP_PATH_LEN);
-    pin->offset = offset;
+    pin->num_lines = num_lines;
+    memcpy(pin->offsets, offsets, sizeof(int) * num_lines);
+    pin->shadow = 0;
     pin->env = enif_alloc_env();
     pin->gpio_spec = enif_make_copy(pin->env, argv[0]);
     pin->notify_id = 0;
@@ -523,6 +620,7 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     pin->hal_priv = priv->hal_priv;
     pin->config.is_output = is_output;
     pin->config.trigger = TRIGGER_NONE;
+    pin->config.emit_trigger = TRIGGER_NONE;
     pin->config.pull = pull;
     pin->config.drive = drive;
     pin->config.suppress_glitches = false;

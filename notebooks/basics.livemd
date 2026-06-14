@@ -229,6 +229,9 @@ IEx.Helpers.flush()
 :ok
 ```
 
+Each message includes the new `value`, the `previous_value`, and the `ref`
+returned by `subscribe` so you can tell which subscription it came from.
+
 You may see existing code use `set_interrupts`, which sends a
 `{:circuits_gpio, gpio_spec, timestamp, value}` tuple instead. New code should
 prefer `subscribe`.

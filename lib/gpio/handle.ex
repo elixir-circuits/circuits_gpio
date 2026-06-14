@@ -11,12 +11,12 @@ defprotocol Circuits.GPIO.Handle do
 
   alias Circuits.GPIO
 
-  # Return the current GPIO state
+  # Return the current GPIO state. For a group, this is an integer with one bit per line.
   @doc false
   @spec read(t()) :: GPIO.value()
   def read(handle)
 
-  # Set the GPIO state
+  # Set the GPIO state. For a group, this is an integer with one bit per line.
   @doc false
   @spec write(t(), GPIO.value()) :: :ok
   def write(handle, value)

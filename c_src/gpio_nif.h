@@ -32,6 +32,11 @@ extern FILE *log_location;
 #define MAX_GPIOCHIP_PATH_LEN 32
 #define MAX_GPIO_LISTENERS 32
 
+// Maximum number of GPIO lines that can be opened together as a group.
+// The Linux gpio-cdev v2 API caps a single line request at 64 lines, and the
+// group value is carried as a 64-bit integer (one bit per line).
+#define GPIO_MAX_LINES 64
+
 enum trigger_mode {
     TRIGGER_NONE = 0,
     TRIGGER_RISING,
@@ -60,31 +65,52 @@ struct gpio_priv {
 
 struct gpio_config {
     bool is_output;
+
+    // trigger is the edge(s) the hardware is configured to detect. For a
+    // subscription this is forced to TRIGGER_BOTH so the shadow value stays
+    // accurate; emit_trigger holds the edge(s) the caller actually wants
+    // notifications for.
     enum trigger_mode trigger;
+    enum trigger_mode emit_trigger;
     enum pull_mode pull;
     enum drive_mode drive;
     bool suppress_glitches;
-    int initial_value;
+
+    // Initial output values as an integer. Bit i corresponds to offsets[i].
+    uint64_t initial_value;
     ErlNifPid pid;
 };
 
 struct gpio_pin {
     char gpiochip[MAX_GPIOCHIP_PATH_LEN];
-    int offset;
+
+    // Lines in this group. A single GPIO is just num_lines == 1. offsets[i] is
+    // bit i of the value, with offsets[0] the least significant bit.
+    int num_lines;
+    int offsets[GPIO_MAX_LINES];
+
+    // cdev: the file descriptor for the whole line request. stub: >= 0 marks
+    // the group as open.
     int fd;
     void *hal_priv;
     struct gpio_config config;
 
-    // NIF environment for holding on to the gpio_spec term
+    // Last known value. Used to compute the running aggregate and
+    // previous_value for change notifications.
+    uint64_t shadow;
+
+    // NIF environment for holding on to terms across calls
     ErlNifEnv *env;
 
-    // Used by set_interrupts/3 notifications ({:circuits_gpio, spec, ...})
+    // Echoed in legacy set_interrupts notifications ({:circuits_gpio, spec, ...})
     ERL_NIF_TERM gpio_spec;
 
-    // Used by subscribe/2 notifications ({:circuits_gpio, %{ref: ..., ...}}).
+    // Echoed in subscribe notifications ({:circuits_gpio, %{ref: ..., ...}}).
+    // This is the make_ref() (or caller-supplied tag) returned by subscribe/2.
     ERL_NIF_TERM notify_id;
 
-    // true to use subscribe/2 notification format
+    // true  -> subscribe map format using notify_id
+    // false -> legacy set_interrupts tuple format using gpio_spec
     bool notify_map;
 };
 
@@ -158,22 +184,23 @@ int hal_open_gpio(struct gpio_pin *pin,
 void hal_close_gpio(struct gpio_pin *pin);
 
 /**
- * Read the current value of a GPIO
+ * Read the current value of a GPIO group
  *
- * @param pin which one
- * @return 0 if low; 1 if high
+ * @param pin which group
+ * @param value where to store the value (bit i == offsets[i])
+ * @return 0 on success, -errno on failure
  */
-int hal_read_gpio(struct gpio_pin *pin);
+int hal_read_gpio(struct gpio_pin *pin, uint64_t *value);
 
 /**
- * Change the value of a GPIO
+ * Change the value of a GPIO group
  *
- * @param pin which one
- * @param value 0 or 1
+ * @param pin which group
+ * @param value the value to drive (bit i == offsets[i])
  * @param env ErlNifEnv if this causes an event to be sent
  * @return 0 on success, -errno on failure
  */
-int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env);
+int hal_write_gpio(struct gpio_pin *pin, uint64_t value, ErlNifEnv *env);
 
 /**
  * Apply GPIO direction settings
@@ -265,8 +292,8 @@ int send_gpio_message(ErlNifEnv *env,
  * @param notify_id the ref/tag term to echo (may be from another environment)
  * @param pid who to notify
  * @param timestamp event timestamp in nanoseconds
- * @param value the new group value bitmap
- * @param previous_value the group value bitmap before this change
+ * @param value the new group value
+ * @param previous_value the group value before this change
  * @return true on success (see enif_send)
  */
 int send_gpio_change(ErlNifEnv *env,
@@ -276,4 +303,36 @@ int send_gpio_change(ErlNifEnv *env,
                      int64_t timestamp,
                      uint64_t value,
                      uint64_t previous_value);
+
+/**
+ * Decide whether a single-line edge should produce a notification and, if so,
+ * send it in the right format.
+ *
+ * Shared by the stub HAL (which has the gpio_pin) and the cdev poller thread
+ * (which has copied monitor state). The caller is responsible for tracking the
+ * shadow value and passing new/previous values.
+ *
+ * @param env caller env (NULL from a custom thread)
+ * @param msg_env reusable message environment
+ * @param notify_map true => subscribe map format; false => legacy tuple format
+ * @param notify_term gpio_spec (legacy) or ref/tag (map) to echo
+ * @param pid who to notify
+ * @param emit_trigger which edge(s) the caller wants notifications for
+ * @param timestamp event timestamp in nanoseconds
+ * @param new_value the new group value
+ * @param previous_value the group value before this change
+ * @param changed_bit index of the bit that changed
+ * @return true on success or when no message was needed; false on send failure
+ */
+bool emit_gpio_change(ErlNifEnv *env,
+                      ErlNifEnv *msg_env,
+                      bool notify_map,
+                      ERL_NIF_TERM notify_term,
+                      ErlNifPid *pid,
+                      enum trigger_mode emit_trigger,
+                      int64_t timestamp,
+                      uint64_t new_value,
+                      uint64_t previous_value,
+                      int changed_bit);
+
 #endif // GPIO_NIF_H

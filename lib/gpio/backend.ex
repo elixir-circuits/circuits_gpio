@@ -50,16 +50,21 @@ defmodule Circuits.GPIO.Backend do
             ) :: {:ok, GPIO.status()} | {:error, atom()}
 
   @doc """
-  Open a GPIO
+  Open one or more GPIOs
 
   See `t:gpio_spec/0` for the ways of referring to GPIOs. Set `direction` to
   either `:input` or `:output`. If opening as an output, then be sure to set
   the `:initial_value` option to minimize the time the GPIO is in the default
   state.
 
+  Passing a list of GPIO specs opens them together as a group. `read/1` then
+  returns a single integer and `write/2` takes one, with the first spec as the
+  least significant bit. All GPIOs in a group must be on the same controller.
+
   Options:
 
-  * :initial_value - Set to `0` or `1`. Only used for outputs. Defaults to `0`.
+  * :initial_value - Set to `0` or `1` (or an integer with one bit per line for
+     a group). Only used for outputs. Defaults to `0`.
   * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
      input pin. `:not_set` is the default.
   * :drive_mode - Set to `:push_pull`, `:open_drain`, or `:open_source`.
@@ -68,7 +73,7 @@ defmodule Circuits.GPIO.Backend do
   Returns `{:ok, handle}` on success.
   """
   @callback open(
-              gpio_spec :: GPIO.gpio_spec(),
+              gpio_spec :: GPIO.gpio_spec() | [GPIO.gpio_spec()],
               direction :: GPIO.direction(),
               options :: GPIO.open_options()
             ) ::

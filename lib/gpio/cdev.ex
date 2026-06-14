@@ -121,11 +121,37 @@ defmodule Circuits.GPIO.CDev do
     pull_mode = Keyword.fetch!(options, :pull_mode)
     drive_mode = Keyword.fetch!(options, :drive_mode)
 
-    with {:ok, location} <- find_location(gpio_spec, options),
-         resolved_location = resolve_gpiochip(location),
+    # A single GPIO is just a group of one. All lines in a group must resolve to
+    # the same controller since the cdev backend requests them together.
+    specs = List.wrap(gpio_spec)
+
+    with {:ok, controller, offsets} <- resolve_group(specs, options),
          {:ok, ref} <-
-           Nif.open(gpio_spec, resolved_location, direction, value, pull_mode, drive_mode) do
+           Nif.open(gpio_spec, {controller, offsets}, direction, value, pull_mode, drive_mode) do
       {:ok, %__MODULE__{ref: ref}}
+    end
+  end
+
+  defp resolve_group(specs, options) do
+    resolved =
+      Enum.reduce_while(specs, {:ok, []}, fn spec, {:ok, acc} ->
+        case find_location(spec, options) do
+          {:ok, location} -> {:cont, {:ok, [resolve_gpiochip(location) | acc]}}
+          error -> {:halt, error}
+        end
+      end)
+
+    with {:ok, reversed_locations} <- resolved do
+      locations = Enum.reverse(reversed_locations)
+      controllers = locations |> Enum.map(&elem(&1, 0)) |> Enum.uniq()
+      offsets = Enum.map(locations, &elem(&1, 1))
+
+      cond do
+        controllers == [] -> {:error, :no_gpios}
+        match?([_, _ | _], controllers) -> {:error, :multiple_controllers}
+        offsets != Enum.uniq(offsets) -> {:error, :duplicate_lines}
+        true -> {:ok, hd(controllers), offsets}
+      end
     end
   end
 
