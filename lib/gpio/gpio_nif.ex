@@ -19,6 +19,7 @@ defmodule Circuits.GPIO.Nif do
     do: :erlang.nif_error(:nif_not_loaded)
 
   def close(_gpio), do: :erlang.nif_error(:nif_not_loaded)
+  def force_close(_gpio), do: :erlang.nif_error(:nif_not_loaded)
   def read(_gpio), do: :erlang.nif_error(:nif_not_loaded)
   def write(_gpio, _value), do: :erlang.nif_error(:nif_not_loaded)
 

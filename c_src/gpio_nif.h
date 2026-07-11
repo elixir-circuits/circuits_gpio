@@ -59,6 +59,8 @@ enum drive_mode {
 
 struct gpio_priv {
     ErlNifResourceType *gpio_pin_rt;
+    ErlNifMutex *gpio_pins_lock;
+    struct gpio_pin *gpio_pins;
 
     uint32_t hal_priv[1];
 };
@@ -112,6 +114,11 @@ struct gpio_pin {
     // true  -> subscribe map format using notify_id
     // false -> legacy set_interrupts tuple format using gpio_spec
     bool notify_map;
+
+    // Linked into gpio_priv.gpio_pins while the resource is alive. This lets
+    // force_close release handles even when their Erlang terms are unavailable.
+    struct gpio_pin *next;
+    bool registered;
 };
 
 // Atoms

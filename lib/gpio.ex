@@ -171,6 +171,8 @@ defmodule Circuits.GPIO do
   * `:initial_value` - the initial value of an output GPIO
   * `:pull_mode` - the initial pull mode for an input GPIO
   * `:drive_mode` - the drive mode of an output GPIO
+  * `:on_busy` - behavior when an open fails because the GPIO is already open;
+    `:error` returns the error (default), `:take_over` closes other references and retries.
   * `:force_enumeration` - Linux cdev-specific option to force a scan of
     available GPIOs rather than using the cache. This is only for test purposes
     since the GPIO cache should refresh as needed.
@@ -179,6 +181,7 @@ defmodule Circuits.GPIO do
           initial_value: value(),
           pull_mode: pull_mode(),
           drive_mode: drive_mode(),
+          on_busy: :take_over | :error,
           force_enumeration: boolean()
         ]
 
@@ -272,8 +275,29 @@ defmodule Circuits.GPIO do
   interpreted as an integer with the same one-bit-per-line layout, and
   `:pull_mode`/`:drive_mode` apply to every line in the group.
 
-  If you're having trouble, see `enumerate/0` for available GPIOs. If you
-  suspect a hardware or driver issue, see `Circuits.GPIO.Diagnostics`.
+  ## Exclusivity
+
+  Each GPIO may only have one open handle at a time. This is enforced by the
+  backend, so while one backend may support it, it's not guaranteed.  Library
+  authors should assume exclusivity on GPIOs to be cross platform.  In
+  practice, this isn't a big deal except when debugging.
+
+  Use the `:on_busy` option to `:take_over` a GPIO from another open handle
+  when it's busy. This is useful for `GenServer`s when they restart to avoid
+  waiting for the BEAMs GC to clean up the old handle. It's also handy when
+  experimenting at the IEx prompt when you lose a reference. The `:on_busy`
+  option only works for handles known to the running BEAM instance.
+
+  ## Troubleshooting
+
+  The most common issue is figuring out the names or labels on GPIOs. See
+  `enumerate/0` for available GPIOs. On Linux, labels are defined in the device
+  tree.
+
+  If you suspect a hardware or driver issue, see `Circuits.GPIO.Diagnostics`.
+
+  If you're getting `{:error, :already_open}`, try passing `on_busy: :take_over`
+  to try taking over the GPIO from a lost or outdated reference.
 
   Options:
 
@@ -283,6 +307,9 @@ defmodule Circuits.GPIO do
     input pin. `:not_set` is the default.
   * `:drive_mode` - Set to `:push_pull`, `:open_drain`, or `:open_source`.
     `:push_pull` is the default. Only used for outputs.
+  * `:on_busy` - Set to `:take_over` or `:error`. `:take_over` will try
+    closing other GPIO users to allow this call to succeed. Defaults to
+    `:error`.
 
   Returns `{:ok, handle}` on success.
   """
@@ -327,8 +354,25 @@ defmodule Circuits.GPIO do
       |> Keyword.put_new(:initial_value, 0)
       |> Keyword.put_new(:pull_mode, :not_set)
       |> Keyword.put_new(:drive_mode, :push_pull)
+      |> Keyword.put_new(:on_busy, :error)
 
-    backend.open(gpio_spec, direction, all_options)
+    case backend.open(gpio_spec, direction, all_options) do
+      {:error, :already_open} ->
+        take_over_and_retry(backend, gpio_spec, direction, all_options)
+
+      result ->
+        result
+    end
+  end
+
+  defp take_over_and_retry(backend, gpio_spec, direction, options) do
+    if Keyword.get(options, :on_busy) == :take_over do
+      with :ok <- force_close_specs(backend, List.wrap(gpio_spec), options) do
+        backend.open(gpio_spec, direction, options)
+      end
+    else
+      {:error, :already_open}
+    end
   end
 
   defp check_gpio_spec!(gpio_spec) do
@@ -345,11 +389,8 @@ defmodule Circuits.GPIO do
       length(specs) > 64 ->
         raise ArgumentError, "A GPIO group is limited to 64 lines"
 
-      not Enum.all?(specs, &gpio_spec?/1) ->
-        raise ArgumentError, "Invalid GPIO spec in #{inspect(specs)}"
-
       true ->
-        :ok
+        Enum.each(specs, &check_gpio_spec!/1)
     end
   end
 
@@ -392,6 +433,13 @@ defmodule Circuits.GPIO do
     check_options!(rest)
   end
 
+  defp check_options!([{:on_busy, value} | rest]) do
+    if value not in [:take_over, :error],
+      do: raise(ArgumentError, ":on_busy should be :take_over or :error")
+
+    check_options!(rest)
+  end
+
   defp check_options!([_unknown_option | rest]) do
     # Ignore unknown options - the backend might use them
     check_options!(rest)
@@ -405,6 +453,35 @@ defmodule Circuits.GPIO do
   """
   @spec close(Handle.t()) :: :ok
   defdelegate close(handle), to: Handle
+
+  @doc """
+  Close GPIO handles by gpio spec or identifier
+
+  This is useful when a process has lost its handles or when GPIO hardware is
+  being reconfigured. After this call, any use of the old file handles will
+  raise an exception.
+
+  See the `:on_busy` option in the `t:open_options/0` docs for automatically
+  taking over GPIOs when calling `open/3`.
+  """
+  @spec force_close(gpio_spec() | identifiers() | [gpio_spec() | identifiers()]) ::
+          :ok | {:error, atom()}
+  def force_close(gpio_specs) do
+    specs = gpio_specs |> List.wrap() |> Enum.map(&normalize_spec/1)
+    Enum.each(specs, &check_gpio_spec!/1)
+
+    {backend, backend_options} = default_backend()
+    force_close_specs(backend, specs, backend_options)
+  end
+
+  defp force_close_specs(backend, specs, options) do
+    Enum.reduce_while(specs, :ok, fn spec, :ok ->
+      case backend.force_close(spec, options) do
+        :ok -> {:cont, :ok}
+        error -> {:halt, error}
+      end
+    end)
+  end
 
   @doc """
   Read a GPIO's value

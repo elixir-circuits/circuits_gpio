@@ -32,6 +32,11 @@ defmodule Circuits.GPIO.NilBackend do
   end
 
   @impl Backend
+  def force_close(_gpio_spec, _options) do
+    {:error, :unimplemented}
+  end
+
+  @impl Backend
   def backend_info() do
     %{name: __MODULE__}
   end

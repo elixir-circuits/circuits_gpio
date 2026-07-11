@@ -10,6 +10,42 @@ defmodule Circuits.GPIOTest do
   require Circuits.GPIO
   alias Circuits.GPIO
 
+  defmodule ForceCloseBackend do
+    @behaviour Circuits.GPIO.Backend
+
+    @impl true
+    def enumerate(_options), do: []
+
+    @impl true
+    def identifiers(_gpio_spec, _options), do: {:error, :not_found}
+
+    @impl true
+    def status(_gpio_spec, _options), do: {:error, :not_found}
+
+    @impl true
+    def open(_gpio_spec, _direction, _options) do
+      case Process.get(__MODULE__) do
+        {:force_closed, _gpio_specs} -> {:ok, :handle}
+        _ -> {:error, :already_open}
+      end
+    end
+
+    @impl true
+    def force_close(gpio_spec, _options) do
+      gpio_specs =
+        case Process.get(__MODULE__) do
+          {:force_closed, gpio_specs} -> [gpio_spec | gpio_specs]
+          _ -> [gpio_spec]
+        end
+
+      Process.put(__MODULE__, {:force_closed, gpio_specs})
+      :ok
+    end
+
+    @impl true
+    def backend_info, do: %{name: __MODULE__}
+  end
+
   doctest GPIO
 
   setup do
@@ -38,6 +74,47 @@ defmodule Circuits.GPIOTest do
     assert is_map(info)
     assert info.name == {Circuits.GPIO.CDev, [test: true]}
     assert info.pins_open == 0
+  end
+
+  describe "force_close/1" do
+    test "closes handles that reference GPIOs" do
+      {:ok, first} = GPIO.open({@gpiochip, 0}, :input)
+      {:ok, group} = GPIO.open([{@gpiochip, 1}, {@gpiochip, 2}], :input)
+      {:ok, last} = GPIO.open({@gpiochip, 3}, :input)
+
+      assert GPIO.backend_info().pins_open == 4
+
+      assert :ok = GPIO.force_close({@gpiochip, 1})
+      assert GPIO.backend_info().pins_open == 2
+
+      assert :ok = GPIO.force_close({@gpiochip, 2})
+      assert GPIO.backend_info().pins_open == 2
+
+      assert :ok = GPIO.force_close([{@gpiochip, 0}, {@gpiochip, 3}])
+      assert GPIO.backend_info().pins_open == 0
+
+      assert :ok = GPIO.close(first)
+      assert :ok = GPIO.close(group)
+      assert :ok = GPIO.close(last)
+    end
+
+    test "closing an empty list succeeds" do
+      assert :ok = GPIO.force_close([])
+    end
+
+    test "closed GPIOs raise when used" do
+      {:ok, gpio1} = GPIO.open({@gpiochip, 0}, :input)
+      assert :ok = GPIO.force_close({@gpiochip, 0})
+      # Raises :ebadf
+      assert_raise ErlangError, fn -> GPIO.read(gpio1) end
+
+      {:ok, gpio2} = GPIO.open({@gpiochip, 0}, :output)
+      assert :ok = GPIO.force_close({@gpiochip, 0})
+      assert_raise ErlangError, fn -> GPIO.write(gpio2, 0) end
+
+      assert :ok = GPIO.close(gpio1)
+      assert :ok = GPIO.close(gpio2)
+    end
   end
 
   describe "identifiers/2" do
@@ -221,6 +298,46 @@ defmodule Circuits.GPIOTest do
 
     GPIO.close(gpio)
     assert GPIO.backend_info().pins_open == 0
+  end
+
+  test "open does not force close GPIOs that open successfully" do
+    {:ok, previous} = GPIO.open({@gpiochip, 1}, :input)
+    {:ok, current} = GPIO.open({@gpiochip, 1}, :input)
+
+    assert GPIO.backend_info().pins_open == 2
+
+    GPIO.close(previous)
+    GPIO.close(current)
+  end
+
+  test "open retries after force closing an already open GPIO" do
+    original_backend = Application.get_env(:circuits_gpio, :default_backend)
+    Application.put_env(:circuits_gpio, :default_backend, {ForceCloseBackend, []})
+
+    on_exit(fn ->
+      if original_backend do
+        Application.put_env(:circuits_gpio, :default_backend, original_backend)
+      else
+        Application.delete_env(:circuits_gpio, :default_backend)
+      end
+    end)
+
+    Process.delete(ForceCloseBackend)
+    gpio_specs = [{@gpiochip, 1}, {@gpiochip, 2}]
+
+    assert GPIO.open(gpio_specs, :input, on_busy: :take_over) == {:ok, :handle}
+    assert Process.get(ForceCloseBackend) == {:force_closed, Enum.reverse(gpio_specs)}
+
+    Process.delete(ForceCloseBackend)
+    assert GPIO.open({@gpiochip, 1}, :input, on_busy: :error) == {:error, :already_open}
+
+    # Test default
+    Process.delete(ForceCloseBackend)
+    assert GPIO.open({@gpiochip, 1}, :input) == {:error, :already_open}
+
+    assert_raise ArgumentError, ":on_busy should be :take_over or :error", fn ->
+      GPIO.open({@gpiochip, 1}, :input, on_busy: :invalid)
+    end
   end
 
   test "open returns errors on invalid pins" do
@@ -720,6 +837,18 @@ defmodule Circuits.GPIOTest do
     assert GPIO.read_one({@gpiochip, 0}) == 0
     assert GPIO.write_one({@gpiochip, 1}, 1) == :ok
     assert GPIO.read_one({@gpiochip, 0}) == 1
+  end
+
+  test "read_one/2 and write_one/3 do not force close GPIOs that open successfully" do
+    {:ok, read_handle} = GPIO.open({@gpiochip, 0}, :input)
+    assert GPIO.read_one({@gpiochip, 0}) == 0
+    assert GPIO.backend_info().pins_open == 1
+    GPIO.close(read_handle)
+
+    {:ok, write_handle} = GPIO.open({@gpiochip, 1}, :input)
+    assert GPIO.write_one({@gpiochip, 1}, 1) == :ok
+    assert GPIO.backend_info().pins_open == 1
+    GPIO.close(write_handle)
   end
 
   describe "groups" do

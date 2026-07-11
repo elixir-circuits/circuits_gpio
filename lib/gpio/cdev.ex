@@ -132,6 +132,13 @@ defmodule Circuits.GPIO.CDev do
     end
   end
 
+  @impl Backend
+  def force_close(gpio_spec, options) do
+    with {:ok, location} <- find_location(gpio_spec, options) do
+      Nif.force_close(resolve_gpiochip(location))
+    end
+  end
+
   defp resolve_group(specs, options) do
     resolved =
       Enum.reduce_while(specs, {:ok, []}, fn spec, {:ok, acc} ->

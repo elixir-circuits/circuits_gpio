@@ -42,6 +42,35 @@ static void release_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
     }
 }
 
+static void register_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
+{
+    enif_mutex_lock(priv->gpio_pins_lock);
+    pin->next = priv->gpio_pins;
+    priv->gpio_pins = pin;
+    pin->registered = true;
+    enif_mutex_unlock(priv->gpio_pins_lock);
+}
+
+static void unregister_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
+{
+    enif_mutex_lock(priv->gpio_pins_lock);
+
+    if (pin->registered) {
+        struct gpio_pin **current = &priv->gpio_pins;
+
+        while (*current && *current != pin)
+            current = &(*current)->next;
+
+        if (*current == pin)
+            *current = pin->next;
+
+        pin->registered = false;
+        pin->next = NULL;
+    }
+
+    enif_mutex_unlock(priv->gpio_pins_lock);
+}
+
 // Reset the pin's environment to hold exactly the terms it needs. Without this,
 // repeated subscribe calls would accumulate copies in pin->env and grow it
 // without bound.
@@ -62,6 +91,7 @@ static void gpio_pin_dtor(ErlNifEnv *env, void *obj)
 
     debug("gpio_pin_dtor called on pin={%s,%d+%d}", pin->gpiochip, pin->offsets[0], pin->num_lines);
 
+    unregister_gpio_pin(priv, pin);
     release_gpio_pin(priv, pin);
 }
 
@@ -218,9 +248,19 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info)
     }
 
     priv->gpio_pin_rt = enif_open_resource_type_x(env, "gpio_pin", &gpio_pin_init, ERL_NIF_RT_CREATE, NULL);
+    priv->gpio_pins_lock = enif_mutex_create("gpio_pins");
+    priv->gpio_pins = NULL;
+
+    if (!priv->gpio_pins_lock) {
+        error("Can't create GPIO pin lock");
+        enif_free(priv);
+        return 1;
+    }
 
     if (hal_load(&priv->hal_priv) < 0) {
         error("Can't initialize HAL");
+        enif_mutex_destroy(priv->gpio_pins_lock);
+        enif_free(priv);
         return 1;
     }
 
@@ -615,6 +655,8 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     pin->gpio_spec = enif_make_copy(pin->env, argv[0]);
     pin->notify_id = 0;
     pin->notify_map = false;
+    pin->next = NULL;
+    pin->registered = false;
     pin->hal_priv = priv->hal_priv;
     pin->config.is_output = is_output;
     pin->config.trigger = TRIGGER_NONE;
@@ -629,6 +671,8 @@ static ERL_NIF_TERM open_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
         enif_release_resource(pin);
         return make_errno_error(env, rc);
     }
+
+    register_gpio_pin(priv, pin);
 
     // Transfer ownership of the resource to Erlang so that it can be garbage collected.
     ERL_NIF_TERM pin_resource = enif_make_resource(env, pin);
@@ -646,6 +690,41 @@ static ERL_NIF_TERM close_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
         return enif_make_badarg(env);
 
     release_gpio_pin(priv, pin);
+
+    return atom_ok;
+}
+
+static bool pin_references_gpio(struct gpio_pin *pin, const char *gpiochip_path, int offset)
+{
+    if (strcmp(pin->gpiochip, gpiochip_path) != 0)
+        return false;
+
+    for (int i = 0; i < pin->num_lines; i++) {
+        if (pin->offsets[i] == offset)
+            return true;
+    }
+
+    return false;
+}
+
+static ERL_NIF_TERM force_close(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    struct gpio_priv *priv = enif_priv_data(env);
+    char gpiochip_path[MAX_GPIOCHIP_PATH_LEN];
+    int offset;
+
+    if (argc != 1 || !get_resolved_location(env, argv[0], gpiochip_path, &offset))
+        return enif_make_badarg(env);
+
+    enif_mutex_lock(priv->gpio_pins_lock);
+    for (struct gpio_pin *pin = priv->gpio_pins; pin; pin = pin->next) {
+        if (pin_references_gpio(pin, gpiochip_path, offset)) {
+            // Close the GPIO, but don't free up everything until the pin
+            // has been properly closed.
+            hal_close_gpio(pin);
+        }
+    }
+    enif_mutex_unlock(priv->gpio_pins_lock);
 
     return atom_ok;
 }
@@ -674,6 +753,7 @@ static ERL_NIF_TERM gpio_enumerate(ErlNifEnv *env, int argc, const ERL_NIF_TERM 
 static ErlNifFunc nif_funcs[] = {
     {"open", 6, open_gpio, ERL_NIF_DIRTY_JOB_IO_BOUND},
     {"close", 1, close_gpio, 0},
+    {"force_close", 1, force_close, ERL_NIF_DIRTY_JOB_IO_BOUND},
     {"read", 1, read_gpio, 0},
     {"write", 2, write_gpio, 0},
     {"set_interrupts", 4, set_interrupts, 0},

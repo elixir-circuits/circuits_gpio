@@ -80,6 +80,14 @@ defmodule Circuits.GPIO.Backend do
               {:ok, Handle.t()} | {:error, atom()}
 
   @doc """
+  Force all open handles that reference a GPIO spec to close
+  """
+  @callback force_close(
+              gpio_spec :: GPIO.gpio_spec(),
+              options :: GPIO.open_options()
+            ) :: :ok | {:error, atom()}
+
+  @doc """
   Return information about this backend
   """
   @callback backend_info() :: map()
