@@ -104,6 +104,9 @@ static int read_line_value(struct stub_priv *stub_priv, struct gpio_pin *pin, in
 
 int hal_read_gpio(struct gpio_pin *pin, uint64_t *value)
 {
+    if (pin->fd < 0)
+        return -EBADF;
+
     struct stub_priv *stub_priv = pin->hal_priv;
     int base = chip_base(pin->gpiochip);
     if (base < 0)
@@ -160,6 +163,9 @@ static void notify_line_change(ErlNifEnv *env, struct stub_priv *stub_priv, int 
 
 int hal_write_gpio(struct gpio_pin *pin, uint64_t value, ErlNifEnv *env)
 {
+    if (pin->fd < 0)
+        return -EBADF;
+
     struct stub_priv *stub_priv = pin->hal_priv;
     int base = chip_base(pin->gpiochip);
     if (base < 0)

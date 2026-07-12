@@ -179,6 +179,8 @@ int hal_open_gpio(struct gpio_pin *pin,
 /**
  * Free up resources for the specified GPIO
  *
+ * This can be called more than once.
+ *
  * @param pin GPIO pin information
  */
 void hal_close_gpio(struct gpio_pin *pin);

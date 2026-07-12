@@ -35,13 +35,10 @@ FILE *log_location = NULL;
 
 static void release_gpio_pin(struct gpio_priv *priv, struct gpio_pin *pin)
 {
+    hal_close_gpio(pin);
     if (pin->env) {
         enif_free_env(pin->env);
-        pin->env = 0;
-    }
-    if (pin->fd >= 0) {
-        hal_close_gpio(pin);
-        pin->fd = -1;
+        pin->env = NULL;
     }
 }
 

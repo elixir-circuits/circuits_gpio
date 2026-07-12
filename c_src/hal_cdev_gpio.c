@@ -287,6 +287,7 @@ void hal_close_gpio(struct gpio_pin *pin)
             update_polling_thread(pin);
         }
         close(pin->fd);
+        pin->fd = -1;
     }
 }
 
