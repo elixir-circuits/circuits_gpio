@@ -276,6 +276,8 @@ static void unload(ErlNifEnv *env, void *priv_data)
     debug("unload");
 
     hal_unload(&priv->hal_priv);
+    enif_mutex_destroy(priv->gpio_pins_lock);
+    enif_free(priv);
 }
 
 static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
