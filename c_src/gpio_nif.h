@@ -253,6 +253,7 @@ int hal_get_status(void *hal_priv, ErlNifEnv *env, const char *gpiochip, int off
 
 // nif_utils.c
 ERL_NIF_TERM make_ok_tuple(ErlNifEnv *env, ERL_NIF_TERM value);
+ERL_NIF_TERM make_errno_atom(ErlNifEnv *env, int errno_value);
 ERL_NIF_TERM make_errno_error(ErlNifEnv *env, int errno_value);
 ERL_NIF_TERM make_string_binary(ErlNifEnv *env, const char *str);
 int enif_get_boolean(ErlNifEnv *env, ERL_NIF_TERM term, bool *v);

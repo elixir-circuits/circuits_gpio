@@ -252,7 +252,7 @@ static ERL_NIF_TERM read_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
     uint64_t value;
     int rc = hal_read_gpio(pin, &value);
     if (rc < 0)
-        return enif_raise_exception(env, enif_make_atom(env, strerror(-rc)));
+        return enif_raise_exception(env, make_errno_atom(env, rc));
 
     return enif_make_uint64(env, value);
 }
@@ -270,8 +270,9 @@ static ERL_NIF_TERM write_gpio(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv
     if (!pin->config.is_output)
         return enif_raise_exception(env, enif_make_atom(env, "pin_not_output"));
 
-    if (hal_write_gpio(pin, value, env) < 0)
-        return enif_raise_exception(env, enif_make_atom(env, strerror(errno)));
+    int rc = hal_write_gpio(pin, value, env);
+    if (rc < 0)
+        return enif_raise_exception(env, make_errno_atom(env, rc));
 
     return atom_ok;
 }

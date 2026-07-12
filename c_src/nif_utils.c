@@ -5,6 +5,7 @@
 
 #include "gpio_nif.h"
 
+#include <erl_driver.h> // erl_errno_id
 #include <errno.h>
 #include <string.h>
 
@@ -13,34 +14,26 @@ ERL_NIF_TERM make_ok_tuple(ErlNifEnv *env, ERL_NIF_TERM value)
     return enif_make_tuple2(env, atom_ok, value);
 }
 
-ERL_NIF_TERM make_errno_error(ErlNifEnv *env, int errno_value)
+ERL_NIF_TERM make_errno_atom(ErlNifEnv *env, int errno_value)
 {
     // Handle return codes from functions that return -errno
     if (errno_value < 0)
         errno_value = -errno_value;
 
-    ERL_NIF_TERM reason;
     switch (errno_value) {
-    case ENOENT:
-        reason = enif_make_atom(env, "not_found");
-        break;
+    // For historical reasons, these errno values are translated to custom atoms
+    case ENOENT: return enif_make_atom(env, "not_found");
+    case EBUSY: return enif_make_atom(env, "already_open");
+    case EOPNOTSUPP: return enif_make_atom(env, "not_supported");
 
-    case EBUSY:
-        reason = enif_make_atom(env, "already_open");
-        break;
-
-    case EOPNOTSUPP:
-        reason = enif_make_atom(env, "not_supported");
-        break;
-
-    default:
-        // These errors aren't that helpful, so if they happen, please report
-        // or update this code to provide a better reason.
-        reason = enif_make_tuple2(env, enif_make_atom(env, "errno"), enif_make_int(env, errno_value));
-        break;
+    // Fallback to the plain errno name
+    default: return enif_make_atom(env, erl_errno_id(errno_value));
     }
+}
 
-    return enif_make_tuple2(env, atom_error, reason);
+ERL_NIF_TERM make_errno_error(ErlNifEnv *env, int errno_value)
+{
+    return enif_make_tuple2(env, atom_error, make_errno_atom(env, errno_value));
 }
 
 ERL_NIF_TERM make_string_binary(ErlNifEnv *env, const char *str)
