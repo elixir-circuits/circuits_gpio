@@ -716,6 +716,7 @@ defmodule Circuits.GPIOTest do
   end
 
   test "write_one/2 + read_one/1" do
+    assert GPIO.write_one({@gpiochip, 1}, 0) == :ok
     assert GPIO.read_one({@gpiochip, 0}) == 0
     assert GPIO.write_one({@gpiochip, 1}, 1) == :ok
     assert GPIO.read_one({@gpiochip, 0}) == 1
