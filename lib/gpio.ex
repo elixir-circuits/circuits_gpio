@@ -419,10 +419,11 @@ defmodule Circuits.GPIO do
   monotonic timestamp in nanoseconds, and `value` is the new value.
 
   Timestamps are not necessarily the same as from `System.monotonic_time/0`.
-  For example, with the cdev backend, they're applied by the Linux kernel or
-  can be come from a hardware timer. Erlang's monotonic time is adjusted so
-  it's not the same as OS monotonic time. The result is that these timestamps
-  can be compared with each other, but not with anything else.
+  For example, with the cdev backend, they come the Linux kernel. It's also
+  possible for them to come from a monotonic hardware timer. Both may be
+  different from Erlang's monotonic time. The takeaway is that these timestamps
+  can be compared with each other, but be careful when comparing them to
+  anything else.
 
   NOTE: You will need to store the `Circuits.GPIO` reference somewhere (like
   your `GenServer`'s state) so that it doesn't get garbage collected. Event
