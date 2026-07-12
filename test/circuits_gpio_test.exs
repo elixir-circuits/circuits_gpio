@@ -166,7 +166,7 @@ defmodule Circuits.GPIOTest do
     end
   end
 
-  describe "status/2" do
+  describe "status/1" do
     test "all gpio_spec examples" do
       expected = %{consumer: "", direction: :input, pull_mode: :none, drive_mode: :push_pull}
 
@@ -212,6 +212,29 @@ defmodule Circuits.GPIOTest do
                   pull_mode: :pullup,
                   drive_mode: :push_pull
                 }}
+
+      GPIO.close(gpio)
+    end
+
+    test "status reports an open GPIO handle" do
+      {:ok, gpio} = GPIO.open({@gpiochip, 1}, :input, pull_mode: :pullup)
+
+      assert GPIO.status(gpio) ==
+               {:ok,
+                %{
+                  consumer: "stub",
+                  direction: :input,
+                  pull_mode: :pullup,
+                  drive_mode: :push_pull
+                }}
+
+      GPIO.close(gpio)
+    end
+
+    test "status does not support GPIO groups" do
+      {:ok, gpio} = GPIO.open([{@gpiochip, 0}, {@gpiochip, 1}], :input)
+
+      assert GPIO.status(gpio) == {:error, :group_handle}
 
       GPIO.close(gpio)
     end

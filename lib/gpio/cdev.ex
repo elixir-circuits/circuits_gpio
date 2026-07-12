@@ -28,7 +28,7 @@ defmodule Circuits.GPIO.CDev do
   alias Circuits.GPIO.Handle
   alias Circuits.GPIO.Nif
 
-  defstruct [:ref]
+  defstruct [:ref, :locations]
 
   @impl Backend
   def enumerate(options) do
@@ -128,7 +128,8 @@ defmodule Circuits.GPIO.CDev do
     with {:ok, controller, offsets} <- resolve_group(specs, options),
          {:ok, ref} <-
            Nif.open(gpio_spec, {controller, offsets}, direction, value, pull_mode, drive_mode) do
-      {:ok, %__MODULE__{ref: ref}}
+      locations = Enum.map(offsets, &{controller, &1})
+      {:ok, %__MODULE__{ref: ref, locations: locations}}
     end
   end
 
@@ -171,6 +172,15 @@ defmodule Circuits.GPIO.CDev do
     @impl Handle
     def read(%Circuits.GPIO.CDev{ref: ref}) do
       Nif.read(ref)
+    end
+
+    @impl Handle
+    def status(%Circuits.GPIO.CDev{locations: [location]}) do
+      Nif.status(location)
+    end
+
+    def status(%Circuits.GPIO.CDev{}) do
+      {:error, :group_handle}
     end
 
     @impl Handle

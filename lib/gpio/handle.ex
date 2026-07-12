@@ -16,6 +16,11 @@ defprotocol Circuits.GPIO.Handle do
   @spec read(t()) :: GPIO.value()
   def read(handle)
 
+  # Return dynamic GPIO configuration and status information.
+  @doc false
+  @spec status(t()) :: {:ok, GPIO.status()} | {:error, atom()}
+  def status(handle)
+
   # Set the GPIO state. For a group, this is an integer with one bit per line.
   @doc false
   @spec write(t(), GPIO.value()) :: :ok

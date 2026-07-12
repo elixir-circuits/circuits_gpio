@@ -237,12 +237,15 @@ defmodule Circuits.GPIO do
   end
 
   @doc """
-  Return dynamic configuration and status information about a GPIO
+  Return dynamic configuration and status information about a GPIO or handle
 
-  See `t:gpio_spec/0` for the ways of referring to GPIOs. If the GPIO is found,
-  this function returns information about the GPIO.
+  Pass a `t:gpio_spec/0` to query a GPIO without opening it, or a `t:Handle.t/0`
+  to query an open GPIO. If the GPIO is found, this function returns information
+  about the GPIO. Status for GPIO groups is not supported.
   """
-  @spec status(gpio_spec()) :: {:ok, status()} | {:error, atom()}
+  @spec status(gpio_spec() | Handle.t()) :: {:ok, status()} | {:error, atom()}
+  def status(handle) when is_struct(handle), do: Handle.status(handle)
+
   def status(gpio_spec) do
     {backend, backend_defaults} = default_backend()
 
