@@ -171,7 +171,7 @@ int hal_read_gpio(struct gpio_pin *pin);
  * @param pin which one
  * @param value 0 or 1
  * @param env ErlNifEnv if this causes an event to be sent
- * @return 0 on success
+ * @return 0 on success, -errno on failure
  */
 int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env);
 
@@ -185,7 +185,7 @@ int hal_write_gpio(struct gpio_pin *pin, int value, ErlNifEnv *env);
  * initialized to that value.
  *
  * @param pin which one
- * @return 0 on success
+ * @return 0 on success, -errno on failure
  */
 int hal_apply_direction(struct gpio_pin *pin);
 
@@ -193,7 +193,7 @@ int hal_apply_direction(struct gpio_pin *pin);
  * Apply GPIO interrupt settings
  *
  * @param pin the pin and notification trigger info
- * @return 0 on success
+ * @return 0 on success, -errno on failure
  */
 int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env);
 
@@ -201,7 +201,7 @@ int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env);
  * Apply GPIO pull mode settings
  *
  * @param pin which one
- * @return 0 on success
+ * @return 0 on success, -errno on failure
  */
 int hal_apply_pull_mode(struct gpio_pin *pin);
 
@@ -209,7 +209,7 @@ int hal_apply_pull_mode(struct gpio_pin *pin);
  * Apply GPIO drive mode settings
  *
  * @param pin which one
- * @return 0 on success
+ * @return 0 on success, -errno on failure
  */
 int hal_apply_drive_mode(struct gpio_pin *pin);
 

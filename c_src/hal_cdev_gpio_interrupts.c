@@ -263,7 +263,7 @@ int update_polling_thread(struct gpio_pin *pin)
         error("Error writing polling thread!");
         if (message.env)
             enif_free_env(message.env);
-        return -1;
+        return -EIO;
     }
     return 0;
 }

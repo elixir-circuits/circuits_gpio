@@ -308,12 +308,13 @@ int hal_apply_interrupts(struct gpio_pin *pin, ErlNifEnv *env)
 {
     (void) env;
     debug("hal_apply_interrupts %s:%d", pin->gpiochip, pin->offset);
-    // Update the configuration and start or stop polling
-    if (refresh_config(pin) < 0 ||
-            update_polling_thread(pin) < 0)
-        return -1;
 
-    return 0;
+    // Update the configuration and start or stop polling
+    int rc = refresh_config(pin);
+    if (rc < 0)
+        return rc;
+
+    return update_polling_thread(pin);
 }
 
 int hal_apply_direction(struct gpio_pin *pin)
