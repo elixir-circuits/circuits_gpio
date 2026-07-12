@@ -277,11 +277,11 @@ defmodule Circuits.GPIO do
 
   Options:
 
-  * :initial_value - Set to `0` or `1` (or an integer with one bit per line for
+  * `:initial_value` - Set to `0` or `1` (or an integer with one bit per line for
      a group). Only used for outputs. Defaults to `0`.
-  * :pull_mode - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
+  * `:pull_mode` - Set to `:not_set`, `:pullup`, `:pulldown`, or `:none` for an
      input pin. `:not_set` is the default.
-  * :drive_mode - Set to `:push_pull`, `:open_drain`, or `:open_source`.
+  * `:drive_mode` - Set to `:push_pull`, `:open_drain`, or `:open_source`.
      `:push_pull` is the default. Only used for outputs.
 
   Returns `{:ok, handle}` on success.
