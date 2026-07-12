@@ -5,6 +5,38 @@
 
 # Changelog
 
+## v2.3.0 - 2026-07-12
+
+This is a larger than usual feature update. While it is unexpected to be
+backwards incompatible, please review the compatibility notes below just in
+case.
+
+* New features
+  * Added `Circuits.GPIO.subscribe/2` as an alternative to `set_interrupts/3`.
+    This function simplifies matching of GPIO change notifications and is
+    extensible. It is required for listening to changes for multi-GPIO handles.
+  * Support opening multiple GPIOs using one handle. This allows backends to
+    read and write a set of GPIOs atomically. It's supported on Linux for GPIOs
+    in the same hardware bank.
+  * Support passing GPIO handles to `Circuits.GPIO.status/1`
+  * Added `Circuits.GPIO.force_close/1` to close open handles without knowing
+    the handle. This is especially useful when working at the IEx prompt or
+    Livebook and you've lost the handle. If the handle is used, it will raise
+    an exception.
+  * Added an `on_busy: :take_over` option to `Circuits.GPIO.open/3` to
+    automatically close any other open handles for the specified GPIO or GPIOs.
+    This is not the default. It can be used in `GenServer` `:init` callbacks
+    to avoid a race with the Erlang GC for cleaning up handles from a previous
+    failure.
+
+* Backwards incompatible changes
+  * `Circuits.GPIO.write/2` no longer treats all non-zero values as `1`. Even
+    though the typespec for `write/2` restricted values to `0` and `1`, the
+    implementation was forgiving. This is no longer the case.
+  * Previously unknown errno values were reported as `{:errno, n}`. They're now
+    reported as their lowercase errno names using Erlang's built-in errno
+    conversion.
+
 ## v2.2.0 - 2026-06-12
 
 * Changes
