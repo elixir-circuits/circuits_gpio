@@ -87,6 +87,9 @@ install: $(PREFIX) $(BUILD) $(NIF)
 
 $(OBJ): $(HEADERS) Makefile
 
+$(OBJ): | $(BUILD)
+$(NIF): | $(PREFIX)
+
 $(BUILD)/%.o: c_src/%.c
 	@echo " CC $(notdir $@)"
 	$(CC) -c $(ERL_CFLAGS) $(CFLAGS) -o $@ $<
