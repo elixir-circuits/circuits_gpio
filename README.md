@@ -7,6 +7,7 @@
 
 [![Hex version](https://img.shields.io/hexpm/v/circuits_gpio.svg "Hex version")](https://hex.pm/packages/circuits_gpio)
 [![API docs](https://img.shields.io/hexpm/v/circuits_gpio.svg?label=hexdocs "API docs")](https://circuits-gpio.hexdocs.pm/Circuits.GPIO.html)
+[![Nerves compatibility](https://compatibility.nerves-project.org/badge/circuits_gpio.svg)](https://compatibility.nerves-project.org/packages/circuits_gpio)
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/elixir-circuits/circuits_gpio/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/elixir-circuits/circuits_gpio/tree/main)
 [![REUSE status](https://api.reuse.software/badge/github.com/elixir-circuits/circuits_gpio)](https://api.reuse.software/info/github.com/elixir-circuits/circuits_gpio)
 
