@@ -5,6 +5,11 @@
 
 # Changelog
 
+## v2.3.1 - 2026-10-13
+
+* Changes
+  * Fix C compilation issue when passing `MAKEFLAGS=j<n>` when n > 1.
+
 ## v2.3.0 - 2026-07-12
 
 This is a larger than usual feature update. While it is unexpected to be
